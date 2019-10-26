@@ -4,7 +4,8 @@
   "description": "掲示板のレスをYoutubeコメント風に表示したいという思想の元に開発されるツール",
   "main": "main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "electron ."
   },
   "repository": {
     "type": "git",
@@ -15,5 +16,16 @@
   "bugs": {
     "url": "https://github.com/yudeunagi/unacast/issues"
   },
-  "homepage": "https://github.com/yudeunagi/unacast#readme"
+  "homepage": "https://github.com/yudeunagi/unacast#readme",
+  "dependencies": {
+    "electron": "^1.6.1",
+    "express": "^4.17.1",
+    "react": "^16.11.0",
+    "react-dom": "^16.11.0",
+    "react-router": "^5.1.2"
+  },
+  "devDependencies": {
+    "electron": "^1.6.1",
+    "webpack": "^4.41.2"
+  }
 }
