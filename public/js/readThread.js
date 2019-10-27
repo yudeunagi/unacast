@@ -1,29 +1,55 @@
-//掲示板の最後のレス番号をグローバル変数として宣言
-var lastNum = 483; // TODO あとで
 
 window.onload = function(){
 
-  var url = 'http://jbbs.shitaraba.net/bbs/rawmode.cgi/radio/31003/1564068767/'
+  //URLの設定
+  var url = $('#threadUrl').val();
+  //URLの「read.cgi」を「rawmode.cgi」に変換
+  var cgiurl = url.replace('read.cgi','rawmode.cgi');
+
+  //レス番号の設定
+  var resNum = $('#resNumber').val();
+  //レス番号がない場合は最新の1件を取得する
+  if(resNum.length < 1) {
+    getLastNumber(cgiurl);
+  }
+
+  // リロードインターバル指定
+  const interval = parseInt($('#interval').val());
+
   //指定した秒数ごとにレス取得関数を呼び出す
-  setInterval(readThread, 5000, url);
+  setInterval(readThread, interval, cgiurl);
   //setInterval("appendItem()", 2000);
+}
+
+// リクエスト作成
+function makeRequestBody(url, num){
+  var data = {
+    "threadUrl": url,
+    "resNumber": $('#resNumber').val()
+  };
+  return data;
 }
 
 //指定したスレを読みに行くメソッド
 //url:掲示板のURL
-//lastNum:最終レス番号
+//resNum:最終レス番号
 var readThread = function(url){
   //最終レス番号以降のすべてのレスを取得する
-  //URLの設定
-  //URLの「read.cgi」を「rawmode.cgi」に変換
-  var cgiurl = url.replace('read.cgi','rawmode.cgi');
-  var requestUrl = cgiurl + lastNum + '-'
 
-  requestUrl = 'http://localhost:3000/getRes';
+  //リクエストボディの作成
+  const data = makeRequestBody(url);
+  // console.log(data);
+
+  // 内部で作成したレス取得APIを呼び出す
+  const requestUrl = 'http://localhost:3000/getRes';
   //fetchでレスを取得する
   fetch(requestUrl, {
-    method: 'GET',
-    encoding: null
+    method: 'POST',
+    encoding: null,
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(data),
   })
   .then(function(res) {
     if(res.ok) {
@@ -57,6 +83,53 @@ var readThread = function(url){
   });
 
 }
+
+
+// 最終レス番取得API
+function getLastNumber(url){
+  //リクエストボディの作成
+  const data = makeRequestBody(url);
+
+  var requestUrl = 'http://localhost:3000/getRes/lastNumber';
+  //fetchでレスを取得する
+  fetch(requestUrl, {
+    method: 'POST',
+    encoding: null,
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(data),
+  })
+  .then(function(res) {
+    if(res.ok) {
+      //ステータスOKならレスポンスをテキストにセットして返す
+      return res.text();
+    }
+  })
+  .then((text) => {
+    //レスがなければ終了
+    if(text.length < 1)
+    {
+      console.log('最新レス取得に失敗');
+      return;
+    }
+
+    //レス番号取得
+    var splitRes = text.split('<>');
+    //レス番号更新
+    $('#resNumber').val(parseInt(splitRes[0]) + 1);
+    /*
+    一度に複数レスが来た時の扱いはどうする？
+    for文でパースした<li>を1つづつprependしていく？
+    アニメーションでレスを追加したい、アニメーションに時間かけすぎると次のレス取得が始まってしまう
+    */
+  })
+  .catch((error) => {
+    //エラー処理
+    console.log(error);
+  });
+}
+
 
 //取得したレスポンス（複数）のパース
 //戻りとしてパースした<li>の配列を返す
@@ -106,6 +179,9 @@ function purseResponse(res){
   $li.append($name);
   $li.append('：');
   $li.append($res);
+
+  //レス番号更新
+  $('#resNumber').val(parseInt(splitRes[0]) + 1);
 
   // <li> オブジェクトを返却
   return $li;
