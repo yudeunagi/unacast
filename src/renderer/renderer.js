@@ -3,10 +3,15 @@ const ipcRenderer = require("electron").ipcRenderer;
 
 
 document.addEventListener("DOMContentLoaded", () => {
-    console.log("piyo");
+    console.log("DoMcontentLoaded");
   //formのsubmit時の動作を定義する
   document.getElementById("comment-form").onsubmit = () => {
-    console.log("hoge");
+    console.log("submit");
+
+
+    ipcRenderer.sendSync('start-server', 3000);
+    // 戻り値"pong"が出力される
+
     //コメントを入力するinputを取得する
     const commentInput = document.getElementById("comment-input");
 

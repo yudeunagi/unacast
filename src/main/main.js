@@ -3,16 +3,16 @@
 //Electronのモジュール
 const path = require('path');
 const electron = require("electron");
-const http = require('http');
 const ipcMain = electron.ipcMain;
-const BrowserWindow = electron.BrowserWindow;
 
 //アプリケーションをコントロールするモジュール
 const app = electron.app;
 
-var ss = require('./js/startServer.js');
+// サーバー起動モジュール
+var ss = require('./startServer.js');
 
 //ウィンドウを作成するモジュール
+const BrowserWindow = electron.BrowserWindow;
 
 // メインウィンドウはGCされないようにグローバル宣言
 let mainWindow = null;
@@ -29,7 +29,7 @@ app.on("ready", () => {
   //ウィンドウサイズを1280*720（フレームサイズを含まない）に設定する
   mainWindow = new BrowserWindow({width: 1280, height: 720, useContentSize: true});
   //使用するhtmlファイルを指定する
-  mainWindow.loadURL(`file://${__dirname}/html/index.html`);
+  mainWindow.loadURL(`file://${__dirname}/../html/index.html`);
 
   // ウィンドウが閉じられたらアプリも終了
   mainWindow.on("closed", () => {
@@ -38,10 +38,20 @@ app.on("ready", () => {
 
 });
 
-/*
+
+
+//synchronous-messageチャンネルの受信処理
+ipcMain.on('synchronous-message', (event, arg) => {
+  // "ping"が出力される
+  console.log(arg)
+  // 呼び出し元の戻り値に文字列"pong"を設定
+  event.returnValue = 'hoge'
+});
+
+
 ipcMain.on("start-server", () => {
 
-  ss.startServer(http);
+  ss.startServer(3000);
 });
 
 ipcMain.on("stop-server", function (event, arg) {
@@ -49,4 +59,3 @@ ipcMain.on("stop-server", function (event, arg) {
     console.log("main : server stop");
     event.sender.send("stop");
 });
-*/
