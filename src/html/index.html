@@ -2,17 +2,82 @@
 <html>
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sample</title>
+  <!--Jquery読み込み-->
+  <script>
+  window.jQuery = window.$ = require('../../node_modules/jquery/dist/jquery.slim.min.js');
+  </script>
+  <!-- CSSの読み込み Material Design Lite -->
+  <link rel="stylesheet" href="../../node_modules/material-design-lite/material.min.css">
+  <script src="../../node_modules/material-design-lite/material.min.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  <!-- CSSの読み込み 自作CSS -->
+  <link rel="stylesheet" href="../../public/css/style.css">
+
 </head>
 <body>
-  <h1>CommentBox</h1>
-  <form id="comment-form">
-    <input type="text" id="comment-input" placeholder="コメント" />
-    <input type="submit" value="投稿" />
+  <div class="maincontaints">
+  <h4>設定</h4>
+  <form id="form-main">
+
+    <input type="submit" value="サーバー起動（仮）" />
+    <ul id="comments"></ul>
+
+    <span class="">サーバー起動/停止</span>
+    <label class="mdl-switch mdl-js-switch mdl-js-ripple-effect" for="switch-server-start">
+      <input type="checkbox" id="switch-server-start" class="mdl-switch__input">
+      <span class="mdl-switch__label"></span>
+    </label>
+
+    <div class="mdl-textfield mdl-js-textfield">
+      掲示板URL
+      <input class="mdl-textfield__input" type="text" id="text-url">
+    </div>
+
+    <div class="mdl-textfield mdl-js-textfield">
+      開始レス番号
+      <input class="mdl-textfield__input" type="text" pattern="[0-9]{0,3}?" id="text-res-number">
+      <span class="mdl-textfield__error">0-999 までの数値を入れてください</span>
+    </div>
+
+    <div class="mdl-textfield mdl-js-textfield">
+      ポート番号
+      <input class="mdl-textfield__input" type="text" pattern="[0-9]{0,4}?" id="text-port-number" value="3000">
+      <span class="mdl-textfield__error">0-9999 までの数値を入れてください</span>
+    </div>
+
+    <div class="mdl-textfield mdl-js-textfield">
+      表示レス数（未実装）
+      <input class="mdl-textfield__input" type="text" pattern="[0-9]{0,2}?" id="text-disp-number">
+      <span class="mdl-textfield__error">0-99 までの数値を入れてください</span>
+    </div>
+
+    <p>更新間隔 <span id="spanDisp">5</span></p>
+    <input type="hidden" id="spanValue" value="15">
+    <p style="width:80%">
+      <input id="rangeSpan" class="mdl-slider mdl-js-slider" type="range"
+        min="5" max="30" value="15" tabindex="0" oninput="showVal(this.value)"/>
+    </p>
+
+    <div class="mdl-textfield mdl-js-textfield">
+      YoutubeURL（未実装）
+      <input class="mdl-textfield__input" type="text" id="text-youtube-url">
+    </div>
+
+
   </form>
-  <ul id="comments"></ul>
+
   <script>
-    require('../renderer/renderer')
+  require('../renderer/renderer');
+
+  /* 変更中（ドラッグ中） */
+  function showVal(newVal){
+    $("#spanDisp").text(newVal);
+    $("#spanValue").val(newVal);
+  }
+
   </script>
+</div>
 </body>
 </html>

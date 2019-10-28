@@ -5,11 +5,11 @@ var app = express();
 
 app.set('view engine', 'ejs');
 
-// レス取得モジュール
+// レス取得APIをセット
 var getRes = require('./getRes.js');
-// APIをセット
 app.use('/getRes', getRes);
 
+// サーバー起動
 exports.startServer = function(portNum){
 
   app.get('/', function(req,res, next) {
