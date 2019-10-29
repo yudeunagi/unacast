@@ -30,7 +30,7 @@ app.on("window-all-closed", () => {
 app.on("ready", () => {
   //ウィンドウサイズを1280*720（フレームサイズを含まない）に設定する
   mainWindow = new BrowserWindow({
-    width: 1280
+    width: 700
     , height: 720
     , useContentSize: true
   });
@@ -42,26 +42,4 @@ app.on("ready", () => {
     mainWindow = null;
   });
 
-});
-
-
-
-//synchronous-messageチャンネルの受信処理
-ipcMain.on('synchronous-message', (event, arg) => {
-  // "ping"が出力される
-  console.log(arg)
-  // 呼び出し元の戻り値に文字列"pong"を設定
-  event.returnValue = 'hoge'
-});
-
-
-ipcMain.on("start-server", () => {
-
-  ss.startServer(3000);
-});
-
-ipcMain.on("stop-server", function (event, arg) {
-    server.stop();
-    console.log("main : server stop");
-    event.sender.send("stop");
 });

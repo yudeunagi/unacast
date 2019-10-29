@@ -13,9 +13,6 @@ router.use(bodyParser.json());
  */
 router.post('/', function(req, res, next) {
 
-  //デコード可能か確認＊確認できたのでコメントアウト
-  //var sup = iconv.encodingExists('EUC-JP');
-  //console.log('support EUC-JP =' + sup);
   //console.log(req.body);
 
   // リクエストからURLとレス番号を取得する

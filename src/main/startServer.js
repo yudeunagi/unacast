@@ -3,44 +3,44 @@ const fs = require('fs');
 const express = require('express');
 var app = express();
 
+const { ipcMain } = require('electron');
+
+
 app.set('view engine', 'ejs');
 
 // レス取得APIをセット
 var getRes = require('./getRes.js');
 app.use('/getRes', getRes);
 
-// サーバー起動
-exports.startServer = function(portNum){
 
-  app.get('/', function(req,res, next) {
-    res.render("server", {});
-  });
-  app.use(express.static('public'));
-  app.listen(portNum);
-
-/*
-  var server = http.createServer(function(req,res) {
-    //ファイル読み込み
-    fs.readFile('./src/html/server.html', 'UTF-8',
-    (error, data)=>{
-      //エラー時の処理
-      if(error){
-        console.log('html read failed');
-        throw error;
-      }
-
-      console.log('html read success');
-      //ヘッダ設定
-      res.writeHead(200, {'Content-Type':'text/html; charset=UTF-8'});
-      //本文表示
-      res.write(data);
-      res.end();
-    });
-  });
-
-  //待ち受け開始
-  server.listen(portNum);
+/* サーバー起動
+* config:設定を格納したjson、以下jsonの中身
+* url:掲示板URL
+* resNumber:読み込み開始レス位置
+* port:ポート番号
+*
+*
 */
+ipcMain.on("start-server", (event, config) => {
+  app.get('/', function(req,res, next) {
+    res.render("server", config);
+  });
+  //静的コンテンツはpublicディレクトリの中身を使用するという宣言
+  app.use(express.static('public'));
 
-  console.log('start server');
-}
+  //指定したポートで待ち受け開始
+  app.listen(config.port, ()=>{
+    console.log('start server on port:' + config.port);
+  });
+  //成功メッセージ返却
+  event.returnValue = 'success';
+});
+
+/* サーバー停止
+*
+*/
+ipcMain.on("stop-server", function (event, arg) {
+    server.stop();
+    console.log("main : server stop");
+    event.sender.send("stop");
+});

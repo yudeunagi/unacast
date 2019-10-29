@@ -31,33 +31,41 @@
     </label>
 
     <div class="mdl-textfield mdl-js-textfield">
-      掲示板URL
-      <input class="mdl-textfield__input" type="text" id="text-url">
+      ポート番号
+      <input id="text-port-number" class="mdl-textfield__input" type="text" pattern="[0-9]{0,4}?" value="3000">
+      <span class="mdl-textfield__error">0-9999 までの数値を入れてください</span>
     </div>
+
+<p>
+    <div class="mdl-textfield mdl-js-textfield" style="width: 600px">
+      掲示板URL
+      <input id="text-url" class="mdl-textfield__input" type="text" pattern=".*/" value="http://jbbs.shitaraba.net/bbs/read.cgi/radio/31003/1564068767/">
+      <span class="mdl-textfield__error">URLの最後は"/"をつけてください</span>
+    </div>
+</p>
 
     <div class="mdl-textfield mdl-js-textfield">
       開始レス番号
-      <input class="mdl-textfield__input" type="text" pattern="[0-9]{0,3}?" id="text-res-number">
+      <input id="text-res-number" class="mdl-textfield__input" type="text" pattern="[0-9]{0,3}?" >
       <span class="mdl-textfield__error">0-999 までの数値を入れてください</span>
     </div>
 
     <div class="mdl-textfield mdl-js-textfield">
-      ポート番号
-      <input class="mdl-textfield__input" type="text" pattern="[0-9]{0,4}?" id="text-port-number" value="3000">
-      <span class="mdl-textfield__error">0-9999 までの数値を入れてください</span>
+      名無しネーム
+      <input id="text-noname" class="mdl-textfield__input" type="text" value="名無しさん" >
     </div>
+
 
     <div class="mdl-textfield mdl-js-textfield">
       表示レス数（未実装）
-      <input class="mdl-textfield__input" type="text" pattern="[0-9]{0,2}?" id="text-disp-number">
+      <input id="text-disp-number" class="mdl-textfield__input" type="text" pattern="[0-9]{0,2}?">
       <span class="mdl-textfield__error">0-99 までの数値を入れてください</span>
     </div>
 
     <p>更新間隔 <span id="spanDisp">5</span></p>
-    <input type="hidden" id="spanValue" value="15">
     <p style="width:80%">
       <input id="rangeSpan" class="mdl-slider mdl-js-slider" type="range"
-        min="5" max="30" value="15" tabindex="0" oninput="showVal(this.value)"/>
+        min="5" max="30" value="5" tabindex="0" oninput="showVal(this.value)"/>
     </p>
 
     <div class="mdl-textfield mdl-js-textfield">
@@ -74,7 +82,6 @@
   /* 変更中（ドラッグ中） */
   function showVal(newVal){
     $("#spanDisp").text(newVal);
-    $("#spanValue").val(newVal);
   }
 
   </script>

@@ -8,10 +8,44 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("form-main").onsubmit = () => {
     console.log("submit");
 
-    // サーバー開始メッセージを送信する
-    ipcRenderer.sendSync('start-server', 3000);
-    return false;
+    //設定情報取得
+    var config = buildConfigJson();
+    console.log(config);
 
+    // サーバー開始メッセージを送信する
+    var result = ipcRenderer.sendSync('start-server', config);
+    console.log(result);
+    return false;
+  }
+});
+
+//サーバー起動用のパラメータを作成する
+function buildConfigJson(){
+  //画面から各種項目を取得する
+  var url = document.getElementById("text-url").value;
+  var resNumber = document.getElementById("text-res-number").value;
+  var noname = document.getElementById("text-noname").value;
+  var port = parseInt(document.getElementById("text-port-number").value);
+  var dispNumber = document.getElementById("text-res-number").value;
+  var interval = document.getElementById("rangeSpan").value;
+  var youtubeUrl = document.getElementById("text-youtube-url").value;
+  console.log(url);
+
+  var config =
+  {
+    "url":url
+    ,"resNumber":resNumber
+    ,"noname":noname
+    ,"port":port
+    ,"dipsNumber":dispNumber
+    ,"interval":interval
+    ,"youtubeUrl":youtubeUrl
   }
 
+  return config;
+};
+
+//サーバー起動返信
+ipcRenderer.on('start-server-reply', (event, arg) =>{
+  console.log(arg);
 });

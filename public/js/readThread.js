@@ -13,8 +13,8 @@ window.onload = function(){
     getLastNumber(cgiurl);
   }
 
-  // リロードインターバル指定
-  const interval = parseInt($('#interval').val());
+  // リロードインターバル指定(ms)
+  const interval = 1000 * parseInt($('#interval').val());
 
   //指定した秒数ごとにレス取得関数を呼び出す
   setInterval(readThread, interval, cgiurl);
@@ -177,7 +177,7 @@ function purseResponse(res){
   var $res = $('<span />', {class: 'res'}).append(splitRes[4]);
   $li.append($icon);
   $li.append($name);
-  $li.append('：');
+  $li.append('　');
   $li.append($res);
 
   //レス番号更新
@@ -192,7 +192,7 @@ function getIcon(name, id){
 
   var imgTag = '<img src="img/icon1.png" />';
   //TODO あとでつくる
-  return '';
+  return '●';
 //  return imgTag;
 }
 
@@ -203,15 +203,15 @@ function prependItems(listItems){
   });
 }
 
-//リストにアイテム追加
-function appendItem(){
+//リストにアイテム追加＊ダミーメソッド。もうつかわん
+function appendItemDummy(){
   var $li = $('<li />');
   var $icon = $('<span />', {class: 'icon'}).append(''); // ここにアイコン
   var $name = $('<span />', {class: 'name'}).append('ななし');
   var $res = $('<span />', {class: 'res'}).append('これはテストです');
   $li.append($icon);
   $li.append($name);
-  $li.append('：');
+  $li.append('　');
   $li.append($res);
   $('#res-list').prepend($li);
 }
