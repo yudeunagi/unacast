@@ -12,6 +12,10 @@ app.set('view engine', 'ejs');
 var getRes = require('./getRes.js');
 app.use('/getRes', getRes);
 
+// サーバーをグローバル変数にセットできるようにする（サーバー停止処理のため）
+var server;
+
+
 
 /* サーバー起動
 * config:設定を格納したjson、以下jsonの中身
@@ -22,6 +26,12 @@ app.use('/getRes', getRes);
 *
 */
 ipcMain.on("start-server", (event, config) => {
+
+  // 設定情報をグローバル変数へセットする
+  global.config = config;
+
+  console.log(global.config);
+
   app.get('/', function(req,res, next) {
     res.render("server", config);
   });
@@ -29,7 +39,7 @@ ipcMain.on("start-server", (event, config) => {
   app.use(express.static('public'));
 
   //指定したポートで待ち受け開始
-  app.listen(config.port, ()=>{
+  server = app.listen(config.port, ()=>{
     console.log('start server on port:' + config.port);
   });
   //成功メッセージ返却
@@ -42,5 +52,5 @@ ipcMain.on("start-server", (event, config) => {
 ipcMain.on("stop-server", function (event, arg) {
     server.stop();
     console.log("main : server stop");
-    event.sender.send("stop");
+    event.returnValue = 'stop';
 });

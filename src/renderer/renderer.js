@@ -3,18 +3,19 @@ const ipcRenderer = require("electron").ipcRenderer;
 
 
 document.addEventListener("DOMContentLoaded", () => {
-    console.log("DOM Content Loaded");
+    console.log("[renderer.js]DOM Content Loaded");
   //formのsubmit時の動作を定義する
   document.getElementById("form-main").onsubmit = () => {
-    console.log("submit");
+    console.log("[renderer.js]submit");
 
     //設定情報取得
     var config = buildConfigJson();
+    console.log('[renderer.js]config=')
     console.log(config);
 
     // サーバー開始メッセージを送信する
     var result = ipcRenderer.sendSync('start-server', config);
-    console.log(result);
+    console.log('[renderer.js]' + result);
     return false;
   }
 });
@@ -29,7 +30,6 @@ function buildConfigJson(){
   var dispNumber = document.getElementById("text-res-number").value;
   var interval = document.getElementById("rangeSpan").value;
   var youtubeUrl = document.getElementById("text-youtube-url").value;
-  console.log(url);
 
   var config =
   {

@@ -39,14 +39,14 @@
 <p>
     <div class="mdl-textfield mdl-js-textfield" style="width: 600px">
       掲示板URL
-      <input id="text-url" class="mdl-textfield__input" type="text" pattern=".*/" value="http://jbbs.shitaraba.net/bbs/read.cgi/radio/31003/1564068767/">
+      <input id="text-url" class="mdl-textfield__input" type="text" pattern=".*/" value="http://jbbs.shitaraba.net/bbs/read.cgi/radio/31003/1571673903/">
       <span class="mdl-textfield__error">URLの最後は"/"をつけてください</span>
     </div>
 </p>
 
     <div class="mdl-textfield mdl-js-textfield">
       開始レス番号
-      <input id="text-res-number" class="mdl-textfield__input" type="text" pattern="[0-9]{0,3}?" >
+      <input id="text-res-number" class="mdl-textfield__input" type="text" pattern="[0-9]{0,3}?" value="8">
       <span class="mdl-textfield__error">0-999 までの数値を入れてください</span>
     </div>
 
@@ -62,10 +62,10 @@
       <span class="mdl-textfield__error">0-99 までの数値を入れてください</span>
     </div>
 
-    <p>更新間隔 <span id="spanDisp">5</span></p>
+    <p>更新間隔 <span id="spanDisp">10</span></p>
     <p style="width:80%">
       <input id="rangeSpan" class="mdl-slider mdl-js-slider" type="range"
-        min="5" max="30" value="5" tabindex="0" oninput="showVal(this.value)"/>
+        min="5" max="30" value="10" tabindex="0" oninput="showVal(this.value)"/>
     </p>
 
     <div class="mdl-textfield mdl-js-textfield">
