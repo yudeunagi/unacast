@@ -21,26 +21,44 @@
   <h4>設定</h4>
   <form id="form-main">
 
-    <input type="submit" value="サーバー起動（仮）" />
     <ul id="comments"></ul>
 
-    <span class="">サーバー起動/停止</span><span class"notice">※設定はサーバー起動時に反映されますん</span>
-    <label class="mdl-switch mdl-js-switch mdl-js-ripple-effect" for="switch-server-start">
-      <input type="checkbox" id="switch-server-start" class="mdl-switch__input">
-      <span class="mdl-switch__label"></span>
-    </label>
+    <div>※設定はサーバー起動時に反映されますん</div>
+    <div>
+      <button type="button" id="button-server-start" class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored">
+        サーバー起動
+      </button>
+
+      <button type="button" disabled="true" id="button-server-stop" class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored">
+        停止
+      </button>
+    </div>
+
+    <!-- ダイアログウィンドウ -->
+    <dialog id="close-dialog" class="mdl-dialog">
+      <div class="mdl-dialog__content">
+        <p>
+          サーバーを停止しますか
+        </p>
+      </div>
+      <div class="mdl-dialog__actions">
+        <button type="button" id="button-close-dialog-cancel"class="mdl-button close">キャンセル</button>
+        <button type="button" id="button-close-dialog-ok" class="mdl-button mdl-button--raised mdl-button--colored">OK</button>
+      </div>
+    </dialog>
+    <!-- /ダイアログウィンドウ -->
 
     <div class="mdl-textfield mdl-js-textfield">
       ポート番号
-      <input id="text-port-number" class="mdl-textfield__input" type="text" pattern="[0-9]{0,4}?" value="3000">
+      <input id="text-port-number" class="mdl-textfield__input" type="text" required="true" pattern="[0-9]{0,4}?" value="3000">
       <span class="mdl-textfield__error">0-9999 までの数値を入れてください</span>
     </div>
 
 <p>
     <div class="mdl-textfield mdl-js-textfield" style="width: 600px">
       掲示板URL
-      <input id="text-url" class="mdl-textfield__input" type="text" pattern=".*/" value="http://jbbs.shitaraba.net/bbs/read.cgi/radio/31003/1564068767/">
-      <span class="mdl-textfield__error">URLの最後は"/"をつけてください</span>
+      <input id="text-url" class="mdl-textfield__input" type="text" required="true" pattern="http?://.+" value="http://jbbs.shitaraba.net/bbs/read.cgi/radio/31003/1564068767/">
+      <span id="text-url-error" class="mdl-textfield__error">URLを入力してください</span>
     </div>
 </p>
 
@@ -55,6 +73,10 @@
       <input id="text-noname" class="mdl-textfield__input" type="text" value="名無しさん" >
     </div>
 
+    <div class="mdl-textfield mdl-js-textfield">
+      初期表示テキスト
+      <input id="text-init-message" class="mdl-textfield__input" type="text" value="" >
+    </div>
 
     <div class="mdl-textfield mdl-js-textfield">
       表示レス数（未実装）
@@ -68,7 +90,7 @@
         min="5" max="30" value="10" tabindex="0" oninput="showVal(this.value)"/>
     </p>
 
-    <div class="mdl-textfield mdl-js-textfield">
+    <div class="mdl-textfield mdl-js-textfield" style="width: 600px">
       YoutubeURL（未実装）
       <input class="mdl-textfield__input" type="text" id="text-youtube-url">
     </div>

@@ -1,13 +1,14 @@
 body {
+  /* この辺の項目は変える必要ないと思う */
   margin: 0px auto;
   overflow: hidden;
   text-align: left;
   align: left;
 
-  background-color: rgba(0, 0, 0, 0.1); /*レス表示部の背景色＆不透明度*/
+  background-color: rgba(0, 0, 0, 0.2); /*レス表示部の背景色＆不透明度*/
   color: rgba(255, 255, 255, 255); /*文字色*/
   font-family: 'UD デジタル 教科書体 NK-B', 'メイリオ', 'ＭＳ Ｐゴシック', sans-serif;
-  font-size: 18px;
+  font-size: 16px;
   line-height: 1.3em; /*改行ありのレスの行間*/
 }
 
@@ -23,14 +24,17 @@ body {
 }
 
 ul#res-list {
-  /* レス表示部の左右の余白設定*/
-  padding: 0 0.5em 0 1.0em;
   list-style-type: none;
+  /* レス表示部の左右の余白設定*/
+  padding: 0;
+  padding-left: 0.8em;
+  padding-right: 0.5em;
 }
 
 li.list-item {
   display: block;
-  margin : 0.8em 0;
+  /* コメント間の間隔 */
+  margin : 0.5em 0;
   display: flex;
 }
 
