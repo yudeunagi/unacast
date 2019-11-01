@@ -8,7 +8,7 @@ body {
   background-color: rgba(0, 0, 0, 0.2); /*レス表示部の背景色＆不透明度*/
   color: rgba(255, 255, 255, 255); /*文字色*/
   font-family: 'UD デジタル 教科書体 NK-B', 'メイリオ', 'ＭＳ Ｐゴシック', sans-serif;
-  font-size: 16px;
+  font-size: 18px;
   line-height: 1.3em; /*改行ありのレスの行間*/
 }
 
@@ -34,7 +34,7 @@ ul#res-list {
 li.list-item {
   display: block;
   /* コメント間の間隔 */
-  margin : 0.5em 0;
+  margin : 0.3em 0;
   display: flex;
 }
 
