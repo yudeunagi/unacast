@@ -33,6 +33,7 @@ app.on("ready", () => {
     width: 700
     , height: 720
     , useContentSize: true
+    , 'icon': __dirname + '/../../icon.png'
   });
   //使用するhtmlファイルを指定する
   mainWindow.loadURL(`file://${__dirname}/../html/index.html`);
