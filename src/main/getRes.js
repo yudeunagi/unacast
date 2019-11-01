@@ -1,8 +1,8 @@
 var express = require('express');
 var router = express.Router();
-//var request = require('request'); //httpリクエスト
-//var iconv = require('iconv-lite'); // 文字コード変換用パッケージ
 var bodyParser = require('body-parser');// jsonパーサ
+
+const ReadIcons = require('./ReadIcons'); //アイコンファイル名取得
 
 
 const { JSDOM } = require('jsdom');
@@ -125,8 +125,10 @@ function getIcon(name, id){
 
 //  var $imgTag = '<img class="icoo" src="./img/random/sanma_1.png"/>';
   // ここはアイコンフォルダからランダムで取得するようにしたい
-  var src = './img/random/'
-  src = src + 'teriko.png'
+  console.log();
+
+  var src = ReadIcons.getRandomIcons();
+
   var $imgTag = $('<img />', {class: 'icon', src: src});
 
   return $imgTag;

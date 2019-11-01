@@ -2,10 +2,10 @@
 
 //Electronのモジュール
 const path = require('path');
-const electron = require("electron");
+const electron = require('electron');
 const ipcMain = electron.ipcMain;
 
-
+const ReadIcons = require('./ReadIcons');
 
 //アプリケーションをコントロールするモジュール
 const app = electron.app;

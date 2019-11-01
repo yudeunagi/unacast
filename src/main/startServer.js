@@ -30,6 +30,7 @@ ipcMain.on("start-server", (event, config) => {
   // 設定情報をグローバル変数へセットする
   global.config = config;
 
+  console.log('[startServer]設定値 = ');
   console.log(global.config);
 
   app.get('/', function(req,res, next) {
@@ -40,7 +41,7 @@ ipcMain.on("start-server", (event, config) => {
 
   //指定したポートで待ち受け開始
   server = app.listen(config.port, ()=>{
-    console.log('start server on port:' + config.port);
+    console.log('[startServer]start server on port:' + config.port);
   });
   //成功メッセージ返却
   event.returnValue = 'success';
@@ -49,8 +50,8 @@ ipcMain.on("start-server", (event, config) => {
 /* サーバー停止
 *
 */
-ipcMain.on("stop-server", function (event, arg) {
-    server.stop();
-    console.log("main : server stop");
+ipcMain.on("stop-server", function (event) {
+    server.close();
+    console.log("[startServer]server stop");
     event.returnValue = 'stop';
 });

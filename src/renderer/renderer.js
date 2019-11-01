@@ -4,19 +4,37 @@ const ipcRenderer = require("electron").ipcRenderer;
 
 document.addEventListener("DOMContentLoaded", () => {
     console.log("[renderer.js]DOM Content Loaded");
-  //formのsubmit時の動作を定義する
-  document.getElementById("form-main").onsubmit = () => {
-    console.log("[renderer.js]submit");
 
-    //設定情報取得
-    var config = buildConfigJson();
-    console.log('[renderer.js]config=')
-    console.log(config);
+  //チェックボックスのON-OFFでサーバーのON-OFFする
+  document.getElementById('switch-server-start').onclick = (event) => {
+    //チェック状態取得
+    var isChecked = event.target.checked;
 
-    // サーバー開始メッセージを送信する
-    var result = ipcRenderer.sendSync('start-server', config);
-    console.log('[renderer.js]' + result);
-    return false;
+    if(!isChecked) {
+      //ONにしたときサーバー起動
+      //設定情報取得
+      var config = buildConfigJson();
+      console.log('[renderer.js]config=')
+      console.log(config);
+
+      // サーバー開始メッセージを送信する
+      var result = ipcRenderer.sendSync('start-server', config);
+      console.log('[renderer.js]' + result);
+      return;
+    }
+    else {
+      //OFFにしたときサーバー停止
+      //確認ダイアログを表示してキャンセルなら取り消す
+      /*
+      if(){
+        確認ダイアログ出す処理
+      }
+      */
+
+      var result = ipcRenderer.sendSync('stop-server');
+      console.log('[renderer.js]' + result);
+      return ;
+    }
   }
 });
 
