@@ -22,6 +22,8 @@ ipcMain.on("start-server", (event, config) => {
   express = require('express');
   app = express();
   app.set('view engine', 'ejs');
+  //viewディレクトリの指定
+  app.set('views', __dirname + '/../../views');
   app.use('/getRes', getRes);
 
   // 設定情報をグローバル変数へセットする
@@ -36,7 +38,7 @@ ipcMain.on("start-server", (event, config) => {
     req.connection.end();
   });
   //静的コンテンツはpublicディレクトリの中身を使用するという宣言
-  app.use(express.static('public'));
+  app.use(express.static(__dirname + '/../../public'));
 
   //指定したポートで待ち受け開始
   server = app.listen(config.port, ()=>{

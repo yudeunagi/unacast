@@ -16,13 +16,13 @@ var idIconList;
 var ReadIcons = function()
 {
   //画像ディレクトリ
-  var randomDir = `./public/img/random/`;
+  var randomDir = __dirname +  `/../../public/img/random/`;
   console.log('[ReadIcons]loadRandomDir = ' + randomDir);
   //  ランダムアイコン取得
   randomIconList = readDir(randomDir);
 
   //ID用アイコンディレクトリ
-  var idDir = `./public/img/id/`;
+  var idDir = __dirname + `/../../public/img/id/`;
   console.log('[ReadIcons]loadIDDir = ' + idDir);
   //  ランダムアイコン取得
   idIconList = readDir(idDir);

@@ -35,8 +35,9 @@ app.on("ready", () => {
     , useContentSize: true
     , 'icon': __dirname + '/../../icon.png'
   });
+  mainWindow.setTitle('unacast');
   //使用するhtmlファイルを指定する
-  mainWindow.loadURL(`file://${__dirname}/../html/index.html`);
+  mainWindow.loadURL(__dirname + '/../html/index.html');
 
   // ウィンドウが閉じられたらアプリも終了
   mainWindow.on("closed", () => {

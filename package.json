@@ -1,11 +1,12 @@
 {
   "name": "unacast",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "掲示板のレスをYoutubeコメント風に表示したいという思想の元に開発されるツール",
   "main": "src/main/main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "electron ."
+    "start": "electron .",
+    "build-win": "electron-packager . unacast --platform=win32 --arch=x64 --icon=icon.ico"
   },
   "repository": {
     "type": "git",
