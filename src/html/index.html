@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>unacast</title>
+  <!--Jquery読み込み-->
+  <script>
+  window.jQuery = window.$ = require('../../node_modules/jquery/dist/jquery.slim.min.js');
+  </script>
+  <!-- CSSの読み込み Material Design Lite -->
+  <link rel="stylesheet" href="../../node_modules/material-design-lite/material.min.css">
+  <script src="../../node_modules/material-design-lite/material.min.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  <!-- CSSの読み込み 自作CSS -->
+  <link rel="stylesheet" href="../../public/css/style.css">
+
+</head>
+<body>
+  <div class="maincontaints">
+  <h4>設定</h4>
+  <form id="form-main">
+
+    <ul id="comments"></ul>
+
+    <div>※設定はサーバー起動時に反映されますん</div>
+    <div>
+      <button type="button" id="button-server-start" class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored">
+        サーバー起動
+      </button>
+
+      <button type="button" disabled="true" id="button-server-stop" class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored">
+        停止
+      </button>
+    </div>
+
+    <!-- ダイアログウィンドウ -->
+    <dialog id="close-dialog" class="mdl-dialog">
+      <div class="mdl-dialog__content">
+        <p>
+          サーバーを停止しますか
+        </p>
+      </div>
+      <div class="mdl-dialog__actions">
+        <button type="button" id="button-close-dialog-cancel"class="mdl-button close">キャンセル</button>
+        <button type="button" id="button-close-dialog-ok" class="mdl-button mdl-button--raised mdl-button--colored">OK</button>
+      </div>
+    </dialog>
+    <!-- /ダイアログウィンドウ -->
+
+    <div class="mdl-textfield mdl-js-textfield">
+      ポート番号
+      <input id="text-port-number" class="mdl-textfield__input" type="text" required="true" pattern="[0-9]{0,4}?" value="3000">
+      <span class="mdl-textfield__error">0-9999 までの数値を入れてください</span>
+    </div>
+
+<p>
+    <div class="mdl-textfield mdl-js-textfield" style="width: 600px">
+      掲示板URL
+      <input id="text-url" class="mdl-textfield__input" type="text" required="true" pattern="http?://.+" value="http://jbbs.shitaraba.net/bbs/read.cgi/radio/31003/1564068767/">
+      <span id="text-url-error" class="mdl-textfield__error">URLを入力してください</span>
+    </div>
+</p>
+
+    <div class="mdl-textfield mdl-js-textfield">
+      開始レス番号
+      <input id="text-res-number" class="mdl-textfield__input" type="text" pattern="[0-9]{0,3}?" value="575">
+      <span class="mdl-textfield__error">0-999 までの数値を入れてください</span>
+    </div>
+
+    <div class="mdl-textfield mdl-js-textfield">
+      名無しネーム
+      <input id="text-noname" class="mdl-textfield__input" type="text" value="名無しさん" >
+    </div>
+
+    <div class="mdl-textfield mdl-js-textfield">
+      初期表示テキスト
+      <input id="text-init-message" class="mdl-textfield__input" type="text" value="" >
+    </div>
+
+    <div class="mdl-textfield mdl-js-textfield">
+      表示レス数（未実装）
+      <input id="text-disp-number" class="mdl-textfield__input" type="text" pattern="[0-9]{0,2}?">
+      <span class="mdl-textfield__error">0-99 までの数値を入れてください</span>
+    </div>
+
+    <p>更新間隔 <span id="spanDisp">10</span></p>
+    <p style="width:80%">
+      <input id="rangeSpan" class="mdl-slider mdl-js-slider" type="range"
+        min="5" max="30" value="10" tabindex="0" oninput="showVal(this.value)"/>
+    </p>
+
+    <div class="mdl-textfield mdl-js-textfield" style="width: 600px">
+      YoutubeURL（未実装）
+      <input class="mdl-textfield__input" type="text" id="text-youtube-url">
+    </div>
+
+
+  </form>
+
+  <script>
+  require('../renderer/renderer');
+
+  /* 変更中（ドラッグ中） */
+  function showVal(newVal){
+    $("#spanDisp").text(newVal);
+  }
+
+  </script>
+</div>
+</body>
+</html>

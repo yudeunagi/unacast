@@ -1,0 +1,57 @@
+body {
+  /* この辺の項目は変える必要ないと思う */
+  margin: 0px auto;
+  overflow: hidden;
+  text-align: left;
+  align: left;
+
+  background-color: rgba(0, 0, 0, 0.2); /*レス表示部の背景色＆不透明度*/
+  color: rgba(255, 255, 255, 255); /*文字色*/
+  font-family: 'UD デジタル 教科書体 NK-B', 'メイリオ', 'ＭＳ Ｐゴシック', sans-serif;
+  font-size: 18px;
+  line-height: 1.3em; /*改行ありのレスの行間*/
+}
+
+body {
+  text-shadow: 1px 1px 0 #333,
+    -1px 1px 0 #333,
+    1px -1px 0 #333,
+    -1px -1px 0 #333;
+}
+
+.name {
+  color: #55ff55;
+}
+
+ul#res-list {
+  list-style-type: none;
+  /* レス表示部の左右の余白設定*/
+  padding: 0;
+  padding-left: 0.8em;
+  padding-right: 0.5em;
+}
+
+li.list-item {
+  display: block;
+  /* コメント間の間隔 */
+  margin : 0.3em 0;
+  display: flex;
+}
+
+/* アイコン表示部 */
+.icon-block {
+  display: block;
+  flex: none;
+  /*表示部分の大きさ*/
+  width: 2em;
+  height: 2em;
+  /*アイコン右の余白*/
+  margin-right:0.2em;
+}
+
+/* アイコン */
+img.icon{
+  border-radius: 50%; /*角を丸める*/
+  width: 24px;
+  height: 24px;
+}

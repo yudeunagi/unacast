@@ -1,0 +1,36 @@
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>サーバー表示ウィンドウ</title>
+  <script
+  src="https://code.jquery.com/jquery-3.4.1.js"
+  integrity="sha256-WpOohJOqMqqyKL9FccASB9O0KwACQJpFTUBLTYOVvVU="
+  crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="./css/style-server.css">
+
+</head>
+<body>
+  <form id="requestForm">
+    <input type="hidden" id="threadUrl" name="threadUrl" value="<%=url%>" >
+    <input type="hidden" id="resNumber" name="resNumber" value="<%=resNumber%>" >
+    <input type="hidden" id="noname" name="noname" value="<%=noname%>" >
+    <input type="hidden" id="dispNumber" name="dispNumber" value="<%=dipsNumber%>" >
+    <input type="hidden" id="interval" name="interval" value="<%=interval%>" >
+    <input type="hidden" id="youtubeUrl" name="youtubeUrl" value="<%=youtubeUrl%>" >
+  </form>
+  <ul id="res-list">
+    <li>
+      <span class="icon">
+      </span>
+      <span class="name">
+        <%=initMessage%>
+      </span>
+      <span class="res">
+      </span>
+    </li>
+  </ul>
+
+  <script src="./js/readThread.js">
+  </script>
+</body>
+</html>
