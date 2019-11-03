@@ -10,11 +10,16 @@ const $ = require('jquery')(new JSDOM().window);
 
 var ReadSitaraba = require('./readBBS/readSitaraba') //　したらば読み込み用モジュール
 var sitaraba = new ReadSitaraba();
+var Read5ch = require('./readBBS/Read5ch') //　5ch互換板読み込み用モジュール
+var read5ch = new Read5ch();
+// 掲示板読み込みモジュール、一度決定したら使いまわすためにグローバル宣言
+var bbsModule = null;
 
+// リクエストのbodyをパース下りエンコードしたりするためのやつ
 router.use(bodyParser.urlencoded({ extended: true }));
 router.use(bodyParser.json());
 
-/* サンプルAPI
+/*
  * http://localhost:3000/getRes にGETメソッドのリクエストを投げると、
  * JSON形式で文字列を返す。
  */
@@ -25,37 +30,26 @@ router.post('/', async function(req, res, next) {
   // レス番号取得
   var resNum = req.body.resNumber;
 
-  //***リクエストURLを解析し、使用するモジュールを変更する
-  // 現在はしたらば掲示板のみ対応
-
-  //したらば
-  var bbsModule = sitaraba;
-
-
-  //***ここまでモジュール判定処理
-
-
+  //リクエストURLを解析し、使用するモジュールを変更する（初回のみ）
+  if(bbsModule === null){
+    bbsModule = analysBBSName(threadUrl);
+  }
 
   //選択したモジュールでレス取得処理を行う
   bbsModule.read(threadUrl, resNum)
   .then(response =>{
-
     console.log('[getRes.js]レス取得成功。処理開始');
-
     // 返却されたjsonオブジェクトを組み立てる
-    var result = buildResponse(response);
-
+    var result = buildResponseArray(response);
     // 返却
     res.header('Content-Type', 'application/json; charset=UTF-8')
     console.log('[getRes.js]レス処理完了');
 //    console.log(result);
     res.send(result);
-
   })
   .catch(err =>{
     console.log(err);
   });
-
 
   return;
   //こっから下は移植したらけす
@@ -67,20 +61,47 @@ router.post('/', async function(req, res, next) {
   */
 });
 
-function buildResponse(resObject){
+/*
+ * URLをみてどこのBBSか判定して使用するモジュールを返却する
+ */
+function analysBBSName(threadUrl){
+  //したらばドメイン名
+  const sitarabaDomain = 'jbbs.shitaraba.net';
+  //こんな感じで必要に応じて増やしていけばいいんじゃね？
+//  const dokkanoBBS = 'dokka.bbs.com';
+
+  if(threadUrl.indexOf(sitarabaDomain) != -1){
+    // URLにしたらばドメイン名が入ってればしたらば
+    return sitaraba;
+  }
+  // どこにも該当しなかったらとりあえず5chで
+  // この辺も対応ドメインリストとか作ってちゃんと判定したほうがよさそう
+  return read5ch;
+}
+
+/**
+* レスポンスの生成
+* レスポンスオブジェクトの配列をHTMLに変換
+*/
+function buildResponseArray(resObject){
   //結果を格納する配列
   var result = new Array();
-
+  console.log('[getRes.buildResponseArray]レスポンス整形開始 件数=' + resObject.length);
   resObject.forEach((value) =>{
-    result.push(build(value));
+    result.push(buildResponse(value));
   });
   return result;
 }
-//レスポンスのパース
-//Jqueryオブジェクトを返却する
-function build(res){
+/**
+*レスポンスのパース
+*レス番号とHTML文字列を格納したオブジェクトを返却する
+* @param object // レスオブジェクト（ReadShitaraba.jsとか参照）
+* @return { レス番 , HTML整形後のレス }のオブジェクト
+*/
+function buildResponse(res){
 
   console.log('[getRes.js]パース開始');
+  console.log(res);
   //最終的にHTML文字列にするためのダミーオブジェクト
   var $dummy = $('<div />');
 
@@ -120,17 +141,45 @@ function build(res){
   return result;
 }
 
-//アイコン画像取得、名前やIDを見て条件によって固定のアイコンを返す
+/**
+* アイコン画像取得表示のためのimgタグを返す
+* @param String // name 名前
+* @param String // id ID、板によっては非表示だったりする、困る
+*/
 function getIcon(name, id){
-
-//  var $imgTag = '<img class="icoo" src="./img/random/sanma_1.png"/>';
-  // ここはアイコンフォルダからランダムで取得するようにしたい
-  console.log();
-
-  var src = ReadIcons.getRandomIcons();
-
+  var src = getIconFileName(name, id);
   var $imgTag = $('<img />', {class: 'icon', src: src});
-
   return $imgTag;
 }
+/**
+* アイコン画像名取得、名前やIDを見て条件によって固定のアイコンを返す
+* @param String // name 名前
+* @param String // id ID、板によっては非表示だったりする、困る
+*/
+function getIconFileName(name, id){
+  // アイコンファイル名
+  var src;
+
+/* まだまだ未実装
+  // コテハン機能
+  if(コテハンオプション == true){
+    src = ReadIcons.getKotehanIcons();
+    if(src != null){
+      // 名前に対応するアイコンが取得出来たらreturnする
+      return src;
+    }
+  }
+  // IDとアイコン関連付け機能
+  if(IDオプション == true
+    && id != null){
+    src = ReadIcons.getIdIcons();
+    if(src != null){
+      return src;
+    }
+  }
+  */
+  // ランダムアイコン取得
+  return ReadIcons.getRandomIcons();
+}
+
 module.exports = router;
