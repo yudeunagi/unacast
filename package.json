@@ -6,9 +6,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "electron .",
-    "hoge": "echo hogehoge",
     "buildwin": "electron-packager ./ unacast --platform=win32 --arch=x64 --icon=icon.ico",
-    "buildmac": "electron-packager ./ unacast --platform=darwin --arch=x64 --icon=icon.ico"
+    "buildmac": "electron-packager ./ unacast --platform=darwin --arch=x64",
+    "macbuildmemo": "echo macのビルドで --icon=icon.ico を指定するとなぜか The path argument must be one of type string, Buffer, or URL. Received type undefined って言われるので外しておく"
   },
   "repository": {
     "type": "git",
