@@ -1,0 +1,10 @@
+const builder = require('electron-builder');
+
+builder.build({
+    config: {
+        'appId': 'com.usausa_nurse.unacast',
+        'mac':{
+            'target': 'zip',
+        }
+    }
+});

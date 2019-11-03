@@ -31,7 +31,7 @@
     "request-promise": "^4.2.4"
   },
   "devDependencies": {
-    "electron": "^1.6.1",
+    "electron": "^1.8.8",
     "electron-packager": "^14.1.0",
     "electron-builder": "^22.1.0",
     "webpack": "^4.41.2"

@@ -118,12 +118,4 @@ function purseResponse(res){
   return resJson;
 }
 
-
-
-
-/**
-* コテハンリスト機能（オプションでON,OFF可能）
-* koteフォルダの下にkotehan.jsonを作って
-* 名前とアイコンファイル名の対応をマップにして返すだけ
-*/
 module.exports = ReadSitaraba;
