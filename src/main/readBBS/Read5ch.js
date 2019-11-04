@@ -70,7 +70,6 @@ ReadSitaraba.prototype.read = async function(threadUrl, resNum, res, next){
     "resolveWithFullResponse": true,
     headers: {
       "if-modified-since": lastModified,
-      range: range,
     }
   }
   console.log(options);
