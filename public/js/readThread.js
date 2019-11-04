@@ -5,6 +5,7 @@ window.onload = function(){
   var url = $('#threadUrl').val();
   //レス番号の設定
   var resNum = $('#resNumber').val();
+
   if(resNum.length < 1) {
     //レス番号がない場合は最新の1件を取得する
     getLastNumber(url);
@@ -19,13 +20,13 @@ window.onload = function(){
   setInterval(readThread, interval, url);
 }
 
-
-
 // 最終レス番取得API
 function getLastNumber(url){
+  // ポート番号の取得
+  var port = $('#port').val();
   //リクエストボディの作成
   const data = makeRequestBody(url);
-  const requestUrl = 'http://localhost:3000/getRes';
+  const requestUrl = 'http://localhost:' + port + '/getRes';
   //fetchでレスを取得する
   fetch(requestUrl, {
     method: 'POST',
@@ -62,14 +63,12 @@ function getLastNumber(url){
 *resNum:最終レス番号
 */
 var readThread = function(url){
-  //最終レス番号以降のすべてのレスを取得する
-
+  // ポート番号の取得
+  var port = $('#port').val();
   //リクエストボディの作成
   const data = makeRequestBody(url);
-  // console.log(data);
-
   // 内部で作成したレス取得APIを呼び出す
-  const requestUrl = 'http://localhost:3000/getRes';
+  const requestUrl = 'http://localhost:' + port + '/getRes';
   //fetchでレスを取得する
   fetch(requestUrl, {
     method: 'POST',

@@ -1,6 +1,6 @@
 {
   "name": "unacast",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "掲示板のレスをYoutubeコメント風に表示したいという思想の元に開発されるツール",
   "main": "src/main/main.js",
   "scripts": {
@@ -8,7 +8,7 @@
     "start": "electron .",
     "buildwin": "electron-packager ./ unacast --platform=win32 --arch=x64 --icon=icon.ico",
     "buildmac": "electron-packager ./ unacast --platform=darwin --arch=x64",
-    "macbuildmemo": "echo macのビルドで --icon=icon.ico を指定するとなぜか The path argument must be one of type string, Buffer, or URL. Received type undefined って言われるので外しておく"
+    "macbuildmemo": "echo macのビルドで --icon=icon.ico を指定するとなぜか The path argument must be one of type string, Buffer, or URL. Received type undefined って言われるので外しておく、あと管理者権限のコマンドプロンプトで実行してね（シンボリックリンク作れないので）"
   },
   "repository": {
     "type": "git",
