@@ -38,7 +38,7 @@ router.post('/', async function(req, res, next) {
   //選択したモジュールでレス取得処理を行う
   bbsModule.read(threadUrl, resNum)
   .then(response =>{
-    console.log('[getRes.js]レス取得成功。処理開始');
+    console.log('[getRes.js]レス取得成功。件数=' + response.length);
     // 返却されたjsonオブジェクトを組み立てる
     var result = buildResponseArray(response);
     // 返却
@@ -100,8 +100,8 @@ function buildResponseArray(resObject){
 */
 function buildResponse(res){
 
-  console.log('[getRes.js]パース開始');
-  console.log(res);
+//  console.log('[getRes.js]パース開始');
+//  console.log(res);
   //最終的にHTML文字列にするためのダミーオブジェクト
   var $dummy = $('<div />');
 
@@ -128,8 +128,8 @@ function buildResponse(res){
   //レス番号更新
   //$('#resNumber').val(parseInt(res.number) + 1);
 
-  console.log('[getRes.js]パース完了');
-  console.log($dummy.html());
+//  console.log('[getRes.js]パース完了');
+//  console.log($dummy.html());
 
   // レス番とテキストをセットにしたJSONを返す
   var result = {
