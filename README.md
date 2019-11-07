@@ -3,23 +3,34 @@
 
 マニュアルは後で作ります・・・
 
-使い方簡易説明(windows版)：
+##使い方(windows版)：
 
-1. zip解凍したら中の「unacast.exe」を実行
-2. 掲示板URLに読み込みたい板のURLを入力します（最後は"/"で終わるように）
-3. 指定のレス番から表示したい場合は「開始レス番号」にレス番を入れます
-4-1. サーバー起動ボタンを押します
-4-2. ブラウザで「http://localhost:3000/」と入力してちゃんと表示されることを確認します
-　　（この手順はちゃんと起動できているかの確認なので飛ばしてもOK）
-5. OBSでブラウザソースを追加して各種項目を設定します（下記参照）
-　・URL：http://localhost:3000/
-　・幅：配信の解像度の1/4から1/3ぐらい（1280x720の配信なら300～400ぐらいをお好みで）
-　・高さ：配信の解像度と同じ（1280x720の配信ならそのまま720）
-　・FPS：30のままでOK
-　・カスタムCSS：デフォで入っているものは消しておく。好みで記述しても良い
-　　　　　　　　　（esources/app/public/css/style-server.css の記載を参考にいじってみてね！！）
-         
-多分これで表示できるはず。
+### 1.ソフト起動
+![ソフト起動](https://raw.githubusercontent.com/yudeunagi/unacast/develop/documents/help/img/help01.jpg)  
+解凍したフォルダ内にある「unacast.exe」を実行してください。
+
+### 2.設定＆サーバー起動
+![設定画面](https://raw.githubusercontent.com/yudeunagi/unacast/develop/documents/help/img/help02.jpg)  
+1. ポート番号を設定します（特に理由がなければ3000でOK）
+1. 読み込みたい板のURLを入力します（最後は"/"で終わるように）
+1. 指定のレス番から表示したい場合はレス番を入れます（指定なしだと起動後に書き込まれたレスのみ表示）
+1. サーバー起動ボタンを押します
+
+### 3.OBS取り込み
+OBSのソースで「ブラウザソース」を追加し、設定画面を開きます。
+
+![OBS設定画面](https://raw.githubusercontent.com/yudeunagi/unacast/develop/documents/help/img/help03.jpg)  
+1. URLは「http://localhost:{上で設定したポート番号}/」と入力してください。（例：http://localhost:3000/）
+1. 幅は配信画面サイズの1/3～1/5ぐらいがおすすめ（サイズが 1280x720 なら 320～420ぐらい）
+1. 高さは配信画面サイズと同じかちょっと多いぐらい（サイズが 1280x720 なら 720～ぐらい）
+1. FPSは30のままでOK
+1. カスタムCSSは削除して空欄にしてください（入力して表示をカスタマイズすることもできます、詳しくは後述）
+
+### 4.取り込みイメージ
+正常に動作していれば下記画像のようにレスが表示されます。  
+![OBS設定画面](https://raw.githubusercontent.com/yudeunagi/unacast/develop/documents/help/img/help04.jpg)  
+
+
 終了するときは停止ボタン押してから終了しても、停止せずにアプリ直接落としても大丈夫。
 あとアンインストールもフォルダごと削除でOK
 
