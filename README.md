@@ -16,6 +16,9 @@
 1. 指定のレス番から表示したい場合はレス番を入れます（指定なしだと起動後に書き込まれたレスのみ表示）
 1. サーバー起動ボタンを押します
 
+サーバー起動時に以下のようなウィンドウが出たらそのまま「アクセスを許可する」を押してください　　
+![OBS設定画面](https://raw.githubusercontent.com/yudeunagi/unacast/develop/documents/help/img/firewall.jpg)  
+
 ### 3.OBS取り込み
 OBSのソースで「ブラウザソース」を追加し、設定画面を開きます。
 
@@ -28,7 +31,7 @@ OBSのソースで「ブラウザソース」を追加し、設定画面を開�
 
 ### 4.取り込みイメージ
 正常に動作していれば下記画像のようにレスが表示されます。  
-![OBS設定画面](https://raw.githubusercontent.com/yudeunagi/unacast/develop/documents/help/img/help04.jpg)  
+![取り込みイメージ](https://raw.githubusercontent.com/yudeunagi/unacast/develop/documents/help/img/help04.jpg)  
 
 
 終了するときは停止ボタン押してから終了しても、停止せずにアプリ直接落としても大丈夫。
