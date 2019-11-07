@@ -53,9 +53,9 @@ OBSのソースで「ブラウザソース」を追加し、設定画面を開�
 ![OBS設定画面](https://raw.githubusercontent.com/yudeunagi/unacast/develop/documents/help/img/help03.jpg)  
 例として背景の透明度を変更したい場合は、OBSのブラウザソース設定画面のカスタムCSSに以下のように追加してください
 
-  body {
-    background-color: rgba(0, 0, 0, 0.5); /*0.5の部分が透明度指定、0~1の少数で設定でき、0で透明、1で不透明になる*/
-  }
+  body {  
+    background-color: rgba(0, 0, 0, 0.5); /*0.5の部分が透明度指定、0~1の少数で設定でき、0で透明、1で不透明になる*/  
+  }  
 
 「unacast-win32-x64\resources\app\public\css\style-server.css」にデフォルトの設定を記載しているので
 変更したい箇所をOBSのカスタムCSSにコピペして適当にいじってみてください。ぶっこわれたら全部消せばデフォルトに戻ります。
