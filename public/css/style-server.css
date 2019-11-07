@@ -13,12 +13,20 @@ body {
 }
 
 body {
+  /*文字の縁取り*/
   text-shadow: 1px 1px 0 #333,
     -1px 1px 0 #333,
     1px -1px 0 #333,
     -1px -1px 0 #333;
 }
 
+/*レス表示部分の設定*/
+.content {
+  color: rgba(255, 255, 255, 255); /*文字色*/
+}
+
+
+/*名前表示部分の設定*/
 .name {
   color: #55ff55;
 }
