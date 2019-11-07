@@ -3,7 +3,7 @@
 
 マニュアルは後で作ります・・・
 
-##使い方(windows版)：
+## 使い方(windows版)：
 
 ### 1.ソフト起動
 ![ソフト起動](https://raw.githubusercontent.com/yudeunagi/unacast/develop/documents/help/img/help01.jpg)  
@@ -39,4 +39,23 @@ OBSのソースで「ブラウザソース」を追加し、設定画面を開�
 
 動かないとかあったらIssuesかもしくは Twitter で @yudeunagi まで
 
-あとmac版はmacないので動作確認できてないです。
+あとmac版はmacなうて動作確認できないので作れないですごめんなさい。
+
+## アイコンを追加したい
+デフォで入っているアイコンとは別のものを使いたい場合は
+「unacast-win32-x64\resources\app\public\img\random」フォルダにある画像ファイルを起動時に読み込むようになっているので
+適当に追加・差し替えてソフトを再起動してください(使用する画像は32x32のpng推奨）
+
+![アイコンフォルダ](https://raw.githubusercontent.com/yudeunagi/unacast/develop/documents/help/img/help_add_icon.jpg)  
+
+
+## レスの表示背景色や文字色を変更したい
+![OBS設定画面](https://raw.githubusercontent.com/yudeunagi/unacast/develop/documents/help/img/help03.jpg)  
+例として背景の透明度を変更したい場合は、OBSのブラウザソース設定画面のカスタムCSSに以下のように追加してください
+
+  body {
+    background-color: rgba(0, 0, 0, 0.5); /*0.5の部分が透明度指定、0~1の少数で設定でき、0で透明、1で不透明になる*/
+  }
+
+「unacast-win32-x64\resources\app\public\css\style-server.css」にデフォルトの設定を記載しているので
+変更したい箇所をOBSのカスタムCSSにコピペして適当にいじってみてください。ぶっこわれたら全部消せばデフォルトに戻ります。
