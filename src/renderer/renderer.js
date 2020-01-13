@@ -83,6 +83,14 @@ function buildConfigJson() {
   var interval = document.getElementById("rangeSpan").value;
   var youtubeUrl = document.getElementById("text-youtube-url").value;
 
+  //表示順序設定
+  var dispSort = 0;
+  if(document.getElementById("newResUp").checked == true){
+    dispSort = 0;
+  }else{
+    dispSort = 1;
+  }
+
   var config = {
     "url": url,
     "resNumber": resNumber,
@@ -91,7 +99,8 @@ function buildConfigJson() {
     "port": port,
     "dipsNumber": dispNumber,
     "interval": interval,
-    "youtubeUrl": youtubeUrl
+    "youtubeUrl": youtubeUrl,
+    "dispSort": dispSort
   }
 
   return config;
@@ -110,6 +119,8 @@ function saveConfigToLocalStrage(config){
   localStorage.setItem('dipsNumber', config.dipsNumber);
   localStorage.setItem('interval', config.interval);
   localStorage.setItem('youtubeUrl', config.youtubeUrl);
+  localStorage.setItem('dispSort', config.dispSort);
+
   console.log('[renderer.js]config saved');
 }
 
@@ -131,6 +142,14 @@ function loadConfigToLocalStrage(){
   var initMessage = localStorage.getItem('initMessage');
   if (initMessage === null || initMessage.length < 1){
     initMessage = 'スレッド読み込みを開始しました';
+  }
+
+  // レス表示順ラジオ初期化
+  var dispSort = localStorage.getItem('dispSort');
+  if (dispSort === null || dispSort.length < 1 || dispSort == 0){
+    document.getElementById("newResUp").checked = true;
+  }else{
+    document.getElementById("newResDown").checked = true;
   }
 
   document.getElementById("text-port-number").value = port;
