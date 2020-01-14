@@ -31,6 +31,12 @@ body {
   color: #55ff55;
 }
 
+/*時刻表示部分の設定*/
+.date {
+  font-size : 0.8em;
+  color: #feffa0;
+}
+
 ul#res-list {
   list-style-type: none;
   /* レス表示部の左右の余白設定*/
