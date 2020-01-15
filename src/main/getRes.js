@@ -117,7 +117,20 @@ function buildResponse(res){
   var $res = $('<span />', {class: 'res'}).append(res.text);
 
   var $resDiv = $('<div />', {class: 'content'});
-  $resDiv.append($name).append('　').append($res);
+
+  //時刻表示
+  //ここで改行化スペースを入れる
+  if(global.config.showTime == 1){
+    $date = $('<span />', {class: 'date'}).append(' ' + res.date);
+    $name.append($date);
+  }
+
+  //ここで改行化スペースを入れる
+  if(global.config.newLine == 1){
+    $resDiv.append($name).append('<br/>').append($res);
+  }else{
+    $resDiv.append($name).append('　').append($res);
+  }
 
   $li.append($icon);
   $li.append($resDiv);

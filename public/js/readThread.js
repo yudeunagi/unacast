@@ -116,7 +116,14 @@ var readThread = function(url){
 
 //レスをリスト追加
 function prependItems(html){
-    $('#res-list').prepend(html);
+
+    // 表示順オプションで上に追加するか下に追加するか選ぶ
+    if($('#dispSort').val() == 1){
+      $('#res-list').append(html);
+    }
+    else{
+      $('#res-list').prepend(html);
+    }
 }
 
 /** リクエスト作成

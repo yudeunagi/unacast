@@ -83,6 +83,30 @@ function buildConfigJson() {
   var interval = document.getElementById("rangeSpan").value;
   var youtubeUrl = document.getElementById("text-youtube-url").value;
 
+  //時刻表示設定
+  var showTime = 0;
+  if(document.getElementById("showTimeOff").checked == true){
+    showTime = 0;
+  }else{
+    showTime = 1;
+  }
+
+  //表示順序設定
+  var dispSort = 0;
+  if(document.getElementById("newResUp").checked == true){
+    dispSort = 0;
+  }else{
+    dispSort = 1;
+  }
+
+  //改行設定
+  var newLine = 0;
+  if(document.getElementById("disableNewLine").checked == true){
+    newLine = 0;
+  }else{
+    newLine = 1;
+  }
+
   var config = {
     "url": url,
     "resNumber": resNumber,
@@ -91,7 +115,10 @@ function buildConfigJson() {
     "port": port,
     "dipsNumber": dispNumber,
     "interval": interval,
-    "youtubeUrl": youtubeUrl
+    "youtubeUrl": youtubeUrl,
+    "dispSort": dispSort,
+    "newLine": newLine,
+    "showTime": showTime
   }
 
   return config;
@@ -110,6 +137,10 @@ function saveConfigToLocalStrage(config){
   localStorage.setItem('dipsNumber', config.dipsNumber);
   localStorage.setItem('interval', config.interval);
   localStorage.setItem('youtubeUrl', config.youtubeUrl);
+  localStorage.setItem('dispSort', config.dispSort);
+  localStorage.setItem('newLine', config.newLine);
+  localStorage.setItem('showTime', config.showTime);
+
   console.log('[renderer.js]config saved');
 }
 
@@ -131,6 +162,30 @@ function loadConfigToLocalStrage(){
   var initMessage = localStorage.getItem('initMessage');
   if (initMessage === null || initMessage.length < 1){
     initMessage = 'スレッド読み込みを開始しました';
+  }
+
+  // 時刻表示初期化
+  var showTime = localStorage.getItem('showTime');
+  if (showTime === null || showTime.length < 1 || showTime == 0){
+    document.getElementById("showTimeOff").checked = true;
+  }else{
+    document.getElementById("showTimeOn").checked = true;
+  }
+
+  // レス表示順ラジオ初期化
+  var dispSort = localStorage.getItem('dispSort');
+  if (dispSort === null || dispSort.length < 1 || dispSort == 0){
+    document.getElementById("newResUp").checked = true;
+  }else{
+    document.getElementById("newResDown").checked = true;
+  }
+
+  // 改行設定初期化
+  var newLine = localStorage.getItem('newLine');
+  if (newLine === null || newLine.length < 1 || newLine == 0){
+    document.getElementById("disableNewLine").checked = true;
+  }else{
+    document.getElementById("enableNewLine").checked = true;
   }
 
   document.getElementById("text-port-number").value = port;
