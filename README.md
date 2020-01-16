@@ -61,5 +61,5 @@ OBSのソースで「ブラウザソース」を追加し、設定画面を開�
 変更したい箇所をOBSのカスタムCSSにコピペして適当にいじってみてください。ぶっこわれたら全部消せばデフォルトに戻ります。
 
 というか↓に使用しているCSSのリンク載せておくのでここからOBSのカスタムCSSにコピペして適当にいじってみてください。
-(https://github.com/yudeunagi/unacast/blob/master/public/css/style-server.css)
+(https://github.com/yudeunagi/unacast/blob/master/public/css/style-server.css) 
 
