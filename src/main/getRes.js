@@ -109,27 +109,36 @@ function buildResponse(res){
   var $iconImg = getIcon(res.name,res.id); //アイコン取得
   var $icon = $('<span />', {class: 'icon-block'}).append($iconImg); // ここにアイコン
 
-  //名無しならばレス番号を表示する
-  var defaultName = global.config.noname; //ここはフロントの設定から取得するようにする
-  var nm = new String(res.name);
-  var name = nm.replace(defaultName, res.number);
-  var $name = $('<span />', {class: 'name'}).append(name);
+  //レス番を取得
+  var $resNumber = $('<span />', {class: 'resNumber'}).append(res.number);
+  //名前を取得
+  var $name = $('<span />', {class: 'name'}).append(res.name);
+  //日付を取得
+  var $date = $('<span />', {class: 'date'}).append(res.date);
+  //レスを取得
   var $res = $('<span />', {class: 'res'}).append(res.text);
 
+  // 名前やレスのエリア
   var $resDiv = $('<div />', {class: 'content'});
 
+  //レス番表示
+  if(global.config.showNumber == 1){
+    $resDiv.append($resNumber);
+  }
+  //名前表示
+  if(global.config.showName == 1){
+    $resDiv.append($name);
+  }
   //時刻表示
-  //ここで改行化スペースを入れる
   if(global.config.showTime == 1){
-    $date = $('<span />', {class: 'date'}).append(' ' + res.date);
-    $name.append($date);
+    $resDiv.append($date);
   }
 
   //ここで改行化スペースを入れる
   if(global.config.newLine == 1){
-    $resDiv.append($name).append('<br/>').append($res);
+    $resDiv.append('<br/>').append($res);
   }else{
-    $resDiv.append($name).append('　').append($res);
+    $resDiv.append($res);
   }
 
   $li.append($icon);

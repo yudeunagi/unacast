@@ -68,10 +68,8 @@
       <span class="mdl-textfield__error">0-999 までの数値を入れてください</span>
     </div>
 
-    <div class="mdl-textfield mdl-js-textfield">
-      名無しネーム
-      <input id="text-noname" class="mdl-textfield__input" type="text" value="名無しさん" >
-    </div>
+      <!-- ここに入れた名前が来たらレス番に変換するって昨日だったんだけど廃止するのでじきに消す -->
+      <input id="text-noname" class="mdl-textfield__input" type="hidden" value="名無しさん" >
 
     <div class="mdl-textfield mdl-js-textfield">
       初期表示テキスト
@@ -84,20 +82,23 @@
       <span class="mdl-textfield__error">0-99 までの数値を入れてください</span>
     </div>
 
-    <div class="mdl-textfield mdl-js-textfield">
-      時刻表示<br/>
-      <label class = "mdl-radio mdl-js-radio" for="showTimeOn">
-        <input id="showTimeOn" class="mdl-radio__button" type="radio" name="showTime">
-        <span class = "mdl-radio__label">する</span>
-      </label>
-      <label class = "mdl-radio mdl-js-radio" for="showTimeOff">
-        <input id="showTimeOff" class="mdl-radio__button" type="radio" name="showTime">
-        <span class = "mdl-radio__label">しない</span>
-      </label>
-    </div>
+    <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="checkbox-showNumber">
+      <input type="checkbox" id="checkbox-showNumber" class="mdl-checkbox__input" value="1" checked>
+      <span class="mdl-checkbox__label">レス番表示</span>
+    </label>
+
+    <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="checkbox-showName">
+      <input type="checkbox" id="checkbox-showName" class="mdl-checkbox__input" value="1" checked>
+      <span class="mdl-checkbox__label">名前表示</span>
+    </label>
+
+    <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="checkbox-showTime">
+      <input type="checkbox" id="checkbox-showTime" class="mdl-checkbox__input" value="1" checked>
+      <span class="mdl-checkbox__label">時刻表示</span>
+    </label>
 
     <div class="mdl-textfield mdl-js-textfield">
-      レス表示順序<br/>
+      レス表示順序(故障中)<br/>
       <label class = "mdl-radio mdl-js-radio" for="newResUp">
         <input id="newResUp" class="mdl-radio__button" type="radio" name="dispSort">
         <span class = "mdl-radio__label">新着が上</span>

@@ -83,11 +83,21 @@ function buildConfigJson() {
   var interval = document.getElementById("rangeSpan").value;
   var youtubeUrl = document.getElementById("text-youtube-url").value;
 
+  //レス番表示設定
+  var showNumber = 0;
+  if(document.getElementById("checkbox-showNumber").checked == true){
+    showNumber = 1;
+  }
+
+  //名前表示設定
+  var showName = 0;
+  if(document.getElementById("checkbox-showName").checked == true){
+    showName = 1;
+  }
+
   //時刻表示設定
   var showTime = 0;
-  if(document.getElementById("showTimeOff").checked == true){
-    showTime = 0;
-  }else{
+  if(document.getElementById("checkbox-showTime").checked == true){
     showTime = 1;
   }
 
@@ -118,6 +128,8 @@ function buildConfigJson() {
     "youtubeUrl": youtubeUrl,
     "dispSort": dispSort,
     "newLine": newLine,
+    "showNumber": showNumber,
+    "showName": showName,
     "showTime": showTime
   }
 
@@ -139,6 +151,8 @@ function saveConfigToLocalStrage(config){
   localStorage.setItem('youtubeUrl', config.youtubeUrl);
   localStorage.setItem('dispSort', config.dispSort);
   localStorage.setItem('newLine', config.newLine);
+  localStorage.setItem('showNumber', config.showNumber);
+  localStorage.setItem('showName', config.showName);
   localStorage.setItem('showTime', config.showTime);
 
   console.log('[renderer.js]config saved');
@@ -164,12 +178,28 @@ function loadConfigToLocalStrage(){
     initMessage = 'スレッド読み込みを開始しました';
   }
 
+  // レス番表示初期化
+  var showNumber = localStorage.getItem('showNumber');
+  if (showNumber === null || showNumber.length < 1 || showNumber == 1){
+    document.getElementById("checkbox-showNumber").checked = true;
+  }else{
+    document.getElementById("checkbox-showNumber").checked = false;
+  }
+
+  // 名前表示初期化
+  var showName = localStorage.getItem('showName');
+  if (showName === null || showName.length < 1 || showName == 0){
+    document.getElementById("checkbox-showName").checked = false;
+  }else{
+    document.getElementById("checkbox-showName").checked = true;
+  }
+
   // 時刻表示初期化
   var showTime = localStorage.getItem('showTime');
   if (showTime === null || showTime.length < 1 || showTime == 0){
-    document.getElementById("showTimeOff").checked = true;
+    document.getElementById("checkbox-showTime").checked = false;
   }else{
-    document.getElementById("showTimeOn").checked = true;
+    document.getElementById("checkbox-showTime").checked = true;
   }
 
   // レス表示順ラジオ初期化

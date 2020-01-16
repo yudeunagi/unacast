@@ -25,16 +25,32 @@ body {
   color: rgba(255, 255, 255, 255); /*文字色*/
 }
 
+/*レス番号表示部分の設定*/
+.resNumber {
+  color: #55ff55;
+}
+/*レス番号の後に付け加える文字（区切り用）*/
+.resNumber::after {
+  content: " ";
+}
 
 /*名前表示部分の設定*/
 .name {
   color: #55ff55;
 }
+/*名前の後に付け加える文字（区切り用）*/
+.name::after {
+  content: " ";
+}
 
-/*時刻表示部分の設定*/
+/*時刻表示部分の設定（区切り用）*/
 .date {
   font-size : 0.8em;
   color: #feffa0;
+}
+/*時刻の後に付け加える文字*/
+.date::after {
+  content: " ";
 }
 
 ul#res-list {
