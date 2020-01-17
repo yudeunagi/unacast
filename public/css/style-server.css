@@ -20,6 +20,15 @@ body {
     -1px -1px 0 #333;
 }
 
+#parent{
+  height: 100%;
+}
+
+.dispBottom{
+  position:absolute;
+  bottom: 0;
+}
+
 /*レス表示部分の設定*/
 .content {
   color: rgba(255, 255, 255, 255); /*文字色*/

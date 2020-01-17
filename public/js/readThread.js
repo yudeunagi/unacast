@@ -14,6 +14,11 @@ window.onload = function(){
     readThread(url);
   }
 
+  // 新着下表示オプションがONの場合ul要素に.bottomを付与する
+  if($('#dispSort').val() == 1){
+    $('#res-list').addClass('dispBottom');
+  }
+
   // リロードインターバル指定(ms)
   const interval = 1000 * parseInt($('#interval').val());
   //指定した秒数ごとにレス取得関数を呼び出す
