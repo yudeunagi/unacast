@@ -88,17 +88,21 @@ function buildConfigJson() {
   if(document.getElementById("checkbox-showNumber").checked == true){
     showNumber = 1;
   }
-
   //名前表示設定
   var showName = 0;
   if(document.getElementById("checkbox-showName").checked == true){
     showName = 1;
   }
-
   //時刻表示設定
   var showTime = 0;
   if(document.getElementById("checkbox-showTime").checked == true){
     showTime = 1;
+  }
+
+  //自動改行設定
+  var wordBreak = 0;
+  if(document.getElementById("checkbox-wordBreak").checked == true){
+    wordBreak = 1;
   }
 
   //表示順序設定
@@ -109,7 +113,7 @@ function buildConfigJson() {
     dispSort = 1;
   }
 
-  //改行設定
+  //本文改行設定
   var newLine = 0;
   if(document.getElementById("disableNewLine").checked == true){
     newLine = 0;
@@ -130,7 +134,9 @@ function buildConfigJson() {
     "newLine": newLine,
     "showNumber": showNumber,
     "showName": showName,
-    "showTime": showTime
+    "showTime": showTime,
+    "wordBreak": wordBreak
+
   }
 
   return config;
@@ -154,6 +160,7 @@ function saveConfigToLocalStrage(config){
   localStorage.setItem('showNumber', config.showNumber);
   localStorage.setItem('showName', config.showName);
   localStorage.setItem('showTime', config.showTime);
+  localStorage.setItem('wordBreak', config.wordBreak);
 
   console.log('[renderer.js]config saved');
 }
@@ -200,6 +207,14 @@ function loadConfigToLocalStrage(){
     document.getElementById("checkbox-showTime").checked = false;
   }else{
     document.getElementById("checkbox-showTime").checked = true;
+  }
+
+  // 自動改行初期化
+  var wordBreak = localStorage.getItem('wordBreak');
+  if (wordBreak === null || wordBreak.length < 1 || wordBreak == 0){
+    document.getElementById("checkbox-wordBreak").checked = true;
+  }else{
+    document.getElementById("checkbox-wordBreak").checked = false;
   }
 
   // レス表示順ラジオ初期化
