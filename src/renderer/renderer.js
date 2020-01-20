@@ -211,7 +211,7 @@ function loadConfigToLocalStrage(){
 
   // 自動改行初期化
   var wordBreak = localStorage.getItem('wordBreak');
-  if (wordBreak === null || wordBreak.length < 1 || wordBreak == 0){
+  if (wordBreak === null || wordBreak.length < 1 || wordBreak == 1){
     document.getElementById("checkbox-wordBreak").checked = true;
   }else{
     document.getElementById("checkbox-wordBreak").checked = false;
