@@ -19,6 +19,14 @@ window.onload = function(){
     $('#res-list').addClass('dispBottom');
   }
 
+  // 自動改行オプションによってクラスを付与する
+  if($('#wordBreak').val() == 1){
+    $('#res-list').addClass('brakeOn');
+  }else{
+    $('#res-list').addClass('brakeOff');
+  }
+
+
   // リロードインターバル指定(ms)
   const interval = 1000 * parseInt($('#interval').val());
   //指定した秒数ごとにレス取得関数を呼び出す

@@ -20,13 +20,25 @@ body {
     -1px -1px 0 #333;
 }
 
+/*親となるDIVの高さ設定（新着を下表示のために使用している）*/
 #parent{
   height: 100%;
 }
 
+/*新着を下表示オプションをONにした際にul要素に追加するクラス*/
 .dispBottom{
   position:absolute;
   bottom: 0;
+}
+
+/*自動改行オプションON*/
+.brakeOn{
+  word-break: break-word;
+}
+
+/*自動改行オプションOFF*/
+.brakeOff{
+  word-break: keep-all;;
 }
 
 /*レス表示部分の設定*/
