@@ -3,6 +3,7 @@
 */
 const request = require('request-promise'); //httpリクエスト
 const iconv = require('iconv-lite'); // 文字コード変換用パッケージ
+const GetNextThread = require('./GetNextThread'); //次スレ取得モジュール
 //ステータスコード304 _NotModified
 const NOT_MODIFIED = '304';
 const RANGE_NOT_SATISFIABLE = '416';
@@ -18,12 +19,94 @@ var lastByte = 0;
 
 /**
 * コンストラクタ
-*
 */
-var ReadSitaraba = function()
+var Read5ch = function()
 {
 //  this.randomIconList =
 }
+
+/**
+* 次スレ取得
+*
+* @param String // threadUrl スレURL
+* @param String // resNum レス番号
+*/
+Read5ch.prototype.nextThread = async function(threadUrl, resNum){
+
+  //板や最終日レス番号がかわったら最初からとり直す(lastmodifiと rangeのリセット)
+  if(threadUrl != lastThreadUrl
+  || parseInt(resNum) < parseInt(lastResNumber)
+  || resNum == ''){
+    lastThreadUrl = threadUrl;
+    lastModified = null;
+    lastByte = 0;
+    console.log('[Read5ch.js]resete!!!!!!!!!!!!!!!!');
+  }else {
+    console.log('noresete');
+  }
+
+  //リクエストURL作成 下記みたいな感じで変換する
+  //https://bbs.jpnkn.com/test/read.cgi/yudeunagi/1572734724/
+  //https://bbs.jpnkn.com/yudeunagi/subject.txt
+  var rep = /\/test\/read.cgi(\/.+)(\/.+)\//;
+  var requestUrl = threadUrl.replace(rep ,'$1\/subject.txt' );
+
+  //リクエストオプション指定
+  var options = {
+    url: requestUrl,
+    method: 'GET',
+    encoding: null, // ここでnull指定しないとなんかうまくいかない
+    "resolveWithFullResponse": true,
+    headers: {
+      "if-modified-since": lastModified,
+    }
+  }
+  console.log(options);
+
+  var responseJson;
+  //掲示板へのリクエスト実行
+  console.log('[Read5ch.js]5ch系BBS 次スレ取得 呼び出し開始');
+  await request(options)
+  .then(response =>{
+    var statusCode = response.statusCode;
+    console.log('[Read5ch.js]5ch系BBS 次スレ取得 呼び出し完了、statusCode=' + statusCode);
+
+    // レスポンスヘッダ表示
+    console.log('[Read5ch.read]レスポンスヘッダ=');
+    var headers = response.headers;
+    console.log(headers);
+    //LastModifiedとRange更新処理
+    if(headers['last-modified'] != null){
+      lastModified = headers['last-modified'];
+      console.log('[Read5ch.read]lastModified=' + lastModified);
+    }
+    //gzipで取得出来たら解凍処理も入れる
+
+    //したらばAPIの文字コードはEUC-JPなのでUTF-8に変換する
+    var str = iconv.decode(Buffer.from(response.body), 'Shift_JIS');
+
+    //ここで共通モジュールにレスポンスを渡す
+    console.log('[Read5ch.read]subject.txt=' + str);
+    responseJson = GetNextThread.getUrl(str, threadUrl);
+
+    console.log('[Read5ch.read]responseJson.nextUrl=' + responseJson.nextUrl);
+    return ;
+
+  })
+  // エラー時の処理、エラーメッセージ表示する
+  .catch(error =>{
+    var rsArray = new Array();
+    responseJson = rsArray;
+    if(error.status == NOT_MODIFIED){
+      console.log('[Read5ch.js]5ch系BBS 次スレ取得 リクエストエラー、NOT_MODIFIED');
+    } else {
+      console.log('[Read5ch.js]5ch系BBS 次スレ取得 リクエストエラー、message=' + error.message);
+    }
+  });
+  return responseJson;
+}
+
+
 
 /**
 * レス読み込み
@@ -32,7 +115,7 @@ var ReadSitaraba = function()
 * @param String // threadUrl スレURL
 * @param String // resNum レス番号
 */
-ReadSitaraba.prototype.read = async function(threadUrl, resNum, res, next){
+Read5ch.prototype.read = async function(threadUrl, resNum, res, next){
 
 
   //板や最終日レス番号がかわったら最初からとり直す(lastmodifiと rangeのリセット)
@@ -256,4 +339,4 @@ function purseResponse(res, num){
   return resJson;
 }
 
-module.exports = ReadSitaraba;
+module.exports = Read5ch;

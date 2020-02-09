@@ -1,9 +1,18 @@
+/*
+getRes.js
+レス表示モジュール
+レス表示画面（readThread.js）から呼び出され各掲示板へ
+レスの取得や次スレの取得を行う役割を持つ。
+*/
 var express = require('express');
 var router = express.Router();
 var bodyParser = require('body-parser');// jsonパーサ
 
 const ReadIcons = require('./ReadIcons'); //アイコンファイル名取得
 
+//プロセス間通信用、レンダープロセスに新スレ移動を伝えたいけどうまくいかないのでいったん封印
+//const { BrowserWindow } = require('electron');
+//const { ipcMain } = require('electron');
 
 const { JSDOM } = require('jsdom');
 const $ = require('jquery')(new JSDOM().window);
@@ -52,14 +61,47 @@ router.post('/', async function(req, res, next) {
   });
 
   return;
-  //こっから下は移植したらけす
-  //失敗時エラーレスポンスを返す
-  /*
-  var param = 'response';
-  res.header('Content-Type', 'text/plain; charset=utf-8')
-  res.send(param);
-  */
 });
+
+/*
+ * http://localhost:3000/getRes/nextThread にGETメソッドのリクエストを投げると、
+ * 次スレのURLを返却する
+ */
+router.post('/nextThread', async function(req, res, next) {
+
+  // リクエストからURLとレス番号を取得する
+  var threadUrl = req.body.threadUrl;
+  // レス番号取得
+  var resNum = req.body.resNumber;
+  //リクエストURLを解析し、使用するモジュールを変更する（初回のみ）
+  if(bbsModule === null){
+    bbsModule = analysBBSName(threadUrl);
+  }
+
+  //選択したモジュールでレス取得処理を行う
+  bbsModule.nextThread(threadUrl, resNum)
+  .then(response =>{
+    console.log('[getRes.js]次スレ取得 成功。url=' + response.nextUrl);
+    // 返却されたjsonをもとに次スレのURLをを組み立てる
+    var result = response;
+    // 返却
+    res.header('Content-Type', 'application/json; charset=UTF-8')
+    console.log('[getRes.js]次スレ取得 完了');
+
+    //ipcメッセージ送信、設定画面のURL更新。上手くいかないのでいったん封印
+    //let mainWindow = new BrowserWindow({});
+    //mainWindow.webContents.send('change-thread', response);
+
+    res.send(result);
+  })
+  .catch(err =>{
+    console.log(err);
+  });
+
+  return;
+});
+
+
 
 /*
  * URLをみてどこのBBSか判定して使用するモジュールを返却する
@@ -146,9 +188,6 @@ function buildResponse(res){
 
   //HTMLオブジェクトをダミー要素へ入れる
   $dummy.append($li);
-
-  //レス番号更新
-  //$('#resNumber').val(parseInt(res.number) + 1);
 
 //  console.log('[getRes.js]パース完了');
 //  console.log($dummy.html());

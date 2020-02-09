@@ -11,21 +11,37 @@
 </head>
 <body>
   <form id="requestForm">
+    <!-- スレッドURL -->
     <input type="hidden" id="threadUrl" name="threadUrl" value="<%=url%>" >
+    <!-- スレタイ、URLを元に取ってくる処理を作ってセットする（そのうち実装するかも） -->
+    <input type="hidden" id="threadTitle" name="threadTitle" value="" >
+    <!-- レス番号 -->
     <input type="hidden" id="resNumber" name="resNumber" value="<%=resNumber%>" >
+    <!-- ポート番号 -->
     <input type="hidden" id="port" name="port" value="<%=port%>" >
 
     <!-- レス番変換用名無し指定はもう使わないのであとで消す-->
     <input type="hidden" id="noname" name="noname" value="<%=noname%>" >
 
+    <!-- レス表示数：画面に表示するレスの上限（未実装） -->
     <input type="hidden" id="dispNumber" name="dispNumber" value="<%=dipsNumber%>" >
+    <!-- 新スレ開始レス番：次スレ移動したときにレス何番から読み込むか（テンプレが長い人用）（未実装） -->
+    <input type="hidden" id="newThreadStartResNumber" name="newThreadStartResNumber" value="<%=newThreadStartResNumber%>" >
+    <!-- 更新間隔 -->
     <input type="hidden" id="interval" name="interval" value="<%=interval%>" >
+    <!-- YoutubeのURL（多分永遠に未実装） -->
     <input type="hidden" id="youtubeUrl" name="youtubeUrl" value="<%=youtubeUrl%>" >
+    <!-- 表示順序 -->
     <input type="hidden" id="dispSort" name="dispSort" value="<%=dispSort%>" >
+    <!-- オプション：本文改行 -->
     <input type="hidden" id="newLine" name="newLine" value="<%=newLine%>" >
+    <!-- オプション：レス番表示 -->
     <input type="hidden" id="showNumber" name="showNumber" value="<%=showNumber%>" >
+    <!-- オプション：名前表示 -->
     <input type="hidden" id="showName" name="showName" value="<%=showName%>" >
+    <!-- オプション：日時表示 -->
     <input type="hidden" id="showTime" name="showTime" value="<%=showTime%>" >
+    <!-- オプション：自動改行 -->
     <input type="hidden" id="wordBreak" name="wordBreak" value="<%=wordBreak%>" >
 
   </form>

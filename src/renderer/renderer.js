@@ -82,6 +82,7 @@ function buildConfigJson() {
   var dispNumber = document.getElementById("text-disp-number").value;
   var interval = document.getElementById("rangeSpan").value;
   var youtubeUrl = document.getElementById("text-youtube-url").value;
+  var newThreadStartResNumber = document.getElementById("text-newThreadStartResNumber").value;
 
   //レス番表示設定
   var showNumber = 0;
@@ -135,7 +136,8 @@ function buildConfigJson() {
     "showNumber": showNumber,
     "showName": showName,
     "showTime": showTime,
-    "wordBreak": wordBreak
+    "wordBreak": wordBreak,
+    "newThreadStartResNumber": newThreadStartResNumber
 
   }
 
@@ -161,6 +163,8 @@ function saveConfigToLocalStrage(config){
   localStorage.setItem('showName', config.showName);
   localStorage.setItem('showTime', config.showTime);
   localStorage.setItem('wordBreak', config.wordBreak);
+  localStorage.setItem('newThreadStartResNumber', config.newThreadStartResNumber);
+
 
   console.log('[renderer.js]config saved');
 }
@@ -183,6 +187,12 @@ function loadConfigToLocalStrage(){
   var initMessage = localStorage.getItem('initMessage');
   if (initMessage === null || initMessage.length < 1){
     initMessage = 'スレッド読み込みを開始しました';
+  }
+
+  // 新スレ移動時の開始レス番号初期化
+  var newThreadStartResNumber = localStorage.getItem('newThreadStartResNumber');
+  if (newThreadStartResNumber === null || newThreadStartResNumber.length < 1){
+    newThreadStartResNumber = '1';
   }
 
   // レス番表示初期化
@@ -237,10 +247,10 @@ function loadConfigToLocalStrage(){
   document.getElementById("spanDisp").innerHTML = interval;
   document.getElementById("rangeSpan").value = interval;
   document.getElementById("text-init-message").value = initMessage
+  document.getElementById("text-newThreadStartResNumber").value = newThreadStartResNumber
 
   document.getElementById("text-url").value = localStorage.getItem('url');
   document.getElementById("text-res-number").value = localStorage.getItem('resNumber');
-  document.getElementById("text-noname").value = localStorage.getItem('noname');
   document.getElementById("text-disp-number").value = localStorage.getItem('dipsNumber');
   document.getElementById("text-youtube-url").value = localStorage.getItem('youtubeUrl');
   console.log('[renderer.js]config loaded');
@@ -249,4 +259,10 @@ function loadConfigToLocalStrage(){
 //サーバー起動返信
 ipcRenderer.on('start-server-reply', (event, arg) => {
   console.log(arg);
+});
+
+//新スレ移動時に呼び出され、設定画面のURLを更新する。（実装予定）
+ipcRenderer.on('change-thread', (event, arg) => {
+  console.log(arg);
+  console.log(arg.nextUrl);
 });
