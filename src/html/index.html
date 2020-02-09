@@ -57,8 +57,8 @@
 <p>
     <div class="mdl-textfield mdl-js-textfield" style="width: 600px">
       掲示板URL
-      <input id="text-url" class="mdl-textfield__input" type="text" required="true" pattern="http.?://.+" value="http://jbbs.shitaraba.net/bbs/read.cgi/radio/31003/1564068767/">
-      <span id="text-url-error" class="mdl-textfield__error">URLを入力してください</span>
+      <input id="text-url" class="mdl-textfield__input" type="text" required="true" pattern="http.?://.+/" value="http://jbbs.shitaraba.net/bbs/read.cgi/radio/31003/1564068767/">
+      <span id="text-url-error" class="mdl-textfield__error">URLを入力してください（末尾に'/'をつけて）</span>
     </div>
 </p>
 
@@ -134,8 +134,8 @@
 
     <div class="mdl-textfield mdl-js-textfield">
       新スレ移動時の開始レス番
-      <input id="text-newThreadStartResNumber" class="mdl-textfield__input" type="text" pattern="[0-9]{0,2}?">
-      <span class="mdl-textfield__error">0-99 までの数値を入れてください</span>
+      <input id="text-newThreadStartResNumber" class="mdl-textfield__input" type="text" pattern="[0-9]{0,3}?">
+      <span class="mdl-textfield__error">0-999 までの数値を入れてください</span>
     </div>
 
     <div class="mdl-textfield mdl-js-textfield" style="width: 600px">
