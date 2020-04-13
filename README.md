@@ -63,3 +63,12 @@ OBSのソースで「ブラウザソース」を追加し、設定画面を開�
 というか↓に使用しているCSSのリンク載せておくのでここからOBSのカスタムCSSにコピペして適当にいじってみてください。
 (https://github.com/yudeunagi/unacast/blob/master/public/css/style-server.css) 
 
+--- 
+
+## Todo
+
+* [ ] TypeScript化
+* [ ] レス着信時のランダムサウンド再生
+* [ ] Twitch対応
+* [ ] Youtube対応
+* [ ] (やる気があれば)棒読みちゃん
