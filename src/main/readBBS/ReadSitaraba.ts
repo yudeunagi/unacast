@@ -45,7 +45,6 @@ class ReadSitaraba {
     var responseJson: ReturnType<typeof purseNewResponse> = [];
     //掲示板へのリクエスト実行
     log.info('[ReadSitaraba.js]したらばレス取得API呼び出し開始');
-    log.debug('[ReadSitaraba.js]したらばレス取得API呼び出し開始');
 
     await request(options).then((body: any) => {
       log.debug('[ReadSitaraba.js]したらばレス取得API呼び出し成功');

@@ -25,8 +25,6 @@ router.use(bodyParser.json());
  * JSON形式で文字列を返す。
  */
 router.post('/', async (req, res, next) => {
-  log.info('getRes');
-
   // リクエストからURLとレス番号を取得する
   var threadUrl = req.body.threadUrl;
   // レス番号取得

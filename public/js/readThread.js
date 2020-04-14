@@ -14,12 +14,12 @@ window.onload = function () {
   }
 
   // 新着下表示オプションがONの場合ul要素に.bottomを付与する
-  if ($('#dispSort').val() == 'true') {
+  if ($('#dispSort').val() === 'true') {
     $('#res-list').addClass('dispBottom');
   }
 
   // 自動改行オプションによってクラスを付与する
-  if ($('#wordBreak').val() == 'true') {
+  if ($('#wordBreak').val() === 'true') {
     $('#res-list').addClass('brakeOn');
   } else {
     $('#res-list').addClass('brakeOff');
@@ -29,7 +29,47 @@ window.onload = function () {
   const interval = 1000 * parseInt($('#interval').val());
   //指定した秒数ごとにレス取得関数を呼び出す
   setInterval(readThread, interval, url);
+
+  // WebSocket接続
+  setInterval(checkWsConnect, 3 * 1000);
 };
+var socket;
+
+const checkWsConnect = () => {
+  if (socket) return;
+  const port = $('#port').val();
+  const url = 'ws://localhost:' + port + '/ws';
+  console.log(`WS 接続開始: ${url}`);
+
+  socket = new this.WebSocket(url);
+  socket.addEventListener('open', function (e) {
+    console.log('Socket 接続成功');
+    // 定期的にpingを打つ
+    setInterval(pingWs, 10 * 1000);
+  });
+  socket.addEventListener('message', (e) => {
+    if (e.data === 'pong') {
+      pingReturn = true;
+    } else {
+      console.log(e);
+      prependItems(e.data);
+    }
+  });
+};
+
+var pingReturn = false;
+const pingWs = async () => {
+  console.log('[ws]ping打ち');
+  pingReturn = false;
+  socket.send('ping');
+  await sleep(5000);
+  if (!pingReturn) {
+    console.log('[ws]通信が返ってこないので打ち切っった');
+    socket = null;
+  }
+};
+
+const sleep = (msec) => new Promise((resolve) => setTimeout(resolve, msec));
 
 // 最終レス番取得API
 function getLastNumber(url) {
@@ -124,9 +164,9 @@ var readThread = function (url) {
 function prependItems(html) {
   // 表示順オプションで上に追加するか下に追加するか選ぶ
   if ($('#dispSort').val() === 'true') {
-    $('#res-list').prepend(html);
-  } else {
     $('#res-list').append(html);
+  } else {
+    $('#res-list').prepend(html);
   }
 }
 

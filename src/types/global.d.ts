@@ -1,9 +1,12 @@
 import { BrowserWindow } from 'electron';
+import { ChatClient } from 'dank-twitch-irc';
 
 declare global {
   namespace electron {
     var mainWindow: BrowserWindow;
     var seList: string[];
+    var twitchChat: ChatClient;
+    var socket: WebSocket;
   }
   namespace config {
     /** 掲示板URL */
@@ -20,8 +23,8 @@ declare global {
     var interval: number;
     /** Youtube チャンネルURL */
     var youtubeUrl: string;
-    /** Twitch チャンネルURL */
-    var twitchUrl: string;
+    /** Twitch ユーザ名 */
+    var twitchUser: string;
     /**
      * レス表示順序
      * - true: 新着が上

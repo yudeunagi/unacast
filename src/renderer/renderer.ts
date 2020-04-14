@@ -78,7 +78,7 @@ const buildConfigJson = () => {
   const dispNumber = parseInt((document.getElementById('text-disp-number') as HTMLInputElement).value);
   const interval = parseInt((document.getElementById('rangeSpan') as HTMLInputElement).value);
   const youtubeUrl = (document.getElementById('text-youtube-url') as HTMLInputElement).value;
-  const twitchUrl = (document.getElementById('text-twitch-url') as HTMLInputElement).value;
+  const twitchUrl = (document.getElementById('text-twitch-user') as HTMLInputElement).value;
   const sePath = (document.getElementById('text-se-path') as HTMLInputElement).value;
 
   //レス番表示設定
@@ -90,7 +90,7 @@ const buildConfigJson = () => {
   //自動改行設定
   const wordBreak = (document.getElementById('checkbox-wordBreak') as any).checked === true;
   //表示順序設定
-  const dispSort = (document.getElementById('newResUp') as any).checked === true;
+  const dispSort = (document.getElementById('newResUp') as any).checked === false;
   //本文改行設定
   const newLine = (document.getElementById('enableNewLine') as any).checked === true;
   //本文改行設定
@@ -104,7 +104,7 @@ const buildConfigJson = () => {
     dispNumber,
     interval,
     youtubeUrl,
-    twitchUrl,
+    twitchUser: twitchUrl,
     dispSort,
     newLine,
     showNumber,
@@ -139,7 +139,7 @@ function loadConfigToLocalStrage() {
     interval: 10,
     dispNumber: NaN,
     youtubeUrl: '',
-    twitchUrl: '',
+    twitchUser: '',
     dispSort: false,
     newLine: true,
     showNumber: true,
@@ -190,7 +190,7 @@ function loadConfigToLocalStrage() {
   (document.getElementById('text-res-number') as any).value = config.resNumber.toString();
   (document.getElementById('text-disp-number') as any).value = !config.dispNumber || Number.isNaN(config.dispNumber) ? '' : config.dispNumber.toString();
   (document.getElementById('text-youtube-url') as any).value = config.youtubeUrl;
-  (document.getElementById('text-twitch-url') as any).value = config.twitchUrl;
+  (document.getElementById('text-twitch-user') as any).value = config.twitchUser;
   (document.getElementById('text-se-path') as any).value = config.sePath;
   (document.getElementById('checkbox-playSe') as any).checked = config.playSe;
 

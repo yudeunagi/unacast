@@ -254,7 +254,6 @@ router.use(body_parser_1.default.json());
 router.post('/', function (req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
     var threadUrl, resNum;
     return __generator(this, function (_a) {
-        electron_log_1.default.info('getRes');
         threadUrl = req.body.threadUrl;
         resNum = req.body.resNumber;
         //リクエストURLを解析し、使用するモジュールを変更する（初回のみ）
@@ -433,6 +432,8 @@ var BrowserWindow = electron_1.default.BrowserWindow;
 globalThis.electron = {
     mainWindow: undefined,
     seList: [],
+    twitchChat: undefined,
+    socket: null,
 };
 //全てのウィンドウが閉じたら終了
 app.on('window-all-closed', function () {
@@ -854,7 +855,6 @@ var ReadSitaraba = /** @class */ (function () {
                             responseJson = [];
                             //掲示板へのリクエスト実行
                             log.info('[ReadSitaraba.js]したらばレス取得API呼び出し開始');
-                            log.debug('[ReadSitaraba.js]したらばレス取得API呼び出し開始');
                             return [4 /*yield*/, request(options).then(function (body) {
                                     log.debug('[ReadSitaraba.js]したらばレス取得API呼び出し成功');
                                     //したらばAPIの文字コードはEUC-JPなのでUTF-8に変換する
@@ -982,8 +982,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var path_1 = __importDefault(__webpack_require__(/*! path */ "path"));
 var express_1 = __importDefault(__webpack_require__(/*! express */ "express"));
 var electron_log_1 = __importDefault(__webpack_require__(/*! electron-log */ "electron-log"));
-var app;
+var dank_twitch_irc_1 = __webpack_require__(/*! dank-twitch-irc */ "dank-twitch-irc");
 var electron_1 = __webpack_require__(/*! electron */ "electron");
+var express_ws_1 = __importDefault(__webpack_require__(/*! express-ws */ "express-ws"));
+var app;
 // レス取得APIをセット
 var getRes_1 = __importDefault(__webpack_require__(/*! ./getRes */ "./src/main/getRes.ts"));
 // サーバーをグローバル変数にセットできるようにする（サーバー停止処理のため）
@@ -1000,8 +1002,7 @@ electron_1.ipcMain.on('start-server', function (event, config) { return __awaite
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
-                // express = require('express');
-                app = express_1.default();
+                app = express_ws_1.default(express_1.default()).app;
                 ejs = __webpack_require__(/*! ejs */ "ejs");
                 app.set('view engine', 'ejs');
                 //viewディレクトリの指定
@@ -1017,6 +1018,46 @@ electron_1.ipcMain.on('start-server', function (event, config) { return __awaite
                 });
                 //静的コンテンツはpublicディレクトリの中身を使用するという宣言
                 app.use(express_1.default.static(path_1.default.resolve(__dirname, '../public')));
+                if (!globalThis.config.playSe) return [3 /*break*/, 2];
+                return [4 /*yield*/, readWavFiles(globalThis.config.sePath)];
+            case 1:
+                list = _a.sent();
+                globalThis.electron.seList = list.map(function (file) { return globalThis.config.sePath + "/" + file; });
+                _a.label = 2;
+            case 2:
+                // Twitchに接続
+                if (globalThis.config.twitchUser) {
+                    globalThis.electron.twitchChat = new dank_twitch_irc_1.ChatClient();
+                    globalThis.electron.twitchChat.connect();
+                    globalThis.electron.twitchChat.join(globalThis.config.twitchUser);
+                    globalThis.electron.twitchChat.on('PRIVMSG', function (msg) {
+                        var imgUrl = './img/twitch.png';
+                        var domStr = "<li class=\"list-item\"><span class=\"icon-block\"><img class=\"icon\" src=\"" + imgUrl + "\"></span><div class=\"content\">";
+                        if (globalThis.config.showName) {
+                            domStr += "<span class=\"name\">" + msg.displayName + "</span>";
+                        }
+                        domStr += "<span class=\"res\">" + msg.messageText + "</span></div></li>";
+                        if (globalThis.electron.socket)
+                            globalThis.electron.socket.send(domStr);
+                        if (config.playSe && globalThis.electron.seList.length > 0) {
+                            var wavfilepath = globalThis.electron.seList[Math.floor(Math.random() * globalThis.electron.seList.length)];
+                            globalThis.electron.mainWindow.webContents.send('play-sound', wavfilepath);
+                        }
+                    });
+                }
+                // WebSocketを立てる
+                app.ws('/ws', function (ws, req) {
+                    globalThis.electron.socket = ws;
+                    ws.on('message', function (message) {
+                        console.log('Received: ' + message);
+                        if (message === 'ping') {
+                            ws.send('pong');
+                        }
+                    });
+                    ws.on('close', function () {
+                        console.log('I lost a client');
+                    });
+                });
                 //指定したポートで待ち受け開始
                 server = app.listen(config.port, function () {
                     electron_log_1.default.info('[startServer]start server on port:' + config.port);
@@ -1024,13 +1065,7 @@ electron_1.ipcMain.on('start-server', function (event, config) { return __awaite
                 });
                 //成功メッセージ返却
                 event.returnValue = 'success';
-                if (!globalThis.config.playSe) return [3 /*break*/, 2];
-                return [4 /*yield*/, readWavFiles(globalThis.config.sePath)];
-            case 1:
-                list = _a.sent();
-                globalThis.electron.seList = list.map(function (file) { return globalThis.config.sePath + "/" + file; });
-                _a.label = 2;
-            case 2: return [2 /*return*/];
+                return [2 /*return*/];
         }
     });
 }); });
@@ -1039,12 +1074,12 @@ electron_1.ipcMain.on('start-server', function (event, config) { return __awaite
  */
 electron_1.ipcMain.on('stop-server', function (event) {
     electron_log_1.default.info(server.listening);
-    server.close();
-    app = null;
-    // express = null;
     electron_log_1.default.info('[startServer]server stop');
     electron_log_1.default.info(server.listening);
+    server.close();
+    app = null;
     event.returnValue = 'stop';
+    globalThis.electron.twitchChat.close();
 });
 var fs_1 = __importDefault(__webpack_require__(/*! fs */ "fs"));
 var readWavFiles = function (path) {
@@ -1081,6 +1116,17 @@ var isExistFile = function (file) {
 /***/ (function(module, exports) {
 
 module.exports = require("body-parser");
+
+/***/ }),
+
+/***/ "dank-twitch-irc":
+/*!**********************************!*\
+  !*** external "dank-twitch-irc" ***!
+  \**********************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = require("dank-twitch-irc");
 
 /***/ }),
 
@@ -1125,6 +1171,17 @@ module.exports = require("electron-log");
 /***/ (function(module, exports) {
 
 module.exports = require("express");
+
+/***/ }),
+
+/***/ "express-ws":
+/*!*****************************!*\
+  !*** external "express-ws" ***!
+  \*****************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = require("express-ws");
 
 /***/ }),
 

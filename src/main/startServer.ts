@@ -2,9 +2,11 @@ import http from 'http';
 import path from 'path';
 import express from 'express';
 import log from 'electron-log';
+import { ChatClient } from 'dank-twitch-irc';
+import { ipcMain } from 'electron';
+import expressWs from 'express-ws';
 var app;
 
-import { ipcMain } from 'electron';
 // レス取得APIをセット
 import getRes from './getRes';
 
@@ -19,8 +21,7 @@ var server: http.Server;
  * port:ポート番号
  */
 ipcMain.on('start-server', async (event: any, config: typeof globalThis['config']) => {
-  // express = require('express');
-  app = express();
+  app = expressWs(express()).app;
   const ejs = require('ejs');
   app.set('view engine', 'ejs');
   //viewディレクトリの指定
@@ -40,6 +41,47 @@ ipcMain.on('start-server', async (event: any, config: typeof globalThis['config'
   //静的コンテンツはpublicディレクトリの中身を使用するという宣言
   app.use(express.static(path.resolve(__dirname, '../public')));
 
+  // SEを取得する
+  if (globalThis.config.playSe) {
+    const list = await readWavFiles(globalThis.config.sePath);
+    globalThis.electron.seList = list.map((file) => `${globalThis.config.sePath}/${file}`);
+  }
+
+  // Twitchに接続
+  if (globalThis.config.twitchUser) {
+    globalThis.electron.twitchChat = new ChatClient();
+    globalThis.electron.twitchChat.connect();
+    globalThis.electron.twitchChat.join(globalThis.config.twitchUser);
+    globalThis.electron.twitchChat.on('PRIVMSG', (msg) => {
+      const imgUrl = './img/twitch.png';
+      let domStr = `<li class="list-item"><span class="icon-block"><img class="icon" src="${imgUrl}"></span><div class="content">`;
+      if (globalThis.config.showName) {
+        domStr += `<span class="name">${msg.displayName}</span>`;
+      }
+      domStr += `<span class="res">${msg.messageText}</span></div></li>`;
+      if (globalThis.electron.socket) globalThis.electron.socket.send(domStr);
+      if (config.playSe && globalThis.electron.seList.length > 0) {
+        const wavfilepath = globalThis.electron.seList[Math.floor(Math.random() * globalThis.electron.seList.length)];
+        globalThis.electron.mainWindow.webContents.send('play-sound', wavfilepath);
+      }
+    });
+  }
+
+  // WebSocketを立てる
+  app.ws('/ws', (ws, req) => {
+    globalThis.electron.socket = ws as any;
+    ws.on('message', (message) => {
+      console.log('Received: ' + message);
+      if (message === 'ping') {
+        ws.send('pong');
+      }
+    });
+
+    ws.on('close', () => {
+      console.log('I lost a client');
+    });
+  });
+
   //指定したポートで待ち受け開始
   server = app.listen(config.port, () => {
     log.info('[startServer]start server on port:' + config.port);
@@ -47,12 +89,6 @@ ipcMain.on('start-server', async (event: any, config: typeof globalThis['config'
   });
   //成功メッセージ返却
   event.returnValue = 'success';
-
-  // SEを取得する
-  if (globalThis.config.playSe) {
-    const list = await readWavFiles(globalThis.config.sePath);
-    globalThis.electron.seList = list.map((file) => `${globalThis.config.sePath}/${file}`);
-  }
 });
 
 /**
@@ -60,12 +96,13 @@ ipcMain.on('start-server', async (event: any, config: typeof globalThis['config'
  */
 ipcMain.on('stop-server', function (event: any) {
   log.info(server.listening);
-  server.close();
-  app = null;
-  // express = null;
   log.info('[startServer]server stop');
   log.info(server.listening);
+  server.close();
+  app = null;
   event.returnValue = 'stop';
+
+  globalThis.electron.twitchChat.close();
 });
 
 import fs from 'fs';

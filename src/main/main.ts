@@ -24,6 +24,8 @@ const BrowserWindow = electron.BrowserWindow;
 globalThis.electron = {
   mainWindow: undefined as any,
   seList: [],
+  twitchChat: undefined as any,
+  socket: null as any,
 };
 
 //全てのウィンドウが閉じたら終了
