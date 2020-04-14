@@ -67,11 +67,13 @@ OBSのソースで「ブラウザソース」を追加し、設定画面を開�
 
 ## Todo
 
-* [ ] TypeScript化
+* [x] TypeScript化(本体)
+* [ ] TypeScript化(view)
 * [x] レス着信時のランダムサウンド再生
 * [x] Twitch対応
 * [ ] Youtube対応
 * [x] 本体とviewの接続のWebSocket化
 * [ ] レスの通信もWebSocketにする
 * [ ] (やる気があれば)棒読みちゃん
+* [ ] いらないパッケージを削除する
 * [ ] 全体的にヤバイコードをなんとかする
