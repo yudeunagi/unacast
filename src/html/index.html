@@ -68,9 +68,6 @@
       <span class="mdl-textfield__error">0-999 までの数値を入れてください</span>
     </div>
 
-      <!-- ここに入れた名前が来たらレス番に変換するって昨日だったんだけど廃止するのでじきに消す -->
-      <input id="text-noname" class="mdl-textfield__input" type="hidden" value="名無しさん" >
-
     <div class="mdl-textfield mdl-js-textfield">
       初期表示テキスト
       <input id="text-init-message" class="mdl-textfield__input" type="text" value="" >
@@ -133,15 +130,28 @@
     </p>
 
     <div class="mdl-textfield mdl-js-textfield" style="width: 600px">
-      YoutubeURL（未実装）
+      YoutubeURL
       <input class="mdl-textfield__input" type="text" id="text-youtube-url">
     </div>
 
+    <div class="mdl-textfield mdl-js-textfield" style="width: 600px">
+      TwitchURL
+      <input class="mdl-textfield__input" type="text" id="text-twitch-url">
+    </div>
+
+    <div class="mdl-textfield mdl-js-textfield" style="width: 600px">
+      レス着信音のパス
+      <input class="mdl-textfield__input" type="text" id="text-se-path">
+
+      <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="checkbox-playSe">
+        <input type="checkbox" id="checkbox-playSe" class="mdl-checkbox__input" value="1" checked>
+        <span class="mdl-checkbox__label">レス着信音再生</span>
+      </label>
 
   </form>
 
   <script>
-  require('../renderer/renderer');
+  require('../../dist/scripts');
 
   /* 変更中（ドラッグ中） */
   function showVal(newVal){

@@ -14,12 +14,12 @@ window.onload = function () {
   }
 
   // 新着下表示オプションがONの場合ul要素に.bottomを付与する
-  if ($('#dispSort').val() == 1) {
+  if ($('#dispSort').val() == 'true') {
     $('#res-list').addClass('dispBottom');
   }
 
   // 自動改行オプションによってクラスを付与する
-  if ($('#wordBreak').val() == 1) {
+  if ($('#wordBreak').val() == 'true') {
     $('#res-list').addClass('brakeOn');
   } else {
     $('#res-list').addClass('brakeOff');
@@ -123,10 +123,10 @@ var readThread = function (url) {
 //レスをリスト追加
 function prependItems(html) {
   // 表示順オプションで上に追加するか下に追加するか選ぶ
-  if ($('#dispSort').val() == 1) {
-    $('#res-list').append(html);
-  } else {
+  if ($('#dispSort').val() === 'true') {
     $('#res-list').prepend(html);
+  } else {
+    $('#res-list').append(html);
   }
 }
 

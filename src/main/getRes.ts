@@ -1,7 +1,7 @@
 import express from 'express';
-const router = express.Router();
-var log = require('electron-log');
 import bodyParser from 'body-parser'; // jsonパーサ
+const router = express.Router();
+import log from 'electron-log';
 
 import ReadIcons from './ReadIcons'; //アイコンファイル名取得
 const readIcons = new ReadIcons();
@@ -40,31 +40,24 @@ router.post('/', async (req, res, next) => {
   //選択したモジュールでレス取得処理を行う
   bbsModule
     .read(threadUrl, resNum)
-    .then((response: any) => {
-      console.log('[getRes.js]レス取得成功。件数=' + response.length);
+    .then(async (response) => {
       log.info('[getRes.js]レス取得成功。件数=' + response.length);
       // 返却されたjsonオブジェクトを組み立てる
       var result = buildResponseArray(response);
       // 返却
       res.header('Content-Type', 'application/json; charset=UTF-8');
-      console.log('[getRes.js]レス処理完了');
       log.info('[getRes.js]レス処理完了');
-      //    console.log(result);
+      if (response.length > 0 && config.playSe && globalThis.electron.seList.length > 0) {
+        const wavfilepath = globalThis.electron.seList[Math.floor(Math.random() * globalThis.electron.seList.length)];
+        globalThis.electron.mainWindow.webContents.send('play-sound', wavfilepath);
+      }
       res.send(result);
     })
     .catch((err) => {
-      console.log(err);
       log.error(err);
     });
 
   return;
-  //こっから下は移植したらけす
-  //失敗時エラーレスポンスを返す
-  /*
-  var param = 'response';
-  res.header('Content-Type', 'text/plain; charset=utf-8')
-  res.send(param);
-  */
 });
 
 /*
@@ -76,7 +69,7 @@ const analysBBSName = (threadUrl: string) => {
   //こんな感じで必要に応じて増やしていけばいいんじゃね？
   //  const dokkanoBBS = 'dokka.bbs.com';
 
-  if (threadUrl.indexOf(sitarabaDomain) != -1) {
+  if (threadUrl.indexOf(sitarabaDomain) !== -1) {
     // URLにしたらばドメイン名が入ってればしたらば
     return sitaraba;
   }
@@ -92,7 +85,7 @@ const analysBBSName = (threadUrl: string) => {
 const buildResponseArray = (resObject: any) => {
   //結果を格納する配列
   var result = new Array();
-  console.log('[getRes.buildResponseArray]レスポンス整形開始 件数=' + resObject.length);
+  log.debug('[getRes.buildResponseArray]レスポンス整形開始 件数=' + resObject.length);
   resObject.forEach((value: any) => {
     result.push(buildResponse(value));
   });
@@ -105,8 +98,8 @@ const buildResponseArray = (resObject: any) => {
  * @return { レス番 , HTML整形後のレス }のオブジェクト
  */
 function buildResponse(res: any) {
-  //  console.log('[getRes.js]パース開始');
-  //  console.log(res);
+  log.debug('[getRes.js]パース開始');
+  log.debug(res);
   //最終的にHTML文字列にするためのダミーオブジェクト
   var $dummy = $('<div />');
 
@@ -139,8 +132,9 @@ function buildResponse(res: any) {
     $resDiv.append($date);
   }
 
-  //ここで改行化スペースを入れる
+  // 名前と本文を改行で分ける
   if (globalThis.config.newLine) {
+    log.info('' + globalThis.config.newLine);
     $resDiv.append('<br/>').append($res);
   } else {
     $resDiv.append($res);
@@ -155,8 +149,8 @@ function buildResponse(res: any) {
   //レス番号更新
   //$('#resNumber').val(parseInt(res.number) + 1);
 
-  //  console.log('[getRes.js]パース完了');
-  //  console.log($dummy.html());
+  log.debug('[getRes.js]パース完了');
+  log.debug($dummy.html());
 
   // レス番とテキストをセットにしたJSONを返す
   var result = {
@@ -184,27 +178,6 @@ function getIcon(name: string, id: string) {
  * @param String // id ID、板によっては非表示だったりする、困る
  */
 function getIconFileName(name: string, id: string) {
-  // アイコンファイル名
-  var src;
-
-  /* まだまだ未実装
-  // コテハン機能
-  if(コテハンオプション == true){
-    src = ReadIcons.getKotehanIcons();
-    if(src != null){
-      // 名前に対応するアイコンが取得出来たらreturnする
-      return src;
-    }
-  }
-  // IDとアイコン関連付け機能
-  if(IDオプション == true
-    && id != null){
-    src = ReadIcons.getIdIcons();
-    if(src != null){
-      return src;
-    }
-  }
-  */
   // ランダムアイコン取得
   return readIcons.getRandomIcons();
 }

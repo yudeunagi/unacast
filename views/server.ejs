@@ -1,48 +1,37 @@
 <html>
-<head>
-  <meta charset="UTF-8">
-  <title>サーバー表示ウィンドウ</title>
-  <script
-  src="https://code.jquery.com/jquery-3.4.1.js"
-  integrity="sha256-WpOohJOqMqqyKL9FccASB9O0KwACQJpFTUBLTYOVvVU="
-  crossorigin="anonymous"></script>
-  <link rel="stylesheet" href="./css/style-server.css">
+  <head>
+    <meta charset="UTF-8" />
+    <title>サーバー表示ウィンドウ</title>
+    <script src="https://code.jquery.com/jquery-3.4.1.js" integrity="sha256-WpOohJOqMqqyKL9FccASB9O0KwACQJpFTUBLTYOVvVU=" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="./css/style-server.css" />
+  </head>
+  <body>
+    <form id="requestForm">
+      <input type="hidden" id="threadUrl" name="threadUrl" value="<%=url%>" />
+      <input type="hidden" id="resNumber" name="resNumber" value="<%=resNumber%>" />
+      <input type="hidden" id="port" name="port" value="<%=port%>" />
 
-</head>
-<body>
-  <form id="requestForm">
-    <input type="hidden" id="threadUrl" name="threadUrl" value="<%=url%>" >
-    <input type="hidden" id="resNumber" name="resNumber" value="<%=resNumber%>" >
-    <input type="hidden" id="port" name="port" value="<%=port%>" >
-
-    <!-- レス番変換用名無し指定はもう使わないのであとで消す-->
-    <input type="hidden" id="noname" name="noname" value="<%=noname%>" >
-
-    <input type="hidden" id="dispNumber" name="dispNumber" value="<%=dipsNumber%>" >
-    <input type="hidden" id="interval" name="interval" value="<%=interval%>" >
-    <input type="hidden" id="youtubeUrl" name="youtubeUrl" value="<%=youtubeUrl%>" >
-    <input type="hidden" id="dispSort" name="dispSort" value="<%=dispSort%>" >
-    <input type="hidden" id="newLine" name="newLine" value="<%=newLine%>" >
-    <input type="hidden" id="showNumber" name="showNumber" value="<%=showNumber%>" >
-    <input type="hidden" id="showName" name="showName" value="<%=showName%>" >
-    <input type="hidden" id="showTime" name="showTime" value="<%=showTime%>" >
-    <input type="hidden" id="wordBreak" name="wordBreak" value="<%=wordBreak%>" >
-
-  </form>
-  <div id="parent">
-    <ul id="res-list" >
-      <li>
-        <span class="icon">
-        </span>
-        <span class="name">
-          <%=initMessage%>
-        </span>
-        <span class="res">
-        </span>
-      </li>
-    </ul>
-  </div>
-  <script src="./js/readThread.js">
-  </script>
-</body>
+      <input type="hidden" id="dispNumber" name="dispNumber" value="<%=dispNumber%>" />
+      <input type="hidden" id="interval" name="interval" value="<%=interval%>" />
+      <input type="hidden" id="youtubeUrl" name="youtubeUrl" value="<%=youtubeUrl%>" />
+      <input type="hidden" id="dispSort" name="dispSort" value="<%=dispSort%>" />
+      <input type="hidden" id="newLine" name="newLine" value="<%=newLine%>" />
+      <input type="hidden" id="showNumber" name="showNumber" value="<%=showNumber%>" />
+      <input type="hidden" id="showName" name="showName" value="<%=showName%>" />
+      <input type="hidden" id="showTime" name="showTime" value="<%=showTime%>" />
+      <input type="hidden" id="wordBreak" name="wordBreak" value="<%=wordBreak%>" />
+    </form>
+    <div id="parent">
+      <ul id="res-list">
+        <li>
+          <span class="icon"> </span>
+          <span class="name">
+            <%=initMessage%>
+          </span>
+          <span class="res"> </span>
+        </li>
+      </ul>
+    </div>
+    <script src="./js/readThread.js"></script>
+  </body>
 </html>

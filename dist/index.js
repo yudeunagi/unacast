@@ -127,7 +127,6 @@ var ReadIcons = /** @class */ (function () {
                 // リストからランダム取得
                 //  var size = randomIconList.size;
                 var num = Math.floor(randomIconList.length * Math.random());
-                log.info(JSON.stringify(randomIconList));
                 iconPath = dirName + randomIconList[num];
             }
             catch (e) {
@@ -137,13 +136,12 @@ var ReadIcons = /** @class */ (function () {
         };
         //画像ディレクトリ
         var randomDir = path_1.default.resolve(__dirname, "../public/img/random/");
-        console.log('[ReadIcons]loadRandomDir = ' + randomDir);
-        log.info('[ReadIcons]loadRandomDir = ' + randomDir);
+        log.debug('[ReadIcons]loadRandomDir = ' + randomDir);
         //  ランダムアイコン取得
         randomIconList = readDir(randomDir);
         //ID用アイコンディレクトリ
         var idDir = path_1.default.resolve(__dirname, "../public/img/id/");
-        console.log('[ReadIcons]loadIDDir = ' + idDir);
+        log.debug('[ReadIcons]loadIDDir = ' + idDir);
         //  ランダムアイコン取得
         idIconList = readDir(idDir);
     }
@@ -151,13 +149,10 @@ var ReadIcons = /** @class */ (function () {
 }());
 var readDir = function (imgDir) {
     var iconFileList = [];
-    console.log('[ReadIcons.readDir]start');
     //  指定したディレクトリのアイコン取得
     var files = fs_1.default.readdirSync(imgDir, { withFileTypes: true });
     //pngファイルのみ返却リストに格納する
     files.forEach(function (file) {
-        console.log('[ReadIcons.readDir]file = ' + file);
-        log.info('[ReadIcons.readDir]file = ' + file);
         // asar圧縮するとfileが文字列になる。開発環境だとfileオブジェクトになる
         var target = typeof file.name !== 'string' ? file : file.name;
         var regx = /.*\.png$/.test(target);
@@ -165,7 +160,6 @@ var readDir = function (imgDir) {
             iconFileList.push(target);
         }
     });
-    console.log('[ReadIcons.readDir]end');
     log.info('[ReadIcons.readDir]end');
     log.info(JSON.stringify(iconFileList));
     return iconFileList;
@@ -237,9 +231,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var express_1 = __importDefault(__webpack_require__(/*! express */ "express"));
-var router = express_1.default.Router();
-var log = __webpack_require__(/*! electron-log */ "electron-log");
 var body_parser_1 = __importDefault(__webpack_require__(/*! body-parser */ "body-parser")); // jsonパーサ
+var router = express_1.default.Router();
+var electron_log_1 = __importDefault(__webpack_require__(/*! electron-log */ "electron-log"));
 var ReadIcons_1 = __importDefault(__webpack_require__(/*! ./ReadIcons */ "./src/main/ReadIcons.ts")); //アイコンファイル名取得
 var readIcons = new ReadIcons_1.default();
 var JSDOM = __webpack_require__(/*! jsdom */ "jsdom").JSDOM;
@@ -260,7 +254,7 @@ router.use(body_parser_1.default.json());
 router.post('/', function (req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
     var threadUrl, resNum;
     return __generator(this, function (_a) {
-        log.info('getRes');
+        electron_log_1.default.info('getRes');
         threadUrl = req.body.threadUrl;
         resNum = req.body.resNumber;
         //リクエストURLを解析し、使用するモジュールを変更する（初回のみ）
@@ -270,21 +264,24 @@ router.post('/', function (req, res, next) { return __awaiter(void 0, void 0, vo
         //選択したモジュールでレス取得処理を行う
         bbsModule
             .read(threadUrl, resNum)
-            .then(function (response) {
-            console.log('[getRes.js]レス取得成功。件数=' + response.length);
-            log.info('[getRes.js]レス取得成功。件数=' + response.length);
-            // 返却されたjsonオブジェクトを組み立てる
-            var result = buildResponseArray(response);
-            // 返却
-            res.header('Content-Type', 'application/json; charset=UTF-8');
-            console.log('[getRes.js]レス処理完了');
-            log.info('[getRes.js]レス処理完了');
-            //    console.log(result);
-            res.send(result);
-        })
+            .then(function (response) { return __awaiter(void 0, void 0, void 0, function () {
+            var result, wavfilepath;
+            return __generator(this, function (_a) {
+                electron_log_1.default.info('[getRes.js]レス取得成功。件数=' + response.length);
+                result = buildResponseArray(response);
+                // 返却
+                res.header('Content-Type', 'application/json; charset=UTF-8');
+                electron_log_1.default.info('[getRes.js]レス処理完了');
+                if (response.length > 0 && config.playSe && globalThis.electron.seList.length > 0) {
+                    wavfilepath = globalThis.electron.seList[Math.floor(Math.random() * globalThis.electron.seList.length)];
+                    globalThis.electron.mainWindow.webContents.send('play-sound', wavfilepath);
+                }
+                res.send(result);
+                return [2 /*return*/];
+            });
+        }); })
             .catch(function (err) {
-            console.log(err);
-            log.error(err);
+            electron_log_1.default.error(err);
         });
         return [2 /*return*/];
     });
@@ -297,7 +294,7 @@ var analysBBSName = function (threadUrl) {
     var sitarabaDomain = 'jbbs.shitaraba.net';
     //こんな感じで必要に応じて増やしていけばいいんじゃね？
     //  const dokkanoBBS = 'dokka.bbs.com';
-    if (threadUrl.indexOf(sitarabaDomain) != -1) {
+    if (threadUrl.indexOf(sitarabaDomain) !== -1) {
         // URLにしたらばドメイン名が入ってればしたらば
         return sitaraba;
     }
@@ -312,7 +309,7 @@ var analysBBSName = function (threadUrl) {
 var buildResponseArray = function (resObject) {
     //結果を格納する配列
     var result = new Array();
-    console.log('[getRes.buildResponseArray]レスポンス整形開始 件数=' + resObject.length);
+    electron_log_1.default.debug('[getRes.buildResponseArray]レスポンス整形開始 件数=' + resObject.length);
     resObject.forEach(function (value) {
         result.push(buildResponse(value));
     });
@@ -325,8 +322,8 @@ var buildResponseArray = function (resObject) {
  * @return { レス番 , HTML整形後のレス }のオブジェクト
  */
 function buildResponse(res) {
-    //  console.log('[getRes.js]パース開始');
-    //  console.log(res);
+    electron_log_1.default.debug('[getRes.js]パース開始');
+    electron_log_1.default.debug(res);
     //最終的にHTML文字列にするためのダミーオブジェクト
     var $dummy = $('<div />');
     var $li = $('<li />', { class: 'list-item' });
@@ -354,8 +351,9 @@ function buildResponse(res) {
     if (globalThis.config.showTime) {
         $resDiv.append($date);
     }
-    //ここで改行化スペースを入れる
+    // 名前と本文を改行で分ける
     if (globalThis.config.newLine) {
+        electron_log_1.default.info('' + globalThis.config.newLine);
         $resDiv.append('<br/>').append($res);
     }
     else {
@@ -367,8 +365,8 @@ function buildResponse(res) {
     $dummy.append($li);
     //レス番号更新
     //$('#resNumber').val(parseInt(res.number) + 1);
-    //  console.log('[getRes.js]パース完了');
-    //  console.log($dummy.html());
+    electron_log_1.default.debug('[getRes.js]パース完了');
+    electron_log_1.default.debug($dummy.html());
     // レス番とテキストをセットにしたJSONを返す
     var result = {
         resNumber: res.number,
@@ -393,26 +391,6 @@ function getIcon(name, id) {
  * @param String // id ID、板によっては非表示だったりする、困る
  */
 function getIconFileName(name, id) {
-    // アイコンファイル名
-    var src;
-    /* まだまだ未実装
-    // コテハン機能
-    if(コテハンオプション == true){
-      src = ReadIcons.getKotehanIcons();
-      if(src != null){
-        // 名前に対応するアイコンが取得出来たらreturnする
-        return src;
-      }
-    }
-    // IDとアイコン関連付け機能
-    if(IDオプション == true
-      && id != null){
-      src = ReadIcons.getIdIcons();
-      if(src != null){
-        return src;
-      }
-    }
-    */
     // ランダムアイコン取得
     return readIcons.getRandomIcons();
 }
@@ -448,11 +426,14 @@ process.on('uncaughtException', function (err) {
 var app = electron_1.default.app;
 // サーバー起動モジュール
 var ss = __webpack_require__(/*! ./startServer */ "./src/main/startServer.ts");
-console.log(ss);
+console.debug(ss);
 //ウィンドウを作成するモジュール
 var BrowserWindow = electron_1.default.BrowserWindow;
 // メインウィンドウはGCされないようにグローバル宣言
-var mainWindow = null;
+globalThis.electron = {
+    mainWindow: undefined,
+    seList: [],
+};
 //全てのウィンドウが閉じたら終了
 app.on('window-all-closed', function () {
     if (process.platform != 'darwin') {
@@ -462,7 +443,7 @@ app.on('window-all-closed', function () {
 // Electronの初期化完了後に実行
 app.on('ready', function () {
     //ウィンドウサイズを1280*720（フレームサイズを含まない）に設定する
-    mainWindow = new BrowserWindow({
+    globalThis.electron.mainWindow = new BrowserWindow({
         width: 700,
         height: 720,
         useContentSize: true,
@@ -471,15 +452,16 @@ app.on('ready', function () {
             nodeIntegration: true,
         },
     });
-    mainWindow.setTitle('unacast');
+    globalThis.electron.mainWindow.setTitle('unacast');
     //使用するhtmlファイルを指定する
-    mainWindow.loadURL(path_1.default.resolve(__dirname, '../src/html/index.html'));
+    globalThis.electron.mainWindow.loadURL(path_1.default.resolve(__dirname, '../src/html/index.html'));
     // ウィンドウが閉じられたらアプリも終了
-    mainWindow.on('closed', function () {
-        mainWindow = null;
+    globalThis.electron.mainWindow.on('closed', function () {
+        globalThis.electron.mainWindow = undefined;
     });
-    // mainWindow.webContents.openDevTools();
+    // globalThis.electron.mainWindow.webContents.openDevTools();
 });
+app.commandLine.appendSwitch('--autoplay-policy', 'no-user-gesture-required');
 
 
 /***/ }),
@@ -582,10 +564,10 @@ var Read5ch = /** @class */ (function () {
                             lastThreadUrl = threadUrl;
                             lastModified = null;
                             lastByte = 0;
-                            console.log('[Read5ch.js]resete!!!!!!!!!!!!!!!!');
+                            log.debug('[Read5ch.js]resete!!!!!!!!!!!!!!!!');
                         }
                         else {
-                            console.log('noresete');
+                            log.debug('noresete');
                         }
                         rep = /\/test\/read.cgi(\/.+)(\/.+)\//;
                         requestUrl = threadUrl.replace(rep, '$1/dat$2.dat');
@@ -600,10 +582,9 @@ var Read5ch = /** @class */ (function () {
                                 range: 'bytes=' + range + '-',
                             },
                         };
-                        console.log(options);
+                        log.debug(options);
                         //掲示板へのリクエスト実行
-                        console.log('[Read5ch.js]5ch系BBSレス取得API呼び出し開始');
-                        log.info('[Read5ch.js]5ch系BBSレス取得API呼び出し開始');
+                        log.debug('[Read5ch.js]5ch系BBSレス取得API呼び出し開始');
                         _a.label = 1;
                     case 1:
                         _a.trys.push([1, 3, , 4]);
@@ -611,21 +592,21 @@ var Read5ch = /** @class */ (function () {
                     case 2:
                         response = _a.sent();
                         statusCode = response.statusCode;
-                        console.log('[Read5ch.js]5ch系BBSレス取得API呼び出し完了、statusCode=' + statusCode);
-                        log.info('[Read5ch.js]5ch系BBSレス取得API呼び出し完了、statusCode=' + statusCode);
+                        log.debug('[Read5ch.js]5ch系BBSレス取得API呼び出し完了、statusCode=' + statusCode);
+                        // log.info('[Read5ch.js]5ch系BBSレス取得API呼び出し完了、statusCode=' + statusCode);
                         // レスポンスヘッダ表示
-                        console.log('[Read5ch.read]レスポンスヘッダ=');
+                        log.debug('[Read5ch.read]レスポンスヘッダ=');
                         headers = response.headers;
-                        console.log(headers);
+                        log.debug(headers);
                         //LastModifiedとRange更新処理
                         if (headers['last-modified'] != null) {
                             lastModified = headers['last-modified'];
-                            console.log('[Read5ch.read]lastModified=' + lastModified);
+                            log.debug('[Read5ch.read]lastModified=' + lastModified);
                         }
                         str = iconv_lite_1.default.decode(Buffer.from(response.body), 'Shift_JIS');
                         // レスポンスオブジェクト作成、content-rangeがある場合とない場合で処理を分ける
                         if (headers['content-range'] == null || lastByte == 0) {
-                            console.log('[Read5ch.read]content-range=' + headers['content-range']);
+                            log.debug('[Read5ch.read]content-range=' + headers['content-range']);
                             responseJson = purseNewResponse(str, resNum);
                         }
                         else {
@@ -634,7 +615,7 @@ var Read5ch = /** @class */ (function () {
                         // 取得バイト数表示
                         if (headers['content-length'] != null && responseJson.length > 0) {
                             lastByte = lastByte + parseInt(headers['content-length']) - 1;
-                            console.log('[Read5ch.read]lastByte=' + lastByte);
+                            log.debug('[Read5ch.read]lastByte=' + lastByte);
                         }
                         return [3 /*break*/, 4];
                     case 3:
@@ -674,21 +655,21 @@ var purseNewResponse = function (res, resNum) {
     //新着レスを改行ごとにSplitする
     var resArray = res.split(/\r\n|\r|\n/);
     // 新着なしなら戻る。
-    if (resArray.length == 0) {
+    if (resArray.length === 0) {
         return result;
     }
     // 配列の最後に空の要素が入ることがあるので取り除く
-    if (resArray[resArray.length - 1].length == 0) {
+    if (resArray[resArray.length - 1].length === 0) {
         resArray.pop();
     }
     // レス指定なしの場合最後の1件取得
-    if (resNum == null || resNum === '') {
+    if (resNum === null || resNum === '') {
         num = resArray.length - 1;
     }
     else {
         num = parseInt(resNum) - 1;
     }
-    console.log('[Read5ch.purseNewResponse]取得レス番号=' + num);
+    log.debug('[Read5ch.purseNewResponse]取得レス番号=' + num);
     //1行ごとにパースする
     for (; num < resArray.length; num++) {
         //パースメソッド呼び出し
@@ -714,7 +695,7 @@ var purseDiffResponse = function (res, resNum) {
     //新着レスを改行ごとにSplitする
     var resArray = res.split(/\r\n|\r|\n/);
     // 新着なしなら戻る。
-    if (resArray.length == 0) {
+    if (resArray.length === 0) {
         return result;
     }
     else {
@@ -723,7 +704,7 @@ var purseDiffResponse = function (res, resNum) {
             resArray.pop();
         }
     }
-    console.log('[Read5ch.purseDiffResponse]取得レス番号=' + num);
+    log.debug('[Read5ch.purseDiffResponse]取得レス番号=' + num);
     //1行ごとにパースする
     resArray.forEach(function (value) {
         //パースメソッド呼び出し
@@ -763,7 +744,7 @@ var purseResponse = function (res, num) {
     var dateId = splitRes[2].split(' ID:');
     var date = dateId[0];
     // IDが取得できない場合はnullにする
-    var id = dateId.length == 2 ? dateId[1] : null;
+    var id = dateId.length === 2 ? dateId[1] : null;
     var resJson = {
         number: num,
         name: splitRes[0],
@@ -841,7 +822,7 @@ var ReadSitaraba = /** @class */ (function () {
     function ReadSitaraba() {
         //テストメソッド
         this.test = function () {
-            console.log(global.config);
+            log.debug(global.config);
         };
         /**
          * レス読み込み
@@ -870,11 +851,12 @@ var ReadSitaraba = /** @class */ (function () {
                                 method: 'GET',
                                 encoding: null,
                             };
+                            responseJson = [];
                             //掲示板へのリクエスト実行
                             log.info('[ReadSitaraba.js]したらばレス取得API呼び出し開始');
-                            console.log('[ReadSitaraba.js]したらばレス取得API呼び出し開始');
+                            log.debug('[ReadSitaraba.js]したらばレス取得API呼び出し開始');
                             return [4 /*yield*/, request(options).then(function (body) {
-                                    console.log('[ReadSitaraba.js]したらばレス取得API呼び出し成功');
+                                    log.debug('[ReadSitaraba.js]したらばレス取得API呼び出し成功');
                                     //したらばAPIの文字コードはEUC-JPなのでUTF-8に変換する
                                     var str = iconv.decode(Buffer.from(body), 'EUC-JP');
                                     // レスポンスオブジェクト作成
@@ -894,7 +876,7 @@ var ReadSitaraba = /** @class */ (function () {
 //戻りとしてパースしたjsonオブジェクトの配列を返す
 function purseNewResponse(res) {
     //結果を格納する配列
-    var result = new Array();
+    var result = [];
     //新着レスを改行ごとにSplitする
     var resArray = res.split(/\r\n|\r|\n/);
     //1行ごとにパースする
@@ -957,65 +939,136 @@ exports.default = ReadSitaraba;
 
 "use strict";
 
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __generator = (this && this.__generator) || function (thisArg, body) {
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
+    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    function verb(n) { return function (v) { return step([n, v]); }; }
+    function step(op) {
+        if (f) throw new TypeError("Generator is already executing.");
+        while (_) try {
+            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
+            if (y = 0, t) op = [op[0] & 2, t.value];
+            switch (op[0]) {
+                case 0: case 1: t = op; break;
+                case 4: _.label++; return { value: op[1], done: false };
+                case 5: _.label++; y = op[1]; op = [0]; continue;
+                case 7: op = _.ops.pop(); _.trys.pop(); continue;
+                default:
+                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
+                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
+                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
+                    if (t[2]) _.ops.pop();
+                    _.trys.pop(); continue;
+            }
+            op = body.call(thisArg, _);
+        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
+        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
+    }
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var path_1 = __importDefault(__webpack_require__(/*! path */ "path"));
 var express_1 = __importDefault(__webpack_require__(/*! express */ "express"));
+var electron_log_1 = __importDefault(__webpack_require__(/*! electron-log */ "electron-log"));
 var app;
 var electron_1 = __webpack_require__(/*! electron */ "electron");
 // レス取得APIをセット
 var getRes_1 = __importDefault(__webpack_require__(/*! ./getRes */ "./src/main/getRes.ts"));
 // サーバーをグローバル変数にセットできるようにする（サーバー停止処理のため）
 var server;
-/* サーバー起動
+/**
+ * サーバー起動
  * config:設定を格納したjson、以下jsonの中身
  * url:掲示板URL
  * resNumber:読み込み開始レス位置
  * port:ポート番号
- *
- *
  */
-electron_1.ipcMain.on('start-server', function (event, config) {
-    // express = require('express');
-    app = express_1.default();
-    var ejs = __webpack_require__(/*! ejs */ "ejs");
-    app.set('view engine', 'ejs');
-    //viewディレクトリの指定
-    app.set('views', path_1.default.resolve(__dirname, '../views'));
-    app.use('/getRes', getRes_1.default);
-    // 設定情報をグローバル変数へセットする
-    globalThis.config = config;
-    console.log('[startServer]設定値 = ');
-    console.log(globalThis.config);
-    app.get('/', function (req, res, next) {
-        res.render('server', config);
-        console.log(config);
-        req.connection.end();
+electron_1.ipcMain.on('start-server', function (event, config) { return __awaiter(void 0, void 0, void 0, function () {
+    var ejs, list;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                // express = require('express');
+                app = express_1.default();
+                ejs = __webpack_require__(/*! ejs */ "ejs");
+                app.set('view engine', 'ejs');
+                //viewディレクトリの指定
+                app.set('views', path_1.default.resolve(__dirname, '../views'));
+                app.use('/getRes', getRes_1.default);
+                // 設定情報をグローバル変数へセットする
+                globalThis.config = config;
+                electron_log_1.default.info('[startServer]設定値 = ');
+                electron_log_1.default.info(globalThis.config);
+                app.get('/', function (req, res, next) {
+                    res.render('server', config);
+                    req.connection.end();
+                });
+                //静的コンテンツはpublicディレクトリの中身を使用するという宣言
+                app.use(express_1.default.static(path_1.default.resolve(__dirname, '../public')));
+                //指定したポートで待ち受け開始
+                server = app.listen(config.port, function () {
+                    electron_log_1.default.info('[startServer]start server on port:' + config.port);
+                    electron_log_1.default.info(server.listening);
+                });
+                //成功メッセージ返却
+                event.returnValue = 'success';
+                if (!globalThis.config.playSe) return [3 /*break*/, 2];
+                return [4 /*yield*/, readWavFiles(globalThis.config.sePath)];
+            case 1:
+                list = _a.sent();
+                globalThis.electron.seList = list.map(function (file) { return globalThis.config.sePath + "/" + file; });
+                _a.label = 2;
+            case 2: return [2 /*return*/];
+        }
     });
-    //静的コンテンツはpublicディレクトリの中身を使用するという宣言
-    app.use(express_1.default.static(path_1.default.resolve(__dirname, '../public')));
-    //指定したポートで待ち受け開始
-    server = app.listen(config.port, function () {
-        console.log('[startServer]start server on port:' + config.port);
-        console.log(server.listening);
-    });
-    //成功メッセージ返却
-    event.returnValue = 'success';
-});
+}); });
 /**
  * サーバー停止
  */
 electron_1.ipcMain.on('stop-server', function (event) {
-    console.log(server.listening);
+    electron_log_1.default.info(server.listening);
     server.close();
     app = null;
     // express = null;
-    console.log('[startServer]server stop');
-    console.log(server.listening);
+    electron_log_1.default.info('[startServer]server stop');
+    electron_log_1.default.info(server.listening);
     event.returnValue = 'stop';
 });
+var fs_1 = __importDefault(__webpack_require__(/*! fs */ "fs"));
+var readWavFiles = function (path) {
+    return new Promise(function (resolve, reject) {
+        fs_1.default.readdir(path, function (err, files) {
+            if (err)
+                reject(err);
+            var fileList = files.filter(function (file) {
+                return isExistFile(path + '/' + file) && /.*\.wav$/.test(file); //絞り込み
+            });
+            resolve(fileList);
+        });
+    });
+};
+var isExistFile = function (file) {
+    try {
+        fs_1.default.statSync(file).isFile();
+        return true;
+    }
+    catch (err) {
+        if (err.code === 'ENOENT')
+            return false;
+    }
+};
 
 
 /***/ }),

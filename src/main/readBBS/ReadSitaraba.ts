@@ -13,7 +13,7 @@ class ReadSitaraba {
   constructor() {}
   //テストメソッド
   test = function () {
-    console.log((global as any).config);
+    log.debug((global as any).config);
   };
 
   /**
@@ -42,15 +42,15 @@ class ReadSitaraba {
       encoding: null, // ここでnull指定しないとなんかうまくいかない
     };
 
-    var responseJson;
+    var responseJson: ReturnType<typeof purseNewResponse> = [];
     //掲示板へのリクエスト実行
     log.info('[ReadSitaraba.js]したらばレス取得API呼び出し開始');
-    console.log('[ReadSitaraba.js]したらばレス取得API呼び出し開始');
+    log.debug('[ReadSitaraba.js]したらばレス取得API呼び出し開始');
 
     await request(options).then((body: any) => {
-      console.log('[ReadSitaraba.js]したらばレス取得API呼び出し成功');
+      log.debug('[ReadSitaraba.js]したらばレス取得API呼び出し成功');
       //したらばAPIの文字コードはEUC-JPなのでUTF-8に変換する
-      var str = iconv.decode(Buffer.from(body), 'EUC-JP');
+      var str: string = iconv.decode(Buffer.from(body), 'EUC-JP');
       // レスポンスオブジェクト作成
       responseJson = purseNewResponse(str);
     });
@@ -62,10 +62,10 @@ class ReadSitaraba {
 //戻りとしてパースしたjsonオブジェクトの配列を返す
 function purseNewResponse(res: string) {
   //結果を格納する配列
-  var result = new Array();
+  const result: ReturnType<typeof purseResponse>[] = [];
 
   //新着レスを改行ごとにSplitする
-  var resArray = res.split(/\r\n|\r|\n/);
+  const resArray = res.split(/\r\n|\r|\n/);
   //1行ごとにパースする
   resArray.forEach(function (value: any) {
     //パースメソッド呼び出し

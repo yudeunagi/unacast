@@ -38,9 +38,9 @@ class Read5ch {
       lastThreadUrl = threadUrl;
       lastModified = null;
       lastByte = 0;
-      console.log('[Read5ch.js]resete!!!!!!!!!!!!!!!!');
+      log.debug('[Read5ch.js]resete!!!!!!!!!!!!!!!!');
     } else {
-      console.log('noresete');
+      log.debug('noresete');
     }
 
     //リクエストURL作成 下記みたいな感じで変換する
@@ -73,26 +73,26 @@ class Read5ch {
         //      range: 'bytes=100000-',
       },
     };
-    console.log(options);
+    log.debug(options);
 
     var responseJson;
     //掲示板へのリクエスト実行
-    console.log('[Read5ch.js]5ch系BBSレス取得API呼び出し開始');
-    log.info('[Read5ch.js]5ch系BBSレス取得API呼び出し開始');
+    log.debug('[Read5ch.js]5ch系BBSレス取得API呼び出し開始');
+    // log.info('[Read5ch.js]5ch系BBSレス取得API呼び出し開始');
     try {
       const response = await rp.get(options);
       var statusCode = response.statusCode;
-      console.log('[Read5ch.js]5ch系BBSレス取得API呼び出し完了、statusCode=' + statusCode);
-      log.info('[Read5ch.js]5ch系BBSレス取得API呼び出し完了、statusCode=' + statusCode);
+      log.debug('[Read5ch.js]5ch系BBSレス取得API呼び出し完了、statusCode=' + statusCode);
+      // log.info('[Read5ch.js]5ch系BBSレス取得API呼び出し完了、statusCode=' + statusCode);
 
       // レスポンスヘッダ表示
-      console.log('[Read5ch.read]レスポンスヘッダ=');
+      log.debug('[Read5ch.read]レスポンスヘッダ=');
       var headers: { [key: string]: string } = response.headers;
-      console.log(headers);
+      log.debug(headers);
       //LastModifiedとRange更新処理
       if (headers['last-modified'] != null) {
         lastModified = headers['last-modified'];
-        console.log('[Read5ch.read]lastModified=' + lastModified);
+        log.debug('[Read5ch.read]lastModified=' + lastModified);
       }
       //gzipで取得出来たら解凍処理も入れる
 
@@ -100,7 +100,7 @@ class Read5ch {
       var str = iconv.decode(Buffer.from(response.body), 'Shift_JIS');
       // レスポンスオブジェクト作成、content-rangeがある場合とない場合で処理を分ける
       if (headers['content-range'] == null || lastByte == 0) {
-        console.log('[Read5ch.read]content-range=' + headers['content-range']);
+        log.debug('[Read5ch.read]content-range=' + headers['content-range']);
         responseJson = purseNewResponse(str, resNum);
       } else {
         responseJson = purseDiffResponse(str, resNum);
@@ -109,7 +109,7 @@ class Read5ch {
       // 取得バイト数表示
       if (headers['content-length'] != null && responseJson.length > 0) {
         lastByte = lastByte + parseInt(headers['content-length']) - 1;
-        console.log('[Read5ch.read]lastByte=' + lastByte);
+        log.debug('[Read5ch.read]lastByte=' + lastByte);
       }
     } catch (error) {
       var rsArray = new Array();
@@ -143,22 +143,22 @@ const purseNewResponse = (res: string, resNum: string) => {
   //新着レスを改行ごとにSplitする
   var resArray = res.split(/\r\n|\r|\n/);
   // 新着なしなら戻る。
-  if (resArray.length == 0) {
+  if (resArray.length === 0) {
     return result;
   }
   // 配列の最後に空の要素が入ることがあるので取り除く
-  if (resArray[resArray.length - 1].length == 0) {
+  if (resArray[resArray.length - 1].length === 0) {
     resArray.pop();
   }
 
   // レス指定なしの場合最後の1件取得
-  if (resNum == null || resNum === '') {
+  if (resNum === null || resNum === '') {
     num = resArray.length - 1;
   } else {
     num = parseInt(resNum) - 1;
   }
 
-  console.log('[Read5ch.purseNewResponse]取得レス番号=' + num);
+  log.debug('[Read5ch.purseNewResponse]取得レス番号=' + num);
   //1行ごとにパースする
   for (; num < resArray.length; num++) {
     //パースメソッド呼び出し
@@ -186,7 +186,7 @@ const purseDiffResponse = (res: string, resNum: string) => {
   //新着レスを改行ごとにSplitする
   var resArray = res.split(/\r\n|\r|\n/);
   // 新着なしなら戻る。
-  if (resArray.length == 0) {
+  if (resArray.length === 0) {
     return result;
   } else {
     // 配列の最後に空の要素が入ることがあるので取り除く
@@ -195,7 +195,7 @@ const purseDiffResponse = (res: string, resNum: string) => {
     }
   }
 
-  console.log('[Read5ch.purseDiffResponse]取得レス番号=' + num);
+  log.debug('[Read5ch.purseDiffResponse]取得レス番号=' + num);
   //1行ごとにパースする
   resArray.forEach((value) => {
     //パースメソッド呼び出し
@@ -237,7 +237,7 @@ const purseResponse = (res: string, num: number) => {
   var dateId = splitRes[2].split(' ID:');
   var date = dateId[0];
   // IDが取得できない場合はnullにする
-  var id = dateId.length == 2 ? dateId[1] : null;
+  var id = dateId.length === 2 ? dateId[1] : null;
 
   const resJson = {
     number: num,

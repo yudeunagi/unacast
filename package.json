@@ -8,8 +8,8 @@
     "dev": "run-p dev:*",
     "dev:webpack": "webpack -w",
     "start": "electron . --asar",
-    "buildwin": "electron-packager ./ unacast --platform=win32 --arch=x64 --overwrite --ignore='^/documents' --ignore='^/src' --ignore='^/.gitignore' --ignore='^/package.json' --ignore='^/README.md' --ignore='^/build-mac' --ignore='^/build-win' --ignore='^/tsconfig.json' --ignore='^/webpack.config.js' --ignore='^/yarn.lock' --icon=icon.png --asar",
-    "buildmac": "electron-packager ./ unacast --platform=darwin --arch=x64 --asar",
+    "buildwin": "electron-packager ./ unacast --platform=win32 --arch=x64 --overwrite --icon=icon.png --asar",
+    "buildmac": "electron-packager ./ unacast --platform=darwin --arch=x64 --overwrite --asar",
     "macbuildmemo": "echo macのビルドで --icon=icon.ico を指定するとなぜか The path argument must be one of type string, Buffer, or URL. Received type undefined って言われるので外しておく、あと管理者権限のコマンドプロンプトで実行してね（シンボリックリンク作れないので）",
     "changecode": "chcp 65001"
   },

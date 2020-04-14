@@ -4,26 +4,27 @@
 import path from 'path';
 import electron from 'electron';
 var log = require('electron-log');
-
 process.on('uncaughtException', function (err) {
   log.error('electron:event:uncaughtException');
   log.error(err);
   log.error(err.stack);
   // app.quit();
 });
-
 //アプリケーションをコントロールするモジュール
 const app = electron.app;
 
 // サーバー起動モジュール
 const ss = require('./startServer');
-console.log(ss);
+console.debug(ss);
 
 //ウィンドウを作成するモジュール
 const BrowserWindow = electron.BrowserWindow;
 
 // メインウィンドウはGCされないようにグローバル宣言
-let mainWindow = null;
+globalThis.electron = {
+  mainWindow: undefined as any,
+  seList: [],
+};
 
 //全てのウィンドウが閉じたら終了
 app.on('window-all-closed', () => {
@@ -35,7 +36,7 @@ app.on('window-all-closed', () => {
 // Electronの初期化完了後に実行
 app.on('ready', () => {
   //ウィンドウサイズを1280*720（フレームサイズを含まない）に設定する
-  mainWindow = new BrowserWindow({
+  globalThis.electron.mainWindow = new BrowserWindow({
     width: 700,
     height: 720,
     useContentSize: true,
@@ -44,14 +45,16 @@ app.on('ready', () => {
       nodeIntegration: true,
     },
   });
-  mainWindow.setTitle('unacast');
+  globalThis.electron.mainWindow.setTitle('unacast');
   //使用するhtmlファイルを指定する
-  mainWindow.loadURL(path.resolve(__dirname, '../src/html/index.html'));
+  globalThis.electron.mainWindow.loadURL(path.resolve(__dirname, '../src/html/index.html'));
 
   // ウィンドウが閉じられたらアプリも終了
-  mainWindow.on('closed', () => {
-    mainWindow = null;
+  globalThis.electron.mainWindow.on('closed', () => {
+    globalThis.electron.mainWindow = undefined as any;
   });
 
-  // mainWindow.webContents.openDevTools();
+  // globalThis.electron.mainWindow.webContents.openDevTools();
 });
+
+app.commandLine.appendSwitch('--autoplay-policy', 'no-user-gesture-required');
