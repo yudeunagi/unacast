@@ -1,19 +1,24 @@
-window.onload = function () {
-  console.log('read');
-  //URLの設定
-  var url = $('#threadUrl').val();
-  //レス番号の設定
-  var resNum = $('#resNumber').val();
+window.onload = () => {
+  /**
+   * URLの設定
+   * @type string
+   */
+  const url = $('#threadUrl').val();
+  /**
+   * 開始レス番号の指定
+   * @type string
+   */
+  const resNum = $('#resNumber').val();
 
-  if (resNum.length < 1) {
-    //レス番号がない場合は最新の1件を取得する
+  if (!resNum || Number.isNaN(resNum) || Number(resNum) < 1) {
+    // 開始レス番号が指定されていない場合、最新の1件を取得して基準とする
     getLastNumber(url);
   } else {
-    //レス番号があるばあい指定したレスからすべて取得
+    // 開始レス番号が指定されている場合、指定したレスからすべて取得
     readThread(url);
   }
 
-  // 新着下表示オプションがONの場合ul要素に.bottomを付与する
+  // 新着下表示オプションがONの場合、ul要素に.bottomを付与する
   if ($('#dispSort').val() === 'true') {
     $('#res-list').addClass('dispBottom');
   }
@@ -25,16 +30,19 @@ window.onload = function () {
     $('#res-list').addClass('brakeOff');
   }
 
-  // リロードインターバル指定(ms)
+  /** リロードインターバル指定(ms) */
   const interval = 1000 * parseInt($('#interval').val());
-  //指定した秒数ごとにレス取得関数を呼び出す
+  // 指定した秒数ごとにレス取得関数を呼び出す
   setInterval(readThread, interval, url);
 
   // WebSocket接続
   setInterval(checkWsConnect, 3 * 1000);
 };
+
+/** @type WebSocket */
 var socket;
 
+/** WebSocketの接続 */
 const checkWsConnect = () => {
   if (socket) return;
   const port = $('#port').val();
@@ -48,23 +56,32 @@ const checkWsConnect = () => {
     setInterval(pingWs, 10 * 1000);
   });
   socket.addEventListener('message', (e) => {
+    console.debug('[message received]');
     if (e.data === 'pong') {
+      console.debug(e.data);
       pingReturn = true;
     } else {
-      console.log(e);
+      console.debug(e);
       prependItems(e.data);
     }
   });
 };
 
+/**
+ * WebSocket疎通確認用変数
+ * @description ping投げる前にfalseにしておき、返ってきたらtrueにする
+ */
 var pingReturn = false;
+
+/** WebSocket疎通確認 */
 const pingWs = async () => {
-  console.log('[ws]ping打ち');
+  console.debug('[ws] ping打ち');
   pingReturn = false;
   socket.send('ping');
   await sleep(5000);
   if (!pingReturn) {
-    console.log('[ws]通信が返ってこないので打ち切っった');
+    console.log('[ws] 通信が返ってこないので打ち切り');
+    socket.close();
     socket = null;
   }
 };
@@ -74,7 +91,7 @@ const sleep = (msec) => new Promise((resolve) => setTimeout(resolve, msec));
 // 最終レス番取得API
 function getLastNumber(url) {
   // ポート番号の取得
-  var port = $('#port').val();
+  const port = $('#port').val();
   //リクエストボディの作成
   const data = makeRequestBody(url);
   const requestUrl = 'http://localhost:' + port + '/getRes';
@@ -87,10 +104,12 @@ function getLastNumber(url) {
     },
     body: JSON.stringify(data),
   })
-    .then(function (res) {
-      if (res.ok) {
+    .then((res) => {
+      if (res.ok && res.status === 200) {
         //ステータスOKならレスポンスをテキストにセットして返す
         return res.json();
+      } else {
+        throw new Error(`[getLastNumber] 通信エラー url = ${requestUrl}`);
       }
     })
     .then((resJson) => {
@@ -108,13 +127,14 @@ function getLastNumber(url) {
     });
 }
 
-/**指定したスレを読みに行くメソッド
- *url:掲示板のURL
- *resNum:最終レス番号
+/**
+ * 指定したスレを読みに行くメソッド
+ * @param {string} url 掲示板のURL
+ * @param {boolean} init 初期表示処理か
  */
-var readThread = function (url) {
+const readThread = (url, init) => {
   // ポート番号の取得
-  var port = $('#port').val();
+  const port = $('#port').val();
   //リクエストボディの作成
   const data = makeRequestBody(url);
   // 内部で作成したレス取得APIを呼び出す
@@ -128,11 +148,13 @@ var readThread = function (url) {
     },
     body: JSON.stringify(data),
   })
-    .then(function (res) {
-      if (res.ok) {
+    .then((res) => {
+      if (res.ok && res.status === 200) {
         //ステータスOKならレスポンスをテキストにセットして返す
         console.log('ok');
         return res.json();
+      } else {
+        throw new Error(`[readThread] 通信エラー url = ${requestUrl}`);
       }
     })
     .then((resJson) => {
@@ -161,21 +183,24 @@ var readThread = function (url) {
 };
 
 //レスをリスト追加
-function prependItems(html) {
+const prependItems = (html) => {
   // 表示順オプションで上に追加するか下に追加するか選ぶ
   if ($('#dispSort').val() === 'true') {
     $('#res-list').append(html);
   } else {
     $('#res-list').prepend(html);
   }
-}
+};
 
-/** リクエスト作成
- *
+/**
+ * リクエスト作成
+ * @param {String} url
  */
-function makeRequestBody(url, num) {
-  var data = {
+function makeRequestBody(url) {
+  const data = {
+    // スレッドURL
     threadUrl: url,
+    // 取得開始レス番号
     resNumber: $('#resNumber').val(),
   };
   return data;

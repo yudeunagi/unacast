@@ -3,12 +3,15 @@ import path from 'path';
 import express from 'express';
 import log from 'electron-log';
 import { ChatClient } from 'dank-twitch-irc';
+import { LiveChat } from './youtube-chat';
 import { ipcMain } from 'electron';
 import expressWs from 'express-ws';
-var app;
-
+import { readWavFiles } from './util';
 // レス取得APIをセット
 import getRes from './getRes';
+import { CommentItem } from './youtube-chat/parser';
+
+var app;
 
 // サーバーをグローバル変数にセットできるようにする（サーバー停止処理のため）
 var server: http.Server;
@@ -24,15 +27,14 @@ ipcMain.on('start-server', async (event: any, config: typeof globalThis['config'
   app = expressWs(express()).app;
   const ejs = require('ejs');
   app.set('view engine', 'ejs');
-  //viewディレクトリの指定
+  // viewディレクトリの指定
   app.set('views', path.resolve(__dirname, '../views'));
-  app.use('/getRes', getRes);
 
   // 設定情報をグローバル変数へセットする
   globalThis.config = config;
 
-  log.info('[startServer]設定値 = ');
-  log.info(globalThis.config);
+  console.log('[startServer]設定値 = ');
+  console.log(globalThis.config);
 
   app.get('/', (req, res, next) => {
     res.render('server', config);
@@ -41,37 +43,67 @@ ipcMain.on('start-server', async (event: any, config: typeof globalThis['config'
   //静的コンテンツはpublicディレクトリの中身を使用するという宣言
   app.use(express.static(path.resolve(__dirname, '../public')));
 
+  // 2ch互換掲示板の取得
+  app.use('/getRes', getRes);
+
   // SEを取得する
   if (globalThis.config.playSe) {
     const list = await readWavFiles(globalThis.config.sePath);
     globalThis.electron.seList = list.map((file) => `${globalThis.config.sePath}/${file}`);
+    console.log(`SEファイル数=${globalThis.electron.seList.length}`);
   }
 
   // Twitchに接続
-  if (globalThis.config.twitchUser) {
+  if (globalThis.config.twitchId) {
     globalThis.electron.twitchChat = new ChatClient();
     globalThis.electron.twitchChat.connect();
-    globalThis.electron.twitchChat.join(globalThis.config.twitchUser);
+    globalThis.electron.twitchChat.join(globalThis.config.twitchId);
     globalThis.electron.twitchChat.on('PRIVMSG', (msg) => {
       const imgUrl = './img/twitch.png';
-      let domStr = `<li class="list-item"><span class="icon-block"><img class="icon" src="${imgUrl}"></span><div class="content">`;
-      if (globalThis.config.showName) {
-        domStr += `<span class="name">${msg.displayName}</span>`;
-      }
-      domStr += `<span class="res">${msg.messageText}</span></div></li>`;
-      if (globalThis.electron.socket) globalThis.electron.socket.send(domStr);
-      if (config.playSe && globalThis.electron.seList.length > 0) {
-        const wavfilepath = globalThis.electron.seList[Math.floor(Math.random() * globalThis.electron.seList.length)];
-        globalThis.electron.mainWindow.webContents.send('play-sound', wavfilepath);
-      }
+      const name = msg.displayName;
+      const text = msg.messageText;
+      sendDom(name, text, imgUrl);
     });
+
+    // Youtubeチャット
+    if (globalThis.config.youtubeId) {
+      try {
+        console.log('[Youtube Chat] connect started');
+        globalThis.electron.youtubeChat = new LiveChat({ channelId: globalThis.config.youtubeId });
+        // 接続開始イベント
+        globalThis.electron.youtubeChat.on('start', (liveId: string) => {
+          console.log('[Youtube Chat] connected');
+        });
+        // 接続終了イベント
+        globalThis.electron.youtubeChat.on('end', (reason?: string) => {
+          console.log('[Youtube Chat] disconnect');
+        });
+        // // チャット受信
+        globalThis.electron.youtubeChat.on('comment', (comment: CommentItem) => {
+          const imgUrl = comment.author.thumbnail?.url ?? '';
+          const name = comment.author.name;
+          const text = (comment.message[0] as any).text;
+          sendDom(name, text, imgUrl);
+        });
+        // // 何かエラーがあった
+        globalThis.electron.youtubeChat.on('error', (err: Error) => {
+          log.error('[Youtube Chat] error');
+          log.error(err);
+          globalThis.electron.youtubeChat.stop();
+        });
+
+        globalThis.electron.youtubeChat.start();
+      } catch (e) {
+        process.exit(1);
+      }
+    }
   }
 
   // WebSocketを立てる
   app.ws('/ws', (ws, req) => {
     globalThis.electron.socket = ws as any;
     ws.on('message', (message) => {
-      console.log('Received: ' + message);
+      console.trace('Received: ' + message);
       if (message === 'ping') {
         ws.send('pong');
       }
@@ -84,8 +116,7 @@ ipcMain.on('start-server', async (event: any, config: typeof globalThis['config'
 
   //指定したポートで待ち受け開始
   server = app.listen(config.port, () => {
-    log.info('[startServer]start server on port:' + config.port);
-    log.info(server.listening);
+    console.log('[startServer]start server on port:' + config.port);
   });
   //成功メッセージ返却
   event.returnValue = 'success';
@@ -95,34 +126,31 @@ ipcMain.on('start-server', async (event: any, config: typeof globalThis['config'
  * サーバー停止
  */
 ipcMain.on('stop-server', function (event: any) {
-  log.info(server.listening);
-  log.info('[startServer]server stop');
-  log.info(server.listening);
+  console.log('[startServer]server stop');
   server.close();
   app = null;
   event.returnValue = 'stop';
 
-  globalThis.electron.twitchChat.close();
+  if (globalThis.electron.twitchChat) {
+    globalThis.electron.twitchChat.close();
+    globalThis.electron.twitchChat.removeAllListeners();
+  }
+
+  if (globalThis.electron.youtubeChat) {
+    globalThis.electron.youtubeChat.stop();
+    globalThis.electron.youtubeChat.removeAllListeners();
+  }
 });
 
-import fs from 'fs';
-const readWavFiles = (path: string): Promise<string[]> => {
-  return new Promise((resolve, reject) => {
-    fs.readdir(path, (err, files) => {
-      if (err) reject(err);
-      const fileList = files.filter((file) => {
-        return isExistFile(path + '/' + file) && /.*\.wav$/.test(file); //絞り込み
-      });
-      resolve(fileList);
-    });
-  });
-};
-
-const isExistFile = (file: string) => {
-  try {
-    fs.statSync(file).isFile();
-    return true;
-  } catch (err) {
-    if (err.code === 'ENOENT') return false;
+const sendDom = (name: string, text: string, imgUrl: string) => {
+  let domStr = `<li class="list-item"><span class="icon-block"><img class="icon" src="${imgUrl}"></span><div class="content">`;
+  if (globalThis.config.showName) {
+    domStr += `<span class="name">${name}</span>`;
+  }
+  domStr += `<span class="res">${text}</span></div></li>`;
+  if (globalThis.electron.socket) globalThis.electron.socket.send(domStr);
+  if (config.playSe && globalThis.electron.seList.length > 0) {
+    const wavfilepath = globalThis.electron.seList[Math.floor(Math.random() * globalThis.electron.seList.length)];
+    globalThis.electron.mainWindow.webContents.send('play-sound', wavfilepath);
   }
 };

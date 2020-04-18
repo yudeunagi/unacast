@@ -1,9 +1,10 @@
-'use strict';
-
 //Electronのモジュール
 import path from 'path';
 import electron from 'electron';
-var log = require('electron-log');
+import log from 'electron-log';
+
+console.trace = () => {};
+
 process.on('uncaughtException', function (err) {
   log.error('electron:event:uncaughtException');
   log.error(err);
@@ -13,9 +14,11 @@ process.on('uncaughtException', function (err) {
 //アプリケーションをコントロールするモジュール
 const app = electron.app;
 
+app.allowRendererProcessReuse = true;
+
 // サーバー起動モジュール
 const ss = require('./startServer');
-console.debug(ss);
+console.trace(ss);
 
 //ウィンドウを作成するモジュール
 const BrowserWindow = electron.BrowserWindow;
@@ -25,6 +28,7 @@ globalThis.electron = {
   mainWindow: undefined as any,
   seList: [],
   twitchChat: undefined as any,
+  youtubeChat: undefined as any,
   socket: null as any,
 };
 
@@ -48,6 +52,7 @@ app.on('ready', () => {
     },
   });
   globalThis.electron.mainWindow.setTitle('unacast');
+  globalThis.electron.mainWindow.setMenu(null);
   //使用するhtmlファイルを指定する
   globalThis.electron.mainWindow.loadURL(path.resolve(__dirname, '../src/html/index.html'));
 
@@ -59,4 +64,5 @@ app.on('ready', () => {
   // globalThis.electron.mainWindow.webContents.openDevTools();
 });
 
+// 音声再生できるようにする
 app.commandLine.appendSwitch('--autoplay-policy', 'no-user-gesture-required');

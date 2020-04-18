@@ -41,14 +41,6 @@ OBSのソースで「ブラウザソース」を追加し、設定画面を開�
 
 あとmac版はmacなうて動作確認できないので作れないですごめんなさい。
 
-## アイコンを追加したい
-デフォで入っているアイコンとは別のものを使いたい場合は
-「unacast-win32-x64\resources\app\public\img\random」フォルダにある画像ファイルを起動時に読み込むようになっているので
-適当に追加・差し替えてソフトを再起動してください(使用する画像は32x32のpng推奨）
-
-![アイコンフォルダ](https://raw.githubusercontent.com/yudeunagi/unacast/develop/documents/help/img/help_add_icon.jpg)  
-
-
 ## レスの表示背景色や文字色を変更したい
 ![OBS設定画面](https://raw.githubusercontent.com/yudeunagi/unacast/develop/documents/help/img/help03.jpg)  
 例として背景の透明度を変更したい場合は、OBSのブラウザソース設定画面のカスタムCSSに以下のように追加してください
@@ -68,12 +60,13 @@ OBSのソースで「ブラウザソース」を追加し、設定画面を開�
 ## Todo
 
 * [x] TypeScript化(本体)
-* [ ] TypeScript化(view)
 * [x] レス着信時のランダムサウンド再生
 * [x] Twitch対応
-* [ ] Youtube対応
 * [x] 本体とviewの接続のWebSocket化
 * [ ] レスの通信もWebSocketにする
+* [x] Youtube対応
+* [ ] 掲示板取得で通信エラーが繰り返された時の通知
+* [ ] TypeScript化(view)
 * [ ] (やる気があれば)棒読みちゃん
 * [ ] いらないパッケージを削除する
 * [ ] 全体的にヤバイコードをなんとかする

@@ -4,7 +4,7 @@
  */
 import fs from 'fs';
 import path from 'path';
-var log = require('electron-log');
+import log from 'electron-log';
 
 var randomIconList: fs.Dirent[];
 var idIconList;
@@ -18,14 +18,14 @@ var idIconList;
 class ReadIcons {
   constructor() {
     //画像ディレクトリ
-    var randomDir = path.resolve(__dirname, `../public/img/random/`);
-    log.debug('[ReadIcons]loadRandomDir = ' + randomDir);
+    const randomDir = path.resolve(__dirname, `../public/img/random/`);
+    console.debug('[ReadIcons]loadRandomDir = ' + randomDir);
     //  ランダムアイコン取得
     randomIconList = readDir(randomDir);
 
     //ID用アイコンディレクトリ
-    var idDir = path.resolve(__dirname, `../public/img/id/`);
-    log.debug('[ReadIcons]loadIDDir = ' + idDir);
+    const idDir = path.resolve(__dirname, `../public/img/id/`);
+    console.debug('[ReadIcons]loadIDDir = ' + idDir);
     //  ランダムアイコン取得
     idIconList = readDir(idDir);
   }
@@ -37,10 +37,10 @@ class ReadIcons {
   getRandomIcons = () => {
     let iconPath = '';
     try {
-      var dirName = './img/random/';
+      const dirName = './img/random/';
       // リストからランダム取得
-      //  var size = randomIconList.size;
-      var num = Math.floor(randomIconList.length * Math.random());
+      //  const size = randomIconList.size;
+      const num = Math.floor(randomIconList.length * Math.random());
       iconPath = dirName + randomIconList[num];
     } catch (e) {
       log.error(e);
@@ -50,22 +50,22 @@ class ReadIcons {
 }
 
 const readDir = (imgDir: string) => {
-  var iconFileList: fs.Dirent[] = [];
+  const iconFileList: fs.Dirent[] = [];
   //  指定したディレクトリのアイコン取得
-  var files = fs.readdirSync(imgDir, { withFileTypes: true });
+  const files = fs.readdirSync(imgDir, { withFileTypes: true });
 
   //pngファイルのみ返却リストに格納する
   files.forEach((file) => {
     // asar圧縮するとfileが文字列になる。開発環境だとfileオブジェクトになる
     const target = typeof file.name !== 'string' ? file : file.name;
-    var regx = /.*\.png$/.test(target as any);
+    const regx = /.*\.png$/.test(target as any);
     if (regx) {
       iconFileList.push(target as any);
     }
   });
 
-  log.info('[ReadIcons.readDir]end');
-  log.info(JSON.stringify(iconFileList));
+  // console.log('[ReadIcons.readDir]end');
+  // console.log(JSON.stringify(iconFileList));
   return iconFileList;
 };
 

@@ -2,7 +2,7 @@ const ipcRenderer = require('electron').ipcRenderer;
 import log from 'electron-log';
 
 document.addEventListener('DOMContentLoaded', () => {
-  log.debug('[renderer.js]DOM Content Loaded');
+  console.debug('[renderer.js]DOM Content Loaded');
   //設定のロード
   loadConfigToLocalStrage();
   //停止確認ダイアログ
@@ -23,8 +23,8 @@ document.addEventListener('DOMContentLoaded', () => {
     //サーバー起動
     //設定情報取得
     var config = buildConfigJson();
-    log.info('[renderer.js]config=');
-    log.info(config);
+    console.log('[renderer.js]config=');
+    console.log(config);
     //設定情報をローカルストレージへ保存
     saveConfigToLocalStrage(config);
 
@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // サーバー開始メッセージを送信する
     var result = ipcRenderer.sendSync('start-server', config);
-    log.debug('[renderer.js]' + result);
+    console.debug('[renderer.js]' + result);
     // サーバー起動・停止ボタン状態変更
     stopButton.disabled = false;
     startButton.disabled = true;
@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   closeOkButton.onclick = (event) => {
     var result = ipcRenderer.sendSync('stop-server');
-    log.debug('[renderer.js]' + result);
+    console.debug('[renderer.js]' + result);
     //ダイアログクローズ
     (dialog as any).close();
     // サーバー起動・停止ボタン状態変更
@@ -75,10 +75,11 @@ const buildConfigJson = () => {
   const resNumber = (document.getElementById('text-res-number') as HTMLInputElement).value;
   const initMessage = (document.getElementById('text-init-message') as HTMLInputElement).value;
   const port = parseInt((document.getElementById('text-port-number') as HTMLInputElement).value);
-  const dispNumber = parseInt((document.getElementById('text-disp-number') as HTMLInputElement).value);
+  // const dispNumber = parseInt((document.getElementById('text-disp-number') as HTMLInputElement).value);
+  const dispNumber = NaN;
   const interval = parseInt((document.getElementById('rangeSpan') as HTMLInputElement).value);
-  const youtubeUrl = (document.getElementById('text-youtube-url') as HTMLInputElement).value;
-  const twitchUrl = (document.getElementById('text-twitch-user') as HTMLInputElement).value;
+  const youtubeUrl = (document.getElementById('text-youtube-id') as HTMLInputElement).value;
+  const twitchUrl = (document.getElementById('text-twitch-id') as HTMLInputElement).value;
   const sePath = (document.getElementById('text-se-path') as HTMLInputElement).value;
 
   //レス番表示設定
@@ -103,8 +104,8 @@ const buildConfigJson = () => {
     port,
     dispNumber,
     interval,
-    youtubeUrl,
-    twitchUser: twitchUrl,
+    youtubeId: youtubeUrl,
+    twitchId: twitchUrl,
     dispSort,
     newLine,
     showNumber,
@@ -124,7 +125,7 @@ const buildConfigJson = () => {
  **/
 function saveConfigToLocalStrage(config: typeof globalThis['config']) {
   localStorage.setItem('config', JSON.stringify(config));
-  log.debug('[renderer.js]config saved');
+  console.debug('[renderer.js]config saved');
 }
 
 /**
@@ -138,8 +139,8 @@ function loadConfigToLocalStrage() {
     port: 3000,
     interval: 10,
     dispNumber: NaN,
-    youtubeUrl: '',
-    twitchUser: '',
+    youtubeId: '',
+    twitchId: '',
     dispSort: false,
     newLine: true,
     showNumber: true,
@@ -170,9 +171,9 @@ function loadConfigToLocalStrage() {
   (document.getElementById('checkbox-wordBreak') as any).checked = config.wordBreak;
   // レス表示順ラジオ初期化
   if (config.dispSort) {
-    (document.getElementById('newResUp') as any).checked = true;
-  } else {
     (document.getElementById('newResDown') as any).checked = true;
+  } else {
+    (document.getElementById('newResUp') as any).checked = true;
   }
 
   // 改行設定初期化
@@ -188,24 +189,24 @@ function loadConfigToLocalStrage() {
   (document.getElementById('text-init-message') as any).value = config.initMessage;
   (document.getElementById('text-url') as any).value = config.url;
   (document.getElementById('text-res-number') as any).value = config.resNumber.toString();
-  (document.getElementById('text-disp-number') as any).value = !config.dispNumber || Number.isNaN(config.dispNumber) ? '' : config.dispNumber.toString();
-  (document.getElementById('text-youtube-url') as any).value = config.youtubeUrl;
-  (document.getElementById('text-twitch-user') as any).value = config.twitchUser;
+  // (document.getElementById('text-disp-number') as any).value = !config.dispNumber || Number.isNaN(config.dispNumber) ? '' : config.dispNumber.toString();
+  (document.getElementById('text-youtube-id') as any).value = config.youtubeId;
+  (document.getElementById('text-twitch-id') as any).value = config.twitchId;
   (document.getElementById('text-se-path') as any).value = config.sePath;
   (document.getElementById('checkbox-playSe') as any).checked = config.playSe;
 
-  log.debug('[renderer.js]config loaded');
+  console.debug('[renderer.js]config loaded');
 }
 
 //サーバー起動返信
 ipcRenderer.on('start-server-reply', (event: any, arg: any) => {
-  log.debug(arg);
+  console.debug(arg);
 });
 
 // 着信音再生
 const audioElem = new Audio();
 ipcRenderer.on('play-sound', async (event: any, arg: string) => {
-  log.info(`[renderer][play-sound]${arg}`);
+  console.log(`[renderer][play-sound]${arg}`);
   try {
     audioElem.src = arg;
     audioElem.play();

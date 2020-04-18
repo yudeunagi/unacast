@@ -1,11 +1,17 @@
 import { BrowserWindow } from 'electron';
 import { ChatClient } from 'dank-twitch-irc';
+import { LiveChat } from '../main/youtube-chat';
 
 declare global {
   namespace electron {
     var mainWindow: BrowserWindow;
+    /** SEファイルリスト */
     var seList: string[];
+    /** Twitchチャットインスタンス */
     var twitchChat: ChatClient;
+    /** Youtubeチャットインスタンス */
+    var youtubeChat: LiveChat;
+    /** ブラウザとのWebSocket情報 */
     var socket: WebSocket;
   }
   namespace config {
@@ -21,14 +27,14 @@ declare global {
     var dispNumber: number;
     /** 更新間隔 */
     var interval: number;
-    /** Youtube チャンネルURL */
-    var youtubeUrl: string;
-    /** Twitch ユーザ名 */
-    var twitchUser: string;
+    /** Youtube チャンネルID */
+    var youtubeId: string;
+    /** Twitch ユーザID */
+    var twitchId: string;
     /**
      * レス表示順序
-     * - true: 新着が上
-     * - false: 新着が下
+     * - true: 新着が下
+     * - false: 新着が上
      */
     var dispSort: boolean;
     /**

@@ -9,7 +9,7 @@ const readIcons = new ReadIcons();
 const { JSDOM } = require('jsdom');
 const $ = require('jquery')(new JSDOM().window);
 
-import ReadSitaraba from './readBBS/readSitaraba'; // したらば読み込み用モジュール
+import ReadSitaraba, { ShitarabaResponse } from './readBBS/readSitaraba'; // したらば読み込み用モジュール
 const sitaraba = new ReadSitaraba();
 import Read5ch from './readBBS/Read5ch'; // 5ch互換板読み込み用モジュール
 const read5ch = new Read5ch();
@@ -39,13 +39,13 @@ router.post('/', async (req, res, next) => {
   bbsModule
     .read(threadUrl, resNum)
     .then(async (response) => {
-      log.info('[getRes.js]レス取得成功。件数=' + response.length);
+      console.log('[getRes.js]レス取得成功。件数=' + response.length);
       // 返却されたjsonオブジェクトを組み立てる
-      var result = buildResponseArray(response);
+      const result = buildResponseArray(response);
       // 返却
       res.header('Content-Type', 'application/json; charset=UTF-8');
-      log.info('[getRes.js]レス処理完了');
-      if (response.length > 0 && config.playSe && globalThis.electron.seList.length > 0) {
+      console.log('[getRes.js]レス処理完了');
+      if (result.length > 0 && config.playSe && globalThis.electron.seList.length > 0) {
         const wavfilepath = globalThis.electron.seList[Math.floor(Math.random() * globalThis.electron.seList.length)];
         globalThis.electron.mainWindow.webContents.send('play-sound', wavfilepath);
       }
@@ -80,11 +80,11 @@ const analysBBSName = (threadUrl: string) => {
  * レスポンスの生成
  * レスポンスオブジェクトの配列をHTMLに変換
  */
-const buildResponseArray = (resObject: any) => {
+const buildResponseArray = (resObject: ShitarabaResponse[]) => {
   //結果を格納する配列
-  var result = new Array();
-  log.debug('[getRes.buildResponseArray]レスポンス整形開始 件数=' + resObject.length);
-  resObject.forEach((value: any) => {
+  var result: ReturnType<typeof buildResponse>[] = [];
+  console.trace('[getRes.buildResponseArray]レスポンス整形開始 件数=' + resObject.length);
+  resObject.forEach((value) => {
     result.push(buildResponse(value));
   });
   return result;
@@ -95,9 +95,9 @@ const buildResponseArray = (resObject: any) => {
  * @param object // レスオブジェクト（ReadShitaraba.jsとか参照）
  * @return { レス番 , HTML整形後のレス }のオブジェクト
  */
-function buildResponse(res: any) {
-  log.debug('[getRes.js]パース開始');
-  log.debug(res);
+function buildResponse(res: ShitarabaResponse) {
+  console.trace('[getRes.js]パース開始');
+  console.trace(res);
   //最終的にHTML文字列にするためのダミーオブジェクト
   var $dummy = $('<div />');
 
@@ -132,7 +132,6 @@ function buildResponse(res: any) {
 
   // 名前と本文を改行で分ける
   if (globalThis.config.newLine) {
-    log.info('' + globalThis.config.newLine);
     $resDiv.append('<br/>').append($res);
   } else {
     $resDiv.append($res);
@@ -147,11 +146,14 @@ function buildResponse(res: any) {
   //レス番号更新
   //$('#resNumber').val(parseInt(res.number) + 1);
 
-  log.debug('[getRes.js]パース完了');
-  log.debug($dummy.html());
+  // console.debug('[getRes.js]パース完了');
+  // console.debug($dummy.html());
 
   // レス番とテキストをセットにしたJSONを返す
-  var result = {
+  const result: {
+    resNumber: string;
+    html: string;
+  } = {
     resNumber: res.number,
     html: $dummy.html(),
   };

@@ -1,164 +1,193 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>unacast</title>
-  <!--Jquery読み込み-->
-  <script>
-  window.jQuery = window.$ = require('../../node_modules/jquery/dist/jquery.slim.min.js');
-  </script>
-  <!-- CSSの読み込み Material Design Lite -->
-  <link rel="stylesheet" href="../../node_modules/material-design-lite/material.min.css">
-  <script src="../../node_modules/material-design-lite/material.min.js"></script>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-  <!-- CSSの読み込み 自作CSS -->
-  <link rel="stylesheet" href="../../public/css/style.css">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>unacast</title>
+    <!--Jquery読み込み-->
+    <script>
+      window.jQuery = window.$ = require('../../node_modules/jquery/dist/jquery.slim.min.js');
+    </script>
+    <!-- CSSの読み込み Material Design Lite -->
+    <link rel="stylesheet" href="../../node_modules/material-design-lite/material.min.css" />
+    <script src="../../node_modules/material-design-lite/material.min.js"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
+    <!-- CSSの読み込み 自作CSS -->
+    <link rel="stylesheet" href="../../public/css/style.css" />
+    <style>
+      .block {
+        border-radius: 10px;
+        padding: 10px;
+        border: solid 1px lightgray;
+        margin-top: 5px;
+        margin-bottom: 5px;
+      }
 
-</head>
-<body>
-  <div class="maincontaints">
-  <h4>設定</h4>
-  <form id="form-main">
+      h5 {
+        margin: 0px;
+        font-weight: bold;
+      }
 
-    <ul id="comments"></ul>
+      .subtitle {
+        margin: 0px;
+        font-weight: bold;
+      }
 
-    <div>※設定はサーバー起動時に反映されますん</div>
-    <div>
-      <button type="button" id="button-server-start" class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored">
-        サーバー起動
-      </button>
+      .mdl-textfield {
+        padding: 10px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="maincontaints">
+      <form id="form-main">
+        <ul id="comments"></ul>
 
-      <button type="button" disabled="true" id="button-server-stop" class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored">
-        停止
-      </button>
+        <div>※設定はサーバー起動時に反映されます</div>
+        <div>
+          <button type="button" id="button-server-start" class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored">
+            サーバー起動
+          </button>
+
+          <button type="button" disabled="true" id="button-server-stop" class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored">
+            停止
+          </button>
+        </div>
+
+        <!-- ダイアログウィンドウ -->
+        <dialog id="close-dialog" class="mdl-dialog">
+          <div class="mdl-dialog__content">
+            <p>
+              サーバーを停止しますか
+            </p>
+          </div>
+          <div class="mdl-dialog__actions">
+            <button type="button" id="button-close-dialog-cancel" class="mdl-button close">キャンセル</button>
+            <button type="button" id="button-close-dialog-ok" class="mdl-button mdl-button--raised mdl-button--colored">OK</button>
+          </div>
+        </dialog>
+        <!-- /ダイアログウィンドウ -->
+
+        <div class="mdl-textfield mdl-js-textfield">
+          <div class="subtitle">ポート番号</div>
+          <input id="text-port-number" class="mdl-textfield__input" type="text" required="true" pattern="[0-9]{0,4}?" value="3000" />
+          <span class="mdl-textfield__error">0-9999 までの数値を入れてください</span>
+        </div>
+
+        <div class="block">
+          <h5>レス・コメント取得先</h5>
+          <div class="mdl-textfield mdl-js-textfield" style="width: 600px;">
+            <div class="subtitle">掲示板URL</div>
+            <input id="text-url" class="mdl-textfield__input" type="text" required="true" pattern="http.?://.+" value="http://jbbs.shitaraba.net/bbs/read.cgi/radio/31003/1564068767/" />
+            <span id="text-url-error" class="mdl-textfield__error">URLを入力してください</span>
+          </div>
+
+          <div class="mdl-textfield mdl-js-textfield" style="width: 600px;">
+            <div class="subtitle">Youtube チャンネルID</div>
+            <input class="mdl-textfield__input" type="text" id="text-youtube-id" />
+          </div>
+
+          <div class="mdl-textfield mdl-js-textfield" style="width: 600px;">
+            <div class="subtitle">Twitch ユーザID</div>
+            <input class="mdl-textfield__input" type="text" id="text-twitch-id" />
+          </div>
+        </div>
+
+        <div class="block">
+          <h5>掲示板取得設定</h5>
+          <div class="mdl-textfield mdl-js-textfield">
+            <div class="subtitle">開始レス番号</div>
+            <input id="text-res-number" class="mdl-textfield__input" type="text" pattern="[0-9]{0,3}?" value="575" />
+            <span class="mdl-textfield__error">0-999 までの数値を入れてください</span>
+          </div>
+
+          <p>更新間隔 <span id="spanDisp">10</span></p>
+          <p style="width: 80%;">
+            <input id="rangeSpan" class="mdl-slider mdl-js-slider" type="range" min="5" max="30" value="10" tabindex="0" oninput="showVal(this.value)" />
+          </p>
+        </div>
+
+        <div class="block">
+          <h5>表示設定</h5>
+          <div class="mdl-textfield mdl-js-textfield">
+            <div class="subtitle">初期表示テキスト</div>
+            <input id="text-init-message" class="mdl-textfield__input" type="text" value="" />
+          </div>
+
+          <!-- <div class="mdl-textfield mdl-js-textfield">
+        表示レス数（未実装）
+        <input id="text-disp-number" class="mdl-textfield__input" type="text" pattern="[0-9]{0,2}?">
+        <span class="mdl-textfield__error">0-99 までの数値を入れてください</span>
+      </div> -->
+
+          <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="checkbox-showNumber">
+            <input type="checkbox" id="checkbox-showNumber" class="mdl-checkbox__input" value="1" checked />
+            <span class="mdl-checkbox__label">レス番表示(掲示板レスのみ有効)</span>
+          </label>
+
+          <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="checkbox-showName">
+            <input type="checkbox" id="checkbox-showName" class="mdl-checkbox__input" value="1" checked />
+            <span class="mdl-checkbox__label">名前表示</span>
+          </label>
+
+          <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="checkbox-showTime">
+            <input type="checkbox" id="checkbox-showTime" class="mdl-checkbox__input" value="1" checked />
+            <span class="mdl-checkbox__label">時刻表示(掲示板レスのみ有効)</span>
+          </label>
+
+          <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="checkbox-wordBreak">
+            <input type="checkbox" id="checkbox-wordBreak" class="mdl-checkbox__input" value="1" checked />
+            <span class="mdl-checkbox__label">自動改行する(掲示板レスのみ有効)</span>
+          </label>
+
+          <div class="mdl-textfield mdl-js-textfield">
+            <div class="subtitle">レス表示順序</div>
+            <label class="mdl-radio mdl-js-radio" for="newResUp">
+              <input id="newResUp" class="mdl-radio__button" type="radio" name="dispSort" />
+              <span class="mdl-radio__label">新着が上</span>
+            </label>
+
+            <label class="mdl-radio mdl-js-radio" for="newResDown">
+              <input id="newResDown" class="mdl-radio__button" type="radio" name="dispSort" />
+              <span class="mdl-radio__label">新着が下</span>
+            </label>
+          </div>
+
+          <div class="mdl-textfield mdl-js-textfield">
+            <div class="subtitle">名前と本文を改行で分ける</div>
+            <label class="mdl-radio mdl-js-radio" for="disableNewLine">
+              <input id="disableNewLine" class="mdl-radio__button" type="radio" name="newLine" />
+              <span class="mdl-radio__label">分けない</span>
+            </label>
+            <label class="mdl-radio mdl-js-radio" for="enableNewLine">
+              <input id="enableNewLine" class="mdl-radio__button" type="radio" name="newLine" />
+              <span class="mdl-radio__label">分ける</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="block">
+          <h5>レス・コメント着信音設定</h5>
+          <div class="mdl-textfield mdl-js-textfield" style="width: 600px;">
+            <div class="subtitle">着信音のフォルダパス</div>
+            <input class="mdl-textfield__input" type="text" id="text-se-path" />
+
+            <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="checkbox-playSe">
+              <input type="checkbox" id="checkbox-playSe" class="mdl-checkbox__input" value="1" checked />
+              <span class="mdl-checkbox__label">着信音再生</span>
+            </label>
+          </div>
+        </div>
+      </form>
+
+      <script>
+        require('../../dist/scripts');
+
+        /* 変更中（ドラッグ中） */
+        function showVal(newVal) {
+          $('#spanDisp').text(newVal);
+        }
+      </script>
     </div>
-
-    <!-- ダイアログウィンドウ -->
-    <dialog id="close-dialog" class="mdl-dialog">
-      <div class="mdl-dialog__content">
-        <p>
-          サーバーを停止しますか
-        </p>
-      </div>
-      <div class="mdl-dialog__actions">
-        <button type="button" id="button-close-dialog-cancel"class="mdl-button close">キャンセル</button>
-        <button type="button" id="button-close-dialog-ok" class="mdl-button mdl-button--raised mdl-button--colored">OK</button>
-      </div>
-    </dialog>
-    <!-- /ダイアログウィンドウ -->
-
-    <div class="mdl-textfield mdl-js-textfield">
-      ポート番号
-      <input id="text-port-number" class="mdl-textfield__input" type="text" required="true" pattern="[0-9]{0,4}?" value="3000">
-      <span class="mdl-textfield__error">0-9999 までの数値を入れてください</span>
-    </div>
-
-<p>
-    <div class="mdl-textfield mdl-js-textfield" style="width: 600px">
-      掲示板URL
-      <input id="text-url" class="mdl-textfield__input" type="text" required="true" pattern="http.?://.+" value="http://jbbs.shitaraba.net/bbs/read.cgi/radio/31003/1564068767/">
-      <span id="text-url-error" class="mdl-textfield__error">URLを入力してください</span>
-    </div>
-</p>
-
-    <div class="mdl-textfield mdl-js-textfield">
-      開始レス番号
-      <input id="text-res-number" class="mdl-textfield__input" type="text" pattern="[0-9]{0,3}?" value="575">
-      <span class="mdl-textfield__error">0-999 までの数値を入れてください</span>
-    </div>
-
-    <div class="mdl-textfield mdl-js-textfield">
-      初期表示テキスト
-      <input id="text-init-message" class="mdl-textfield__input" type="text" value="" >
-    </div>
-
-    <div class="mdl-textfield mdl-js-textfield">
-      表示レス数（未実装）
-      <input id="text-disp-number" class="mdl-textfield__input" type="text" pattern="[0-9]{0,2}?">
-      <span class="mdl-textfield__error">0-99 までの数値を入れてください</span>
-    </div>
-
-    <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="checkbox-showNumber">
-      <input type="checkbox" id="checkbox-showNumber" class="mdl-checkbox__input" value="1" checked>
-      <span class="mdl-checkbox__label">レス番表示</span>
-    </label>
-
-    <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="checkbox-showName">
-      <input type="checkbox" id="checkbox-showName" class="mdl-checkbox__input" value="1" checked>
-      <span class="mdl-checkbox__label">名前表示</span>
-    </label>
-
-    <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="checkbox-showTime">
-      <input type="checkbox" id="checkbox-showTime" class="mdl-checkbox__input" value="1" checked>
-      <span class="mdl-checkbox__label">時刻表示</span>
-    </label>
-
-    <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="checkbox-wordBreak">
-      <input type="checkbox" id="checkbox-wordBreak" class="mdl-checkbox__input" value="1" checked>
-      <span class="mdl-checkbox__label">自動改行する</span>
-    </label>
-
-    <div class="mdl-textfield mdl-js-textfield">
-      レス表示順序<br/>
-      <label class = "mdl-radio mdl-js-radio" for="newResUp">
-        <input id="newResUp" class="mdl-radio__button" type="radio" name="dispSort">
-        <span class = "mdl-radio__label">新着が上</span>
-      </label>
-      <label class = "mdl-radio mdl-js-radio" for="newResDown">
-        <input id="newResDown" class="mdl-radio__button" type="radio" name="dispSort">
-        <span class = "mdl-radio__label">新着が下</span>
-      </label>
-    </div>
-
-    <div class="mdl-textfield mdl-js-textfield">
-      名前と本文を改行で分ける<br/>
-      <label class = "mdl-radio mdl-js-radio" for="disableNewLine">
-        <input id="disableNewLine" class="mdl-radio__button" type="radio" name="newLine">
-        <span class = "mdl-radio__label">分けない</span>
-      </label>
-      <label class = "mdl-radio mdl-js-radio" for="enableNewLine">
-        <input id="enableNewLine" class="mdl-radio__button" type="radio" name="newLine">
-        <span class = "mdl-radio__label">分ける</span>
-      </label>
-    </div>
-
-    <p>更新間隔 <span id="spanDisp">10</span></p>
-    <p style="width:80%">
-      <input id="rangeSpan" class="mdl-slider mdl-js-slider" type="range"
-        min="5" max="30" value="10" tabindex="0" oninput="showVal(this.value)"/>
-    </p>
-
-    <div class="mdl-textfield mdl-js-textfield" style="width: 600px">
-      YoutubeURL
-      <input class="mdl-textfield__input" type="text" id="text-youtube-url">
-    </div>
-
-    <div class="mdl-textfield mdl-js-textfield" style="width: 600px">
-      Twitch ユーザ名
-      <input class="mdl-textfield__input" type="text" id="text-twitch-user">
-    </div>
-
-    <div class="mdl-textfield mdl-js-textfield" style="width: 600px">
-      レス着信音のパス
-      <input class="mdl-textfield__input" type="text" id="text-se-path">
-
-      <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="checkbox-playSe">
-        <input type="checkbox" id="checkbox-playSe" class="mdl-checkbox__input" value="1" checked>
-        <span class="mdl-checkbox__label">レス着信音再生</span>
-      </label>
-
-  </form>
-
-  <script>
-  require('../../dist/scripts');
-
-  /* 変更中（ドラッグ中） */
-  function showVal(newVal){
-    $("#spanDisp").text(newVal);
-  }
-
-  </script>
-</div>
-</body>
+  </body>
 </html>

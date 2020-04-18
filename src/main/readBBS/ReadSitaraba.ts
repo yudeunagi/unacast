@@ -5,16 +5,14 @@ const request = require('request-promise'); //httpリクエスト
 const iconv = require('iconv-lite'); // 文字コード変換用パッケージ
 var log = require('electron-log');
 
+export type ShitarabaResponse = ReturnType<typeof purseResponse>;
+
 /**
  * コンストラクタ
  *
  */
 class ReadSitaraba {
   constructor() {}
-  //テストメソッド
-  test = function () {
-    log.debug((global as any).config);
-  };
 
   /**
    * レス読み込み
@@ -44,10 +42,10 @@ class ReadSitaraba {
 
     var responseJson: ReturnType<typeof purseNewResponse> = [];
     //掲示板へのリクエスト実行
-    log.info('[ReadSitaraba.js]したらばレス取得API呼び出し開始');
+    console.log('[ReadSitaraba.js]したらばレス取得API呼び出し開始');
 
     await request(options).then((body: any) => {
-      log.debug('[ReadSitaraba.js]したらばレス取得API呼び出し成功');
+      console.debug('[ReadSitaraba.js]したらばレス取得API呼び出し成功');
       //したらばAPIの文字コードはEUC-JPなのでUTF-8に変換する
       var str: string = iconv.decode(Buffer.from(body), 'EUC-JP');
       // レスポンスオブジェクト作成
