@@ -178,6 +178,47 @@
             </label>
           </div>
         </div>
+
+        <div class="block">
+          <h5>読み子設定</h5>
+
+          <div class="mdl-textfield mdl-js-textfield" style="width: 100vw;">
+            <div class="subtitle">読み子の種類</div>
+            <label class="mdl-radio mdl-js-radio" for="yomiko_none">
+              <input id="yomiko_none" class="mdl-radio__button" type="radio" name="typeYomiko" value="none" />
+              <span class="mdl-radio__label">使用しない</span>
+            </label>
+
+            <label class="mdl-radio mdl-js-radio" for="yomiko_tamiyasu">
+              <input id="yomiko_tamiyasu" class="mdl-radio__button" type="radio" name="typeYomiko" value="tamiyasu" />
+              <span class="mdl-radio__label">民安☆Talk</span>
+            </label>
+
+            <label class="mdl-radio mdl-js-radio" for="yomiko_bouyomi">
+              <input id="yomiko_bouyomi" class="mdl-radio__button" type="radio" name="typeYomiko" value="bouyomi" />
+              <span class="mdl-radio__label">棒読みちゃん</span>
+            </label>
+          </div>
+
+          <div class="mdl-textfield mdl-js-textfield" style="width: 600px;">
+            <div class="subtitle">民安☆Talkのファイルパス</div>
+            <input class="mdl-textfield__input" type="text" id="text-tamiyasu-path" />
+          </div>
+
+          <div class="mdl-textfield mdl-js-textfield" style="width: 600px;">
+            <div class="subtitle">棒読みちゃんの待ち受けポート</div>
+            <input class="mdl-textfield__input" type="text" id="text-bouyomi-port" />
+          </div>
+        </div>
+
+        <div class="block">
+          <h5>通知設定</h5>
+          <div class="mdl-textfield mdl-js-textfield">
+            <div class="subtitle">掲示板が連続で通信エラーになった時に通知する閾値(0で使用しない)</div>
+            <input id="text-notify-threadConnectionErrorLimit" class="mdl-textfield__input" type="text" required="true" pattern="[0-9]{0,2}?" value="0" />
+            <span class="mdl-textfield__error">0-99 までの数値を入れてください</span>
+          </div>
+        </div>
       </form>
 
       <script>

@@ -1,16 +1,14 @@
-const ipcRenderer = require('electron').ipcRenderer;
+import electron from 'electron';
 import log from 'electron-log';
+
+const ipcRenderer = electron.ipcRenderer;
 
 document.addEventListener('DOMContentLoaded', () => {
   console.debug('[renderer.js]DOM Content Loaded');
   //設定のロード
   loadConfigToLocalStrage();
   //停止確認ダイアログ
-  var dialog = document.getElementById('close-dialog');
-  //dialogエレメントに対応していないブラウザ用、なんだけどElectronはChromiumなんでいらない
-  //if (! dialog.showModal) {
-  //dialogPolyfill.registerDialog(dialog); //これ使うならdialogPolyfill.cssとjsが必要
-  //}
+  const dialog = document.getElementById('close-dialog') as HTMLElement;
 
   //起動・停止ボタン
   var startButton = document.getElementById('button-server-start') as HTMLInputElement;
@@ -81,6 +79,9 @@ const buildConfigJson = () => {
   const youtubeUrl = (document.getElementById('text-youtube-id') as HTMLInputElement).value;
   const twitchUrl = (document.getElementById('text-twitch-id') as HTMLInputElement).value;
   const sePath = (document.getElementById('text-se-path') as HTMLInputElement).value;
+  const tamiyasuPath = (document.getElementById('text-tamiyasu-path') as HTMLInputElement).value;
+  const bouyomiPort = parseInt((document.getElementById('text-bouyomi-port') as HTMLInputElement).value);
+  const notifyThreadConnectionErrorLimit = parseInt((document.getElementById('text-notify-threadConnectionErrorLimit') as HTMLInputElement).value);
 
   //レス番表示設定
   const showNumber = (document.getElementById('checkbox-showNumber') as HTMLInputElement).checked === true;
@@ -96,6 +97,12 @@ const buildConfigJson = () => {
   const newLine = (document.getElementById('enableNewLine') as any).checked === true;
   //本文改行設定
   const playSe = (document.getElementById('checkbox-playSe') as any).checked === true;
+
+  let typeYomiko: typeof globalThis['config']['typeYomiko'] = 'none';
+  document.getElementsByName('typeYomiko').forEach((v, i: number) => {
+    const elem = v as HTMLInputElement;
+    if (elem.checked) typeYomiko = elem.value as typeof globalThis['config']['typeYomiko'];
+  });
 
   const config: typeof globalThis['config'] = {
     url: url,
@@ -114,6 +121,10 @@ const buildConfigJson = () => {
     wordBreak,
     sePath,
     playSe,
+    typeYomiko,
+    tamiyasuPath,
+    bouyomiPort,
+    notifyThreadConnectionErrorLimit,
   };
 
   return config;
@@ -149,6 +160,10 @@ function loadConfigToLocalStrage() {
     wordBreak: true,
     sePath: '',
     playSe: false,
+    typeYomiko: 'none',
+    tamiyasuPath: '',
+    bouyomiPort: 50001,
+    notifyThreadConnectionErrorLimit: 0,
   };
 
   const storageStr = localStorage.getItem('config');
@@ -195,6 +210,22 @@ function loadConfigToLocalStrage() {
   (document.getElementById('text-se-path') as any).value = config.sePath;
   (document.getElementById('checkbox-playSe') as any).checked = config.playSe;
 
+  // 読み子の種類
+  switch (config.typeYomiko) {
+    case 'none':
+      (document.getElementById('yomiko_none') as any).checked = true;
+      break;
+    case 'tamiyasu':
+      (document.getElementById('yomiko_tamiyasu') as any).checked = true;
+      break;
+    case 'bouyomi':
+      (document.getElementById('yomiko_bouyomi') as any).checked = true;
+      break;
+  }
+  (document.getElementById('text-tamiyasu-path') as any).value = config.tamiyasuPath;
+  (document.getElementById('text-bouyomi-port') as any).value = config.bouyomiPort;
+  (document.getElementById('text-notify-threadConnectionErrorLimit') as any).value = config.notifyThreadConnectionErrorLimit;
+
   console.debug('[renderer.js]config loaded');
 }
 
@@ -205,12 +236,15 @@ ipcRenderer.on('start-server-reply', (event: any, arg: any) => {
 
 // 着信音再生
 const audioElem = new Audio();
-ipcRenderer.on('play-sound', async (event: any, arg: string) => {
-  console.log(`[renderer][play-sound]${arg}`);
+ipcRenderer.on('play-sound', async (event: any, arg: { wavfilepath: string; text: string }) => {
+  console.log(`[renderer][play-sound]${JSON.stringify(arg)}`);
   try {
-    audioElem.src = arg;
+    audioElem.src = arg.wavfilepath;
     audioElem.play();
   } catch (e) {
     log.error(e);
   }
+  audioElem.onended = () => {
+    ipcRenderer.send('play-tamiyasu', arg.text);
+  };
 });

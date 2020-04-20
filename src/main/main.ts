@@ -30,6 +30,7 @@ globalThis.electron = {
   twitchChat: undefined as any,
   youtubeChat: undefined as any,
   socket: null as any,
+  threadConnectionError: 0,
 };
 
 //全てのウィンドウが閉じたら終了
@@ -52,7 +53,7 @@ app.on('ready', () => {
     },
   });
   globalThis.electron.mainWindow.setTitle('unacast');
-  globalThis.electron.mainWindow.setMenu(null);
+  // globalThis.electron.mainWindow.setMenu(null);
   //使用するhtmlファイルを指定する
   globalThis.electron.mainWindow.loadURL(path.resolve(__dirname, '../src/html/index.html'));
 
@@ -61,6 +62,7 @@ app.on('ready', () => {
     globalThis.electron.mainWindow = undefined as any;
   });
 
+  // 開発者ツールを開く
   // globalThis.electron.mainWindow.webContents.openDevTools();
 });
 

@@ -1,7 +1,7 @@
 /**
  * したらば読み込み用モジュール
  */
-const request = require('request-promise'); //httpリクエスト
+import request from 'request-promise'; //httpリクエスト
 const iconv = require('iconv-lite'); // 文字コード変換用パッケージ
 var log = require('electron-log');
 
@@ -38,6 +38,7 @@ class ReadSitaraba {
       url: requestUrl,
       method: 'GET',
       encoding: null, // ここでnull指定しないとなんかうまくいかない
+      timeout: 3 * 1000,
     };
 
     var responseJson: ReturnType<typeof purseNewResponse> = [];

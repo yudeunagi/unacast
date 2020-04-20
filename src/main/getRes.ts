@@ -1,10 +1,13 @@
 import express from 'express';
+import path from 'path';
 import bodyParser from 'body-parser'; // jsonパーサ
 const router = express.Router();
 import log from 'electron-log';
 
 import ReadIcons from './ReadIcons'; //アイコンファイル名取得
 const readIcons = new ReadIcons();
+
+import { sendDom } from './startServer';
 
 const { JSDOM } = require('jsdom');
 const $ = require('jquery')(new JSDOM().window);
@@ -52,6 +55,14 @@ router.post('/', async (req, res, next) => {
       res.send(result);
     })
     .catch((err) => {
+      if (globalThis.config.notifyThreadConnectionErrorLimit > 0) {
+        globalThis.electron.threadConnectionError += 1;
+        if (globalThis.electron.threadConnectionError >= globalThis.config.notifyThreadConnectionErrorLimit) {
+          globalThis.electron.threadConnectionError = 0;
+          const icon = `./img/unacast.png`;
+          sendDom('unacastより', '掲示板が規定回数通信エラーになりました。設定を見直すか、掲示板URLを変更してください。', icon);
+        }
+      }
       log.error(err);
     });
 

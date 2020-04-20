@@ -13,6 +13,8 @@ declare global {
     var youtubeChat: LiveChat;
     /** ブラウザとのWebSocket情報 */
     var socket: WebSocket;
+    /** 掲示板との連続通信エラー回数 */
+    var threadConnectionError: number;
   }
   namespace config {
     /** 掲示板URL */
@@ -55,6 +57,14 @@ declare global {
     var sePath: string;
     /** レス着信音再生 */
     var playSe: boolean;
+    /** 読み子の種類 */
+    var typeYomiko: 'none' | 'tamiyasu' | 'bouyomi';
+    /** 民安Talkのファイルパス */
+    var tamiyasuPath: string;
+    /** 棒読みちゃんの待ち受けポート */
+    var bouyomiPort: number;
+    /** スレが通信エラーになった時の通知閾値 */
+    var notifyThreadConnectionErrorLimit: number;
   }
 }
 

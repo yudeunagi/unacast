@@ -67,6 +67,7 @@ class Read5ch {
       method: 'GET',
       encoding: null, // ここでnull指定しないとなんかうまくいかない
       resolveWithFullResponse: true,
+      timeout: 3 * 1000,
       headers: {
         'if-modified-since': lastModified,
         range: 'bytes=' + range + '-',
@@ -119,6 +120,7 @@ class Read5ch {
       } else {
         log.error('[Read5ch.js]5ch系BBSレス取得APIリクエストエラー、message=' + error.message);
       }
+      throw new Error('connection error');
     }
 
     console.trace(JSON.stringify(responseJson));

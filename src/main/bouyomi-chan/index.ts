@@ -1,0 +1,76 @@
+import net from 'net';
+
+type Options = {
+  host?: string;
+  port?: number;
+  speed?: number;
+  tone?: number;
+  volume?: number;
+  type?: number;
+};
+
+class BouyomiChan {
+  constructor(options?: Options) {
+    if (!options) return;
+    if (options.host) this.host = options.host;
+    if (options.port) this.port = options.port;
+    if (options.speed) this.speed = options.speed;
+    if (options.tone) this.tone = options.tone;
+    if (options.volume) this.volume = options.volume;
+    if (options.type) this.type = options.type;
+  }
+
+  /**
+   * 棒読みちゃんのホスト
+   */
+  private host: string = 'localhost';
+  /**
+   * 棒読みちゃんのポート番号
+   */
+  private port: number = 50001;
+  /**
+   * 速度（-1:棒読みちゃん画面上の設定）
+   */
+  private speed: number = 100;
+  /**
+   * 音程（-1:棒読みちゃん画面上の設定）
+   */
+  private tone: number = 100;
+  /**
+   * 音量（-1:棒読みちゃん画面上の設定）
+   */
+  private volume: number = 50;
+  /**
+   * 声質（ 0:棒読みちゃん画面上の設定、1:女性1、2:女性2、3:男性1、4:男性2、5:中性、6:ロボット、7:機械1、8:機械2、10001～:SAPI5）
+   */
+  private type: number = 0;
+
+  /**
+   * @param message 棒読みちゃんに読み上げてもらう文章
+   */
+  speak(message: string) {
+    /** 棒読みちゃんに送信する設定のバイト長 */
+    const SETTINGS_BYTES_LENGTH = 15;
+    let messageByteLength = Buffer.byteLength(message);
+    let bufferLength = SETTINGS_BYTES_LENGTH + messageByteLength;
+    let buff = Buffer.alloc(bufferLength);
+    /** メッセージ読み上げコマンド */
+    const COMMAND_TO_SPEAK = 1;
+    let len = buff.writeUInt16LE(COMMAND_TO_SPEAK);
+    len = buff.writeInt16LE(this.speed, len);
+    len = buff.writeInt16LE(this.tone, len);
+    len = buff.writeInt16LE(this.volume, len);
+    len = buff.writeUInt16LE(this.type, len);
+    /** 文字コード(0:UTF-8, 1:Unicode, 2:Shift-JIS) */
+    const ENCODING = 0;
+    len = buff.writeUInt8(ENCODING, len);
+    len = buff.writeUInt32LE(messageByteLength, len);
+    len = buff.write(message, len);
+
+    let client = net.createConnection(this.port, this.host);
+    client.write(buff);
+    client.end();
+  }
+}
+
+export default BouyomiChan;

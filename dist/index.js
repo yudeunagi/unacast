@@ -181,6 +181,93 @@ exports.default = ReadIcons;
 
 /***/ }),
 
+/***/ "./src/main/bouyomi-chan/index.ts":
+/*!****************************************!*\
+  !*** ./src/main/bouyomi-chan/index.ts ***!
+  \****************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+var net_1 = __importDefault(__webpack_require__(/*! net */ "net"));
+var BouyomiChan = /** @class */ (function () {
+    function BouyomiChan(options) {
+        /**
+         * 棒読みちゃんのホスト
+         */
+        this.host = 'localhost';
+        /**
+         * 棒読みちゃんのポート番号
+         */
+        this.port = 50001;
+        /**
+         * 速度（-1:棒読みちゃん画面上の設定）
+         */
+        this.speed = 100;
+        /**
+         * 音程（-1:棒読みちゃん画面上の設定）
+         */
+        this.tone = 100;
+        /**
+         * 音量（-1:棒読みちゃん画面上の設定）
+         */
+        this.volume = 50;
+        /**
+         * 声質（ 0:棒読みちゃん画面上の設定、1:女性1、2:女性2、3:男性1、4:男性2、5:中性、6:ロボット、7:機械1、8:機械2、10001～:SAPI5）
+         */
+        this.type = 0;
+        if (!options)
+            return;
+        if (options.host)
+            this.host = options.host;
+        if (options.port)
+            this.port = options.port;
+        if (options.speed)
+            this.speed = options.speed;
+        if (options.tone)
+            this.tone = options.tone;
+        if (options.volume)
+            this.volume = options.volume;
+        if (options.type)
+            this.type = options.type;
+    }
+    /**
+     * @param message 棒読みちゃんに読み上げてもらう文章
+     */
+    BouyomiChan.prototype.speak = function (message) {
+        /** 棒読みちゃんに送信する設定のバイト長 */
+        var SETTINGS_BYTES_LENGTH = 15;
+        var messageByteLength = Buffer.byteLength(message);
+        var bufferLength = SETTINGS_BYTES_LENGTH + messageByteLength;
+        var buff = Buffer.alloc(bufferLength);
+        /** メッセージ読み上げコマンド */
+        var COMMAND_TO_SPEAK = 1;
+        var len = buff.writeUInt16LE(COMMAND_TO_SPEAK);
+        len = buff.writeInt16LE(this.speed, len);
+        len = buff.writeInt16LE(this.tone, len);
+        len = buff.writeInt16LE(this.volume, len);
+        len = buff.writeUInt16LE(this.type, len);
+        /** 文字コード(0:UTF-8, 1:Unicode, 2:Shift-JIS) */
+        var ENCODING = 0;
+        len = buff.writeUInt8(ENCODING, len);
+        len = buff.writeUInt32LE(messageByteLength, len);
+        len = buff.write(message, len);
+        var client = net_1.default.createConnection(this.port, this.host);
+        client.write(buff);
+        client.end();
+    };
+    return BouyomiChan;
+}());
+exports.default = BouyomiChan;
+
+
+/***/ }),
+
 /***/ "./src/main/getRes.ts":
 /*!****************************!*\
   !*** ./src/main/getRes.ts ***!
@@ -236,6 +323,7 @@ var router = express_1.default.Router();
 var electron_log_1 = __importDefault(__webpack_require__(/*! electron-log */ "electron-log"));
 var ReadIcons_1 = __importDefault(__webpack_require__(/*! ./ReadIcons */ "./src/main/ReadIcons.ts")); //アイコンファイル名取得
 var readIcons = new ReadIcons_1.default();
+var startServer_1 = __webpack_require__(/*! ./startServer */ "./src/main/startServer.ts");
 var JSDOM = __webpack_require__(/*! jsdom */ "jsdom").JSDOM;
 var $ = __webpack_require__(/*! jquery */ "jquery")(new JSDOM().window);
 var readSitaraba_1 = __importDefault(__webpack_require__(/*! ./readBBS/readSitaraba */ "./src/main/readBBS/readSitaraba.ts")); // したらば読み込み用モジュール
@@ -280,6 +368,14 @@ router.post('/', function (req, res, next) { return __awaiter(void 0, void 0, vo
             });
         }); })
             .catch(function (err) {
+            if (globalThis.config.notifyThreadConnectionErrorLimit > 0) {
+                globalThis.electron.threadConnectionError += 1;
+                if (globalThis.electron.threadConnectionError >= globalThis.config.notifyThreadConnectionErrorLimit) {
+                    globalThis.electron.threadConnectionError = 0;
+                    var icon = "./img/unacast.png";
+                    startServer_1.sendDom('unacastより', '掲示板が規定回数通信エラーになりました。設定を見直すか、掲示板URLを変更してください。', icon);
+                }
+            }
             electron_log_1.default.error(err);
         });
         return [2 /*return*/];
@@ -436,6 +532,7 @@ globalThis.electron = {
     twitchChat: undefined,
     youtubeChat: undefined,
     socket: null,
+    threadConnectionError: 0,
 };
 //全てのウィンドウが閉じたら終了
 app.on('window-all-closed', function () {
@@ -456,13 +553,14 @@ app.on('ready', function () {
         },
     });
     globalThis.electron.mainWindow.setTitle('unacast');
-    globalThis.electron.mainWindow.setMenu(null);
+    // globalThis.electron.mainWindow.setMenu(null);
     //使用するhtmlファイルを指定する
     globalThis.electron.mainWindow.loadURL(path_1.default.resolve(__dirname, '../src/html/index.html'));
     // ウィンドウが閉じられたらアプリも終了
     globalThis.electron.mainWindow.on('closed', function () {
         globalThis.electron.mainWindow = undefined;
     });
+    // 開発者ツールを開く
     // globalThis.electron.mainWindow.webContents.openDevTools();
 });
 // 音声再生できるようにする
@@ -582,6 +680,7 @@ var Read5ch = /** @class */ (function () {
                             method: 'GET',
                             encoding: null,
                             resolveWithFullResponse: true,
+                            timeout: 3 * 1000,
                             headers: {
                                 'if-modified-since': lastModified,
                                 range: 'bytes=' + range + '-',
@@ -632,7 +731,7 @@ var Read5ch = /** @class */ (function () {
                         else {
                             log.error('[Read5ch.js]5ch系BBSレス取得APIリクエストエラー、message=' + error_1.message);
                         }
-                        return [3 /*break*/, 4];
+                        throw new Error('connection error');
                     case 4:
                         console.trace(JSON.stringify(responseJson));
                         return [2 /*return*/, responseJson];
@@ -808,11 +907,14 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
  * したらば読み込み用モジュール
  */
-var request = __webpack_require__(/*! request-promise */ "request-promise"); //httpリクエスト
+var request_promise_1 = __importDefault(__webpack_require__(/*! request-promise */ "request-promise")); //httpリクエスト
 var iconv = __webpack_require__(/*! iconv-lite */ "iconv-lite"); // 文字コード変換用パッケージ
 var log = __webpack_require__(/*! electron-log */ "electron-log");
 /**
@@ -847,11 +949,12 @@ var ReadSitaraba = /** @class */ (function () {
                                 url: requestUrl,
                                 method: 'GET',
                                 encoding: null,
+                                timeout: 3 * 1000,
                             };
                             responseJson = [];
                             //掲示板へのリクエスト実行
                             console.log('[ReadSitaraba.js]したらばレス取得API呼び出し開始');
-                            return [4 /*yield*/, request(options).then(function (body) {
+                            return [4 /*yield*/, request_promise_1.default(options).then(function (body) {
                                     console.debug('[ReadSitaraba.js]したらばレス取得API呼び出し成功');
                                     //したらばAPIの文字コードはEUC-JPなのでUTF-8に変換する
                                     var str = iconv.decode(Buffer.from(body), 'EUC-JP');
@@ -985,9 +1088,13 @@ var express_ws_1 = __importDefault(__webpack_require__(/*! express-ws */ "expres
 var util_1 = __webpack_require__(/*! ./util */ "./src/main/util.ts");
 // レス取得APIをセット
 var getRes_1 = __importDefault(__webpack_require__(/*! ./getRes */ "./src/main/getRes.ts"));
+var bouyomi_chan_1 = __importDefault(__webpack_require__(/*! ./bouyomi-chan */ "./src/main/bouyomi-chan/index.ts"));
+var child_process_1 = __importDefault(__webpack_require__(/*! child_process */ "child_process"));
+var exec = child_process_1.default.exec;
 var app;
 // サーバーをグローバル変数にセットできるようにする（サーバー停止処理のため）
 var server;
+var bouyomi;
 /**
  * サーバー起動
  * config:設定を格納したjson、以下jsonの中身
@@ -1034,40 +1141,47 @@ electron_1.ipcMain.on('start-server', function (event, config) { return __awaite
                         var imgUrl = './img/twitch.png';
                         var name = msg.displayName;
                         var text = msg.messageText;
-                        sendDom(name, text, imgUrl);
+                        exports.sendDom(name, text, imgUrl);
                     });
-                    // Youtubeチャット
-                    if (globalThis.config.youtubeId) {
-                        try {
-                            console.log('[Youtube Chat] connect started');
-                            globalThis.electron.youtubeChat = new youtube_chat_1.LiveChat({ channelId: globalThis.config.youtubeId });
-                            // 接続開始イベント
-                            globalThis.electron.youtubeChat.on('start', function (liveId) {
-                                console.log('[Youtube Chat] connected');
-                            });
-                            // 接続終了イベント
-                            globalThis.electron.youtubeChat.on('end', function (reason) {
-                                console.log('[Youtube Chat] disconnect');
-                            });
-                            // // チャット受信
-                            globalThis.electron.youtubeChat.on('comment', function (comment) {
-                                var _a, _b;
-                                var imgUrl = (_b = (_a = comment.author.thumbnail) === null || _a === void 0 ? void 0 : _a.url) !== null && _b !== void 0 ? _b : '';
-                                var name = comment.author.name;
-                                var text = comment.message[0].text;
-                                sendDom(name, text, imgUrl);
-                            });
-                            // // 何かエラーがあった
-                            globalThis.electron.youtubeChat.on('error', function (err) {
-                                electron_log_1.default.error('[Youtube Chat] error');
-                                electron_log_1.default.error(err);
-                                globalThis.electron.youtubeChat.stop();
-                            });
-                            globalThis.electron.youtubeChat.start();
-                        }
-                        catch (e) {
-                            process.exit(1);
-                        }
+                }
+                // Youtubeチャット
+                if (globalThis.config.youtubeId) {
+                    try {
+                        console.log('[Youtube Chat] connect started');
+                        globalThis.electron.youtubeChat = new youtube_chat_1.LiveChat({ channelId: globalThis.config.youtubeId });
+                        // 接続開始イベント
+                        globalThis.electron.youtubeChat.on('start', function (liveId) {
+                            console.log("[Youtube Chat] connected liveId = " + liveId);
+                        });
+                        // 接続終了イベント
+                        globalThis.electron.youtubeChat.on('end', function (reason) {
+                            console.log('[Youtube Chat] disconnect');
+                        });
+                        // // チャット受信
+                        globalThis.electron.youtubeChat.on('comment', function (comment) {
+                            var _a, _b;
+                            var imgUrl = (_b = (_a = comment.author.thumbnail) === null || _a === void 0 ? void 0 : _a.url) !== null && _b !== void 0 ? _b : '';
+                            var name = comment.author.name;
+                            var text = comment.message[0].text;
+                            electron_log_1.default.info(text);
+                            exports.sendDom(name, text, imgUrl);
+                        });
+                        // // 何かエラーがあった
+                        globalThis.electron.youtubeChat.on('error', function (err) {
+                            electron_log_1.default.error('[Youtube Chat] error');
+                            electron_log_1.default.error(err);
+                            globalThis.electron.youtubeChat.stop();
+                        });
+                        globalThis.electron.youtubeChat.start();
+                    }
+                    catch (e) {
+                        process.exit(1);
+                    }
+                }
+                // 棒読みちゃん接続
+                if (config.typeYomiko === 'bouyomi') {
+                    if (config.bouyomiPort) {
+                        bouyomi = new bouyomi_chan_1.default({ port: config.bouyomiPort });
                     }
                 }
                 // WebSocketを立てる
@@ -1110,7 +1224,20 @@ electron_1.ipcMain.on('stop-server', function (event) {
         globalThis.electron.youtubeChat.removeAllListeners();
     }
 });
-var sendDom = function (name, text, imgUrl) {
+electron_1.ipcMain.on('play-tamiyasu', function (event, args) {
+    switch (config.typeYomiko) {
+        case 'tamiyasu': {
+            exec(config.tamiyasuPath + " " + args);
+            break;
+        }
+        case 'bouyomi': {
+            if (bouyomi)
+                bouyomi.speak(args);
+            break;
+        }
+    }
+});
+exports.sendDom = function (name, text, imgUrl) {
     var domStr = "<li class=\"list-item\"><span class=\"icon-block\"><img class=\"icon\" src=\"" + imgUrl + "\"></span><div class=\"content\">";
     if (globalThis.config.showName) {
         domStr += "<span class=\"name\">" + name + "</span>";
@@ -1120,7 +1247,7 @@ var sendDom = function (name, text, imgUrl) {
         globalThis.electron.socket.send(domStr);
     if (config.playSe && globalThis.electron.seList.length > 0) {
         var wavfilepath = globalThis.electron.seList[Math.floor(Math.random() * globalThis.electron.seList.length)];
-        globalThis.electron.mainWindow.webContents.send('play-sound', wavfilepath);
+        globalThis.electron.mainWindow.webContents.send('play-sound', { wavfilepath: wavfilepath, text: text });
     }
 };
 
@@ -1506,6 +1633,17 @@ module.exports = require("body-parser");
 
 /***/ }),
 
+/***/ "child_process":
+/*!********************************!*\
+  !*** external "child_process" ***!
+  \********************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = require("child_process");
+
+/***/ }),
+
 /***/ "dank-twitch-irc":
 /*!**********************************!*\
   !*** external "dank-twitch-irc" ***!
@@ -1624,6 +1762,17 @@ module.exports = require("jquery");
 /***/ (function(module, exports) {
 
 module.exports = require("jsdom");
+
+/***/ }),
+
+/***/ "net":
+/*!**********************!*\
+  !*** external "net" ***!
+  \**********************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = require("net");
 
 /***/ }),
 
