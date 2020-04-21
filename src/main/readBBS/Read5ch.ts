@@ -1,11 +1,11 @@
 /**
  * 5ch互換BBS読み込み用モジュール
  */
-import * as rp from 'request-promise'; //httpリクエスト
+import axios, { AxiosRequestConfig } from 'axios';
 import iconv from 'iconv-lite'; // 文字コード変換用パッケージ
-var log = require('electron-log');
+import log from 'electron-log';
 
-//ステータスコード304 _NotModified
+// ステータスコード304 _NotModified
 const NOT_MODIFIED = '304';
 const RANGE_NOT_SATISFIABLE = '416';
 
@@ -51,52 +51,42 @@ class Read5ch {
     const requestUrl = threadUrl.replace(rep, '$1/dat$2.dat');
 
     /**
-  １．レス番号指定がない場合
-    最新1件
-  ２．番号指定あり、且つ、初回取得の場合
-    ２－１．レス500、指定505とか
-      null返却
-    ２－２．レス500、指定490とか
-      490からそれ以降の分をあるだけ
-  */
-
+     * １．レス番号指定がない場合
+     *  最新1件
+     * ２．番号指定あり、且つ、初回取得の場合
+     * ２－１．レス500、指定505とか
+     *   null返却
+     * ２－２．レス500、指定490とか
+     *  490からそれ以降の分をあるだけ
+     */
     const range = lastByte;
     //リクエストオプションの設定
-    const options = {
+    const options: AxiosRequestConfig = {
       url: requestUrl,
       method: 'GET',
-      encoding: null, // ここでnull指定しないとなんかうまくいかない
-      resolveWithFullResponse: true,
       timeout: 3 * 1000,
+      responseType: 'arraybuffer',
       headers: {
         'if-modified-since': lastModified,
         range: 'bytes=' + range + '-',
-        //      range: 'bytes=100000-',
       },
     };
-    // console.trace(options);
 
     let responseJson;
     //掲示板へのリクエスト実行
-    console.trace('[Read5ch.js]5ch系BBSレス取得API呼び出し開始');
     try {
-      const response = await rp.get(options);
-      const statusCode = response.statusCode;
-      console.trace('[Read5ch.js]5ch系BBSレス取得API呼び出し完了、statusCode=' + statusCode);
+      const response = await axios(options);
 
       // レスポンスヘッダ表示
-      // console.trace('[Read5ch.read]レスポンスヘッダ=');
       const headers: { [key: string]: string } = response.headers;
-      // console.trace(headers);
-      //LastModifiedとRange更新処理
+      // LastModifiedとRange更新処理
       if (headers['last-modified'] != null) {
         lastModified = headers['last-modified'];
-        console.trace('[Read5ch.read]lastModified=' + lastModified);
       }
-      //gzipで取得出来たら解凍処理も入れる
+      // gzipで取得出来たら解凍処理も入れる
 
-      //したらばAPIの文字コードはEUC-JPなのでUTF-8に変換する
-      const str = iconv.decode(Buffer.from(response.body), 'Shift_JIS');
+      // したらばAPIの文字コードはEUC-JPなのでUTF-8に変換する
+      const str = iconv.decode(Buffer.from(response.data), 'Shift_JIS');
       // レスポンスオブジェクト作成、content-rangeがある場合とない場合で処理を分ける
       if (headers['content-range'] == null || lastByte == 0) {
         console.trace('[Read5ch.read]content-range=' + headers['content-range']);
@@ -129,18 +119,18 @@ class Read5ch {
 }
 
 /**
- *取得したレスポンス（複数）のパース
- *戻りとしてパースしたjsonオブジェクトの配列を返す
- * @param string // res 板から返却されたdat
- * @param string // resNum リクエストされたレス番号
+ * 取得したレスポンス（複数）のパース
+ * 戻りとしてパースしたjsonオブジェクトの配列を返す
+ * @param res 板から返却されたdat
+ * @param resNum リクエストされたレス番号
  */
 const purseNewResponse = (res: string, resNum: string) => {
-  //結果を格納する配列
-  const result = new Array();
+  // 結果を格納する配列
+  const result: ReturnType<typeof purseResponse>[] = [];
   // レス番号
   let num = 0;
 
-  //新着レスを改行ごとにSplitする
+  // 新着レスを改行ごとにSplitする
   const resArray = res.split(/\r\n|\r|\n/);
   // 新着なしなら戻る。
   if (resArray.length === 0) {
@@ -158,10 +148,9 @@ const purseNewResponse = (res: string, resNum: string) => {
     num = parseInt(resNum) - 1;
   }
 
-  console.debug('[Read5ch.purseNewResponse]取得レス番号=' + num);
-  //1行ごとにパースする
+  // 1行ごとにパースする
   for (; num < resArray.length; num++) {
-    //パースメソッド呼び出し
+    // パースメソッド呼び出し
     if (resArray[num].length > 0) {
       result.push(purseResponse(resArray[num], num + 1));
     }
@@ -172,10 +161,10 @@ const purseNewResponse = (res: string, resNum: string) => {
 };
 
 /**
- *取得したレスポンス（複数）のパース
- *戻りとしてパースしたjsonオブジェクトの配列を返す
- * @param string // res 板から返却されたdat1行分
- * @param string // resNum リクエストされたレス番号
+ * 取得したレスポンス（複数）のパース
+ * 戻りとしてパースしたjsonオブジェクトの配列を返す
+ * @param res 板から返却されたdat1行分
+ * @param resNum リクエストされたレス番号
  */
 const purseDiffResponse = (res: string, resNum: string) => {
   //結果を格納する配列
@@ -211,18 +200,9 @@ const purseDiffResponse = (res: string, resNum: string) => {
 
 /**
  * レスポンスのパース
- *Jsonオブジェクトを返却する
- *@param String // res レスポンス1レス
- *@param Integer // num レス番（0スタート）
- *{
- * number: レス番号
- * name: 名前
- * email: メアド
- * date: 日付
- * text: 本文
- * threadTitle: スレタイ
- * id: ID
- *}
+ * Jsonオブジェクトを返却する
+ * @param String // res レスポンス1レス
+ * @param Integer // num レス番（0スタート）
  */
 const purseResponse = (res: string, num: number) => {
   //APIの返却値を<>で分割
@@ -236,17 +216,17 @@ const purseResponse = (res: string, num: number) => {
   // 日付とID分離処理、' ID:'で区切る
   const dateId = splitRes[2].split(' ID:');
   const date = dateId[0];
-  // IDが取得できない場合はnullにする
-  const id = dateId.length === 2 ? dateId[1] : null;
+  const id = dateId.length === 2 ? dateId[1] : '';
 
-  const resJson = {
-    number: num,
+  const resJson: UserComment = {
+    number: num.toString(),
     name: splitRes[0],
     email: splitRes[1],
     date: date,
     text: splitRes[3],
-    threadTitle: splitRes[4],
+    // threadTitle: splitRes[4],
     id: id,
+    imgUrl: '',
   };
 
   // オブジェクトを返却

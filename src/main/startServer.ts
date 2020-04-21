@@ -12,12 +12,13 @@ import getRes from './getRes';
 import { CommentItem } from './youtube-chat/parser';
 import bouyomiChan from './bouyomi-chan';
 import child_process from 'child_process';
+import { electronEvent } from './const';
 const exec = child_process.exec;
 
-var app;
+let app;
 
 // サーバーをグローバル変数にセットできるようにする（サーバー停止処理のため）
-var server: http.Server;
+let server: http.Server;
 
 let bouyomi: bouyomiChan;
 
@@ -28,7 +29,7 @@ let bouyomi: bouyomiChan;
  * resNumber:読み込み開始レス位置
  * port:ポート番号
  */
-ipcMain.on('start-server', async (event: any, config: typeof globalThis['config']) => {
+ipcMain.on(electronEvent['start-server'], async (event: any, config: typeof globalThis['config']) => {
   app = expressWs(express()).app;
   const ejs = require('ejs');
   app.set('view engine', 'ejs');
@@ -55,7 +56,7 @@ ipcMain.on('start-server', async (event: any, config: typeof globalThis['config'
   if (globalThis.config.playSe) {
     const list = await readWavFiles(globalThis.config.sePath);
     globalThis.electron.seList = list.map((file) => `${globalThis.config.sePath}/${file}`);
-    console.log(`SEファイル数=${globalThis.electron.seList.length}`);
+    console.log(`SE files = ${globalThis.electron.seList.length}`);
   }
 
   // Twitchに接続
@@ -67,7 +68,7 @@ ipcMain.on('start-server', async (event: any, config: typeof globalThis['config'
       const imgUrl = './img/twitch.png';
       const name = msg.displayName;
       const text = msg.messageText;
-      sendDom(name, text, imgUrl);
+      sendDom({ name, text, imgUrl });
     });
   }
 
@@ -84,13 +85,13 @@ ipcMain.on('start-server', async (event: any, config: typeof globalThis['config'
       globalThis.electron.youtubeChat.on('end', (reason?: string) => {
         console.log('[Youtube Chat] disconnect');
       });
-      // // チャット受信
+      // チャット受信
       globalThis.electron.youtubeChat.on('comment', (comment: CommentItem) => {
         const imgUrl = comment.author.thumbnail?.url ?? '';
         const name = comment.author.name;
         const text = (comment.message[0] as any).text;
         log.info(text);
-        sendDom(name, text, imgUrl);
+        sendDom({ name, text, imgUrl });
       });
       // // 何かエラーがあった
       globalThis.electron.youtubeChat.on('error', (err: Error) => {
@@ -127,18 +128,18 @@ ipcMain.on('start-server', async (event: any, config: typeof globalThis['config'
     });
   });
 
-  //指定したポートで待ち受け開始
+  // 指定したポートで待ち受け開始
   server = app.listen(config.port, () => {
-    console.log('[startServer]start server on port:' + config.port);
+    console.log('[startServer] start server on port:' + config.port);
   });
-  //成功メッセージ返却
+  // 成功メッセージ返却
   event.returnValue = 'success';
 });
 
 /**
  * サーバー停止
  */
-ipcMain.on('stop-server', function (event: any) {
+ipcMain.on(electronEvent['stop-server'], (event) => {
   console.log('[startServer]server stop');
   server.close();
   app = null;
@@ -155,7 +156,8 @@ ipcMain.on('stop-server', function (event: any) {
   }
 });
 
-ipcMain.on('play-tamiyasu', (event: any, args: string) => {
+// 棒読みちゃん
+ipcMain.on(electronEvent['play-tamiyasu'], (event, args: string) => {
   switch (config.typeYomiko) {
     case 'tamiyasu': {
       exec(`${config.tamiyasuPath} ${args}`);
@@ -168,15 +170,54 @@ ipcMain.on('play-tamiyasu', (event: any, args: string) => {
   }
 });
 
-export const sendDom = (name: string, text: string, imgUrl: string) => {
-  let domStr = `<li class="list-item"><span class="icon-block"><img class="icon" src="${imgUrl}"></span><div class="content">`;
-  if (globalThis.config.showName) {
-    domStr += `<span class="name">${name}</span>`;
+export const createDom = (message: UserComment) => {
+  let domStr = `
+  <li class="list-item">
+    <span class="icon-block">
+      <img class="icon" src="${message.imgUrl}">
+    </span>
+  <div class="content">`;
+
+  //レス番表示
+  if (globalThis.config.showNumber) {
+    domStr += `
+      <span class="resNumber">${message.number}</span>
+    `;
   }
-  domStr += `<span class="res">${text}</span></div></li>`;
+  // 名前表示
+  if (globalThis.config.showName) {
+    domStr += `<span class="name">${message.name}</span>`;
+  }
+  // 時刻表示
+  if (globalThis.config.showTime) {
+    domStr += `<span class="date">${message.date}</span>`;
+  }
+
+  // 名前と本文を改行で分ける
+  if (globalThis.config.newLine) {
+    domStr += '<br />';
+  }
+
+  domStr += `
+    <span class="res">
+      ${message.text}
+    </span>
+    </div>
+  </li>`;
+
+  return domStr;
+};
+
+/**
+ * コメントのDOMをブラウザに送る
+ * 必要ならレス着信音も鳴らす
+ * @param message
+ */
+export const sendDom = (message: UserComment) => {
+  const domStr = createDom(message);
   if (globalThis.electron.socket) globalThis.electron.socket.send(domStr);
   if (config.playSe && globalThis.electron.seList.length > 0) {
     const wavfilepath = globalThis.electron.seList[Math.floor(Math.random() * globalThis.electron.seList.length)];
-    globalThis.electron.mainWindow.webContents.send('play-sound', { wavfilepath, text });
+    globalThis.electron.mainWindow.webContents.send(electronEvent['play-sound'], { wavfilepath, text: message.text });
   }
 };

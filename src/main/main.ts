@@ -1,17 +1,17 @@
-//Electronのモジュール
+// Electronのモジュール
 import path from 'path';
 import electron from 'electron';
 import log from 'electron-log';
 
 console.trace = () => {};
 
-process.on('uncaughtException', function (err) {
+process.on('uncaughtException', (err) => {
   log.error('electron:event:uncaughtException');
   log.error(err);
   log.error(err.stack);
   // app.quit();
 });
-//アプリケーションをコントロールするモジュール
+// アプリケーションをコントロールするモジュール
 const app = electron.app;
 
 app.allowRendererProcessReuse = true;
@@ -20,7 +20,7 @@ app.allowRendererProcessReuse = true;
 const ss = require('./startServer');
 console.trace(ss);
 
-//ウィンドウを作成するモジュール
+// ウィンドウを作成するモジュール
 const BrowserWindow = electron.BrowserWindow;
 
 // メインウィンドウはGCされないようにグローバル宣言
@@ -33,7 +33,7 @@ globalThis.electron = {
   threadConnectionError: 0,
 };
 
-//全てのウィンドウが閉じたら終了
+// 全てのウィンドウが閉じたら終了
 app.on('window-all-closed', () => {
   if (process.platform != 'darwin') {
     app.quit();
@@ -42,7 +42,7 @@ app.on('window-all-closed', () => {
 
 // Electronの初期化完了後に実行
 app.on('ready', () => {
-  //ウィンドウサイズを1280*720（フレームサイズを含まない）に設定する
+  // ウィンドウサイズを1280*720（フレームサイズを含まない）に設定する
   globalThis.electron.mainWindow = new BrowserWindow({
     width: 700,
     height: 720,
@@ -53,7 +53,8 @@ app.on('ready', () => {
     },
   });
   globalThis.electron.mainWindow.setTitle('unacast');
-  // globalThis.electron.mainWindow.setMenu(null);
+  globalThis.electron.mainWindow.setMenu(null);
+
   //使用するhtmlファイルを指定する
   globalThis.electron.mainWindow.loadURL(path.resolve(__dirname, '../src/html/index.html'));
 

@@ -1,5 +1,6 @@
 import electron from 'electron';
 import log from 'electron-log';
+import { electronEvent } from '../main/const';
 
 const ipcRenderer = electron.ipcRenderer;
 
@@ -11,16 +12,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const dialog = document.getElementById('close-dialog') as HTMLElement;
 
   //起動・停止ボタン
-  var startButton = document.getElementById('button-server-start') as HTMLInputElement;
-  var stopButton = document.getElementById('button-server-stop') as HTMLInputElement;
-  var closeOkButton = document.getElementById('button-close-dialog-ok') as HTMLInputElement;
-  var closeCancelButton = document.getElementById('button-close-dialog-cancel') as HTMLInputElement;
+  const startButton = document.getElementById('button-server-start') as HTMLInputElement;
+  const stopButton = document.getElementById('button-server-stop') as HTMLInputElement;
+  const closeOkButton = document.getElementById('button-close-dialog-ok') as HTMLInputElement;
+  const closeCancelButton = document.getElementById('button-close-dialog-cancel') as HTMLInputElement;
 
   //サーバーのON-OFFする
   startButton.onclick = (event) => {
     //サーバー起動
     //設定情報取得
-    var config = buildConfigJson();
+    const config = buildConfigJson();
     console.log('[renderer.js]config=');
     console.log(config);
     //設定情報をローカルストレージへ保存
@@ -32,8 +33,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // サーバー開始メッセージを送信する
-    var result = ipcRenderer.sendSync('start-server', config);
-    console.debug('[renderer.js]' + result);
+    const result = ipcRenderer.sendSync('start-server', config);
+    console.debug(`[renderer.js] ${result}`);
     // サーバー起動・停止ボタン状態変更
     stopButton.disabled = false;
     startButton.disabled = true;
@@ -41,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   //サーバー停止ボタン
   stopButton.onclick = (event) => {
-    var config = buildConfigJson();
+    const config = buildConfigJson();
     //設定情報をローカルストレージへ保存
     saveConfigToLocalStrage(config);
 
@@ -50,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   closeOkButton.onclick = (event) => {
-    var result = ipcRenderer.sendSync('stop-server');
+    const result = ipcRenderer.sendSync('stop-server');
     console.debug('[renderer.js]' + result);
     //ダイアログクローズ
     (dialog as any).close();
@@ -134,15 +135,15 @@ const buildConfigJson = () => {
  * 設定をローカルストレージへ保存する
  * サーバー起動時に呼び出される
  **/
-function saveConfigToLocalStrage(config: typeof globalThis['config']) {
+const saveConfigToLocalStrage = (config: typeof globalThis['config']) => {
   localStorage.setItem('config', JSON.stringify(config));
   console.debug('[renderer.js]config saved');
-}
+};
 
 /**
  * ローカルストレージから設定をロードする
  */
-function loadConfigToLocalStrage() {
+const loadConfigToLocalStrage = () => {
   const initConfig: typeof globalThis['config'] = {
     url: '',
     resNumber: '',
@@ -204,7 +205,6 @@ function loadConfigToLocalStrage() {
   (document.getElementById('text-init-message') as any).value = config.initMessage;
   (document.getElementById('text-url') as any).value = config.url;
   (document.getElementById('text-res-number') as any).value = config.resNumber.toString();
-  // (document.getElementById('text-disp-number') as any).value = !config.dispNumber || Number.isNaN(config.dispNumber) ? '' : config.dispNumber.toString();
   (document.getElementById('text-youtube-id') as any).value = config.youtubeId;
   (document.getElementById('text-twitch-id') as any).value = config.twitchId;
   (document.getElementById('text-se-path') as any).value = config.sePath;
@@ -227,16 +227,16 @@ function loadConfigToLocalStrage() {
   (document.getElementById('text-notify-threadConnectionErrorLimit') as any).value = config.notifyThreadConnectionErrorLimit;
 
   console.debug('[renderer.js]config loaded');
-}
+};
 
 //サーバー起動返信
-ipcRenderer.on('start-server-reply', (event: any, arg: any) => {
+ipcRenderer.on(electronEvent['start-server-reply'], (event: any, arg: any) => {
   console.debug(arg);
 });
 
 // 着信音再生
 const audioElem = new Audio();
-ipcRenderer.on('play-sound', async (event: any, arg: { wavfilepath: string; text: string }) => {
+ipcRenderer.on(electronEvent['play-sound'], async (event: any, arg: { wavfilepath: string; text: string }) => {
   console.log(`[renderer][play-sound]${JSON.stringify(arg)}`);
   try {
     audioElem.src = arg.wavfilepath;
@@ -245,6 +245,6 @@ ipcRenderer.on('play-sound', async (event: any, arg: { wavfilepath: string; text
     log.error(e);
   }
   audioElem.onended = () => {
-    ipcRenderer.send('play-tamiyasu', arg.text);
+    ipcRenderer.send(electronEvent['play-tamiyasu'], arg.text);
   };
 });

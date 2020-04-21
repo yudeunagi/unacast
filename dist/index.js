@@ -268,6 +268,32 @@ exports.default = BouyomiChan;
 
 /***/ }),
 
+/***/ "./src/main/const.ts":
+/*!***************************!*\
+  !*** ./src/main/const.ts ***!
+  \***************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.electronEvent = {
+    /** サーバー起動 */
+    'start-server': 'start-server',
+    /** サーバー停止 */
+    'stop-server': 'stop-server',
+    /** 棒読み再生 */
+    'play-tamiyasu': 'play-tamiyasu',
+    /** レス着信音再生 */
+    'play-sound': 'play-sound',
+    /** サーバー起動の返信 */
+    'start-server-reply': 'start-server-reply',
+};
+
+
+/***/ }),
+
 /***/ "./src/main/getRes.ts":
 /*!****************************!*\
   !*** ./src/main/getRes.ts ***!
@@ -277,6 +303,17 @@ exports.default = BouyomiChan;
 
 "use strict";
 
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -324,18 +361,17 @@ var electron_log_1 = __importDefault(__webpack_require__(/*! electron-log */ "el
 var ReadIcons_1 = __importDefault(__webpack_require__(/*! ./ReadIcons */ "./src/main/ReadIcons.ts")); //アイコンファイル名取得
 var readIcons = new ReadIcons_1.default();
 var startServer_1 = __webpack_require__(/*! ./startServer */ "./src/main/startServer.ts");
-var JSDOM = __webpack_require__(/*! jsdom */ "jsdom").JSDOM;
-var $ = __webpack_require__(/*! jquery */ "jquery")(new JSDOM().window);
 var readSitaraba_1 = __importDefault(__webpack_require__(/*! ./readBBS/readSitaraba */ "./src/main/readBBS/readSitaraba.ts")); // したらば読み込み用モジュール
-var sitaraba = new readSitaraba_1.default();
 var Read5ch_1 = __importDefault(__webpack_require__(/*! ./readBBS/Read5ch */ "./src/main/readBBS/Read5ch.ts")); // 5ch互換板読み込み用モジュール
+var const_1 = __webpack_require__(/*! ./const */ "./src/main/const.ts");
+var sitaraba = new readSitaraba_1.default();
 var read5ch = new Read5ch_1.default();
 // 掲示板読み込みモジュール、一度決定したら使いまわすためにグローバル宣言
 var bbsModule = null;
 // リクエストのbodyをパース下りエンコードしたりするためのやつ
 router.use(body_parser_1.default.urlencoded({ extended: true }));
 router.use(body_parser_1.default.json());
-/*
+/**
  * http://localhost:3000/getRes にGETメソッドのリクエストを投げると、
  * JSON形式で文字列を返す。
  */
@@ -344,25 +380,27 @@ router.post('/', function (req, res, next) { return __awaiter(void 0, void 0, vo
     return __generator(this, function (_a) {
         threadUrl = req.body.threadUrl;
         resNum = req.body.resNumber;
-        //リクエストURLを解析し、使用するモジュールを変更する（初回のみ）
+        // リクエストURLを解析し、使用するモジュールを変更する（初回のみ）
         if (bbsModule === null) {
             bbsModule = analysBBSName(threadUrl);
         }
-        //選択したモジュールでレス取得処理を行う
+        // 選択したモジュールでレス取得処理を行う
         bbsModule
             .read(threadUrl, resNum)
             .then(function (response) { return __awaiter(void 0, void 0, void 0, function () {
             var result, wavfilepath;
             return __generator(this, function (_a) {
-                console.log('[getRes.js]レス取得成功。件数=' + response.length);
+                console.log('[getRes.js] fetch res success = ' + response.length);
+                globalThis.electron.threadConnectionError = 0;
                 result = buildResponseArray(response);
-                // 返却
-                res.header('Content-Type', 'application/json; charset=UTF-8');
-                console.log('[getRes.js]レス処理完了');
+                console.log('[getRes.js] fetch res end');
+                // レス着信音
                 if (result.length > 0 && config.playSe && globalThis.electron.seList.length > 0) {
                     wavfilepath = globalThis.electron.seList[Math.floor(Math.random() * globalThis.electron.seList.length)];
-                    globalThis.electron.mainWindow.webContents.send('play-sound', wavfilepath);
+                    globalThis.electron.mainWindow.webContents.send(const_1.electronEvent['play-sound'], wavfilepath);
                 }
+                // 返却
+                res.header('Content-Type', 'application/json; charset=UTF-8');
                 res.send(result);
                 return [2 /*return*/];
             });
@@ -373,7 +411,11 @@ router.post('/', function (req, res, next) { return __awaiter(void 0, void 0, vo
                 if (globalThis.electron.threadConnectionError >= globalThis.config.notifyThreadConnectionErrorLimit) {
                     globalThis.electron.threadConnectionError = 0;
                     var icon = "./img/unacast.png";
-                    startServer_1.sendDom('unacastより', '掲示板が規定回数通信エラーになりました。設定を見直すか、掲示板URLを変更してください。', icon);
+                    startServer_1.sendDom({
+                        name: 'unacastより',
+                        text: '掲示板が規定回数通信エラーになりました。設定を見直すか、掲示板URLを変更してください。',
+                        imgUrl: icon,
+                    });
                 }
             }
             electron_log_1.default.error(err);
@@ -385,10 +427,10 @@ router.post('/', function (req, res, next) { return __awaiter(void 0, void 0, vo
  * URLをみてどこのBBSか判定して使用するモジュールを返却する
  */
 var analysBBSName = function (threadUrl) {
-    //したらばドメイン名
+    // したらばドメイン名
     var sitarabaDomain = 'jbbs.shitaraba.net';
-    //こんな感じで必要に応じて増やしていけばいいんじゃね？
-    //  const dokkanoBBS = 'dokka.bbs.com';
+    // こんな感じで必要に応じて増やしていけばいいんじゃね？
+    // const dokkanoBBS = 'dokka.bbs.com';
     if (threadUrl.indexOf(sitarabaDomain) !== -1) {
         // URLにしたらばドメイン名が入ってればしたらば
         return sitaraba;
@@ -404,90 +446,46 @@ var analysBBSName = function (threadUrl) {
 var buildResponseArray = function (resObject) {
     //結果を格納する配列
     var result = [];
-    console.trace('[getRes.buildResponseArray]レスポンス整形開始 件数=' + resObject.length);
     resObject.forEach(function (value) {
         result.push(buildResponse(value));
     });
     return result;
 };
 /**
- *レスポンスのパース
- *レス番号とHTML文字列を格納したオブジェクトを返却する
+ * レスポンスのパース
+ * レス番号とHTML文字列を格納したオブジェクトを返却する
  * @param object // レスオブジェクト（ReadShitaraba.jsとか参照）
- * @return { レス番 , HTML整形後のレス }のオブジェクト
+ * @return レス番 , HTML整形後のレスのオブジェクト
  */
-function buildResponse(res) {
-    console.trace('[getRes.js]パース開始');
-    console.trace(res);
-    //最終的にHTML文字列にするためのダミーオブジェクト
-    var $dummy = $('<div />');
-    var $li = $('<li />', { class: 'list-item' });
-    var $iconImg = getIcon(res.name, res.id); //アイコン取得
-    var $icon = $('<span />', { class: 'icon-block' }).append($iconImg); // ここにアイコン
-    //レス番を取得
-    var $resNumber = $('<span />', { class: 'resNumber' }).append(res.number);
-    //名前を取得
-    var $name = $('<span />', { class: 'name' }).append(res.name);
-    //日付を取得
-    var $date = $('<span />', { class: 'date' }).append(res.date);
-    //レスを取得
-    var $res = $('<span />', { class: 'res' }).append(res.text);
-    // 名前やレスのエリア
-    var $resDiv = $('<div />', { class: 'content' });
-    //レス番表示
-    if (globalThis.config.showNumber) {
-        $resDiv.append($resNumber);
-    }
-    //名前表示
-    if (globalThis.config.showName) {
-        $resDiv.append($name);
-    }
-    //時刻表示
-    if (globalThis.config.showTime) {
-        $resDiv.append($date);
-    }
-    // 名前と本文を改行で分ける
-    if (globalThis.config.newLine) {
-        $resDiv.append('<br/>').append($res);
-    }
-    else {
-        $resDiv.append($res);
-    }
-    $li.append($icon);
-    $li.append($resDiv);
-    //HTMLオブジェクトをダミー要素へ入れる
-    $dummy.append($li);
-    //レス番号更新
-    //$('#resNumber').val(parseInt(res.number) + 1);
-    // console.debug('[getRes.js]パース完了');
-    // console.debug($dummy.html());
+var buildResponse = function (res) {
+    var _a;
+    var dom = startServer_1.createDom(__assign({}, res));
     // レス番とテキストをセットにしたJSONを返す
     var result = {
-        resNumber: res.number,
-        html: $dummy.html(),
+        resNumber: (_a = res.number) === null || _a === void 0 ? void 0 : _a.toString(),
+        html: dom,
     };
     // JSONオブジェクトを返却
     return result;
-}
+};
 /**
  * アイコン画像取得表示のためのimgタグを返す
  * @param String // name 名前
  * @param String // id ID、板によっては非表示だったりする、困る
  */
-function getIcon(name, id) {
+var getIcon = function (name, id) {
     var src = getIconFileName(name, id);
-    var $imgTag = $('<img />', { class: 'icon', src: src });
-    return $imgTag;
-}
+    return "<img class=\"icon\" src=\"" + src + "\" />";
+};
 /**
  * アイコン画像名取得、名前やIDを見て条件によって固定のアイコンを返す
  * @param String // name 名前
  * @param String // id ID、板によっては非表示だったりする、困る
  */
-function getIconFileName(name, id) {
+var getIconFileName = function (name, id) {
     // ランダムアイコン取得
     return readIcons.getRandomIcons();
-}
+};
 exports.default = router;
 
 
@@ -506,7 +504,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-//Electronのモジュール
+// Electronのモジュール
 var path_1 = __importDefault(__webpack_require__(/*! path */ "path"));
 var electron_1 = __importDefault(__webpack_require__(/*! electron */ "electron"));
 var electron_log_1 = __importDefault(__webpack_require__(/*! electron-log */ "electron-log"));
@@ -517,13 +515,13 @@ process.on('uncaughtException', function (err) {
     electron_log_1.default.error(err.stack);
     // app.quit();
 });
-//アプリケーションをコントロールするモジュール
+// アプリケーションをコントロールするモジュール
 var app = electron_1.default.app;
 app.allowRendererProcessReuse = true;
 // サーバー起動モジュール
 var ss = __webpack_require__(/*! ./startServer */ "./src/main/startServer.ts");
 console.trace(ss);
-//ウィンドウを作成するモジュール
+// ウィンドウを作成するモジュール
 var BrowserWindow = electron_1.default.BrowserWindow;
 // メインウィンドウはGCされないようにグローバル宣言
 globalThis.electron = {
@@ -534,7 +532,7 @@ globalThis.electron = {
     socket: null,
     threadConnectionError: 0,
 };
-//全てのウィンドウが閉じたら終了
+// 全てのウィンドウが閉じたら終了
 app.on('window-all-closed', function () {
     if (process.platform != 'darwin') {
         app.quit();
@@ -542,7 +540,7 @@ app.on('window-all-closed', function () {
 });
 // Electronの初期化完了後に実行
 app.on('ready', function () {
-    //ウィンドウサイズを1280*720（フレームサイズを含まない）に設定する
+    // ウィンドウサイズを1280*720（フレームサイズを含まない）に設定する
     globalThis.electron.mainWindow = new BrowserWindow({
         width: 700,
         height: 720,
@@ -553,7 +551,7 @@ app.on('ready', function () {
         },
     });
     globalThis.electron.mainWindow.setTitle('unacast');
-    // globalThis.electron.mainWindow.setMenu(null);
+    globalThis.electron.mainWindow.setMenu(null);
     //使用するhtmlファイルを指定する
     globalThis.electron.mainWindow.loadURL(path_1.default.resolve(__dirname, '../src/html/index.html'));
     // ウィンドウが閉じられたらアプリも終了
@@ -614,13 +612,6 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -628,10 +619,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 /**
  * 5ch互換BBS読み込み用モジュール
  */
-var rp = __importStar(__webpack_require__(/*! request-promise */ "request-promise")); //httpリクエスト
+var axios_1 = __importDefault(__webpack_require__(/*! axios */ "axios"));
 var iconv_lite_1 = __importDefault(__webpack_require__(/*! iconv-lite */ "iconv-lite")); // 文字コード変換用パッケージ
-var log = __webpack_require__(/*! electron-log */ "electron-log");
-//ステータスコード304 _NotModified
+var electron_log_1 = __importDefault(__webpack_require__(/*! electron-log */ "electron-log"));
+// ステータスコード304 _NotModified
 var NOT_MODIFIED = '304';
 var RANGE_NOT_SATISFIABLE = '416';
 // 最終取得スレッド
@@ -657,7 +648,7 @@ var Read5ch = /** @class */ (function () {
          * @param String // resNum レス番号
          */
         this.read = function (threadUrl, resNum) { return __awaiter(_this, void 0, void 0, function () {
-            var rep, requestUrl, range, options, responseJson, response, statusCode, headers, str, error_1, rsArray;
+            var rep, requestUrl, range, options, responseJson, response, headers, str, error_1, rsArray;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -678,32 +669,25 @@ var Read5ch = /** @class */ (function () {
                         options = {
                             url: requestUrl,
                             method: 'GET',
-                            encoding: null,
-                            resolveWithFullResponse: true,
                             timeout: 3 * 1000,
+                            responseType: 'arraybuffer',
                             headers: {
                                 'if-modified-since': lastModified,
                                 range: 'bytes=' + range + '-',
                             },
                         };
-                        //掲示板へのリクエスト実行
-                        console.trace('[Read5ch.js]5ch系BBSレス取得API呼び出し開始');
                         _a.label = 1;
                     case 1:
                         _a.trys.push([1, 3, , 4]);
-                        return [4 /*yield*/, rp.get(options)];
+                        return [4 /*yield*/, axios_1.default(options)];
                     case 2:
                         response = _a.sent();
-                        statusCode = response.statusCode;
-                        console.trace('[Read5ch.js]5ch系BBSレス取得API呼び出し完了、statusCode=' + statusCode);
                         headers = response.headers;
-                        // console.trace(headers);
-                        //LastModifiedとRange更新処理
+                        // LastModifiedとRange更新処理
                         if (headers['last-modified'] != null) {
                             lastModified = headers['last-modified'];
-                            console.trace('[Read5ch.read]lastModified=' + lastModified);
                         }
-                        str = iconv_lite_1.default.decode(Buffer.from(response.body), 'Shift_JIS');
+                        str = iconv_lite_1.default.decode(Buffer.from(response.data), 'Shift_JIS');
                         // レスポンスオブジェクト作成、content-rangeがある場合とない場合で処理を分ける
                         if (headers['content-range'] == null || lastByte == 0) {
                             console.trace('[Read5ch.read]content-range=' + headers['content-range']);
@@ -723,13 +707,13 @@ var Read5ch = /** @class */ (function () {
                         rsArray = new Array();
                         responseJson = rsArray;
                         if (error_1.status == NOT_MODIFIED) {
-                            log.error('[Read5ch.js]5ch系BBSレス取得APIリクエストエラー、NOT_MODIFIED');
+                            electron_log_1.default.error('[Read5ch.js]5ch系BBSレス取得APIリクエストエラー、NOT_MODIFIED');
                         }
                         else if (error_1.status == RANGE_NOT_SATISFIABLE) {
-                            log.error('[Read5ch.js]5ch系BBSレス取得APIリクエストエラー、RANGE_NOT_SATISFIABLE');
+                            electron_log_1.default.error('[Read5ch.js]5ch系BBSレス取得APIリクエストエラー、RANGE_NOT_SATISFIABLE');
                         }
                         else {
-                            log.error('[Read5ch.js]5ch系BBSレス取得APIリクエストエラー、message=' + error_1.message);
+                            electron_log_1.default.error('[Read5ch.js]5ch系BBSレス取得APIリクエストエラー、message=' + error_1.message);
                         }
                         throw new Error('connection error');
                     case 4:
@@ -742,17 +726,17 @@ var Read5ch = /** @class */ (function () {
     return Read5ch;
 }());
 /**
- *取得したレスポンス（複数）のパース
- *戻りとしてパースしたjsonオブジェクトの配列を返す
- * @param string // res 板から返却されたdat
- * @param string // resNum リクエストされたレス番号
+ * 取得したレスポンス（複数）のパース
+ * 戻りとしてパースしたjsonオブジェクトの配列を返す
+ * @param res 板から返却されたdat
+ * @param resNum リクエストされたレス番号
  */
 var purseNewResponse = function (res, resNum) {
-    //結果を格納する配列
-    var result = new Array();
+    // 結果を格納する配列
+    var result = [];
     // レス番号
     var num = 0;
-    //新着レスを改行ごとにSplitする
+    // 新着レスを改行ごとにSplitする
     var resArray = res.split(/\r\n|\r|\n/);
     // 新着なしなら戻る。
     if (resArray.length === 0) {
@@ -769,10 +753,9 @@ var purseNewResponse = function (res, resNum) {
     else {
         num = parseInt(resNum) - 1;
     }
-    console.debug('[Read5ch.purseNewResponse]取得レス番号=' + num);
-    //1行ごとにパースする
+    // 1行ごとにパースする
     for (; num < resArray.length; num++) {
-        //パースメソッド呼び出し
+        // パースメソッド呼び出し
         if (resArray[num].length > 0) {
             result.push(purseResponse(resArray[num], num + 1));
         }
@@ -782,10 +765,10 @@ var purseNewResponse = function (res, resNum) {
     return result;
 };
 /**
- *取得したレスポンス（複数）のパース
- *戻りとしてパースしたjsonオブジェクトの配列を返す
- * @param string // res 板から返却されたdat1行分
- * @param string // resNum リクエストされたレス番号
+ * 取得したレスポンス（複数）のパース
+ * 戻りとしてパースしたjsonオブジェクトの配列を返す
+ * @param res 板から返却されたdat1行分
+ * @param resNum リクエストされたレス番号
  */
 var purseDiffResponse = function (res, resNum) {
     //結果を格納する配列
@@ -818,18 +801,9 @@ var purseDiffResponse = function (res, resNum) {
 };
 /**
  * レスポンスのパース
- *Jsonオブジェクトを返却する
- *@param String // res レスポンス1レス
- *@param Integer // num レス番（0スタート）
- *{
- * number: レス番号
- * name: 名前
- * email: メアド
- * date: 日付
- * text: 本文
- * threadTitle: スレタイ
- * id: ID
- *}
+ * Jsonオブジェクトを返却する
+ * @param String // res レスポンス1レス
+ * @param Integer // num レス番（0スタート）
  */
 var purseResponse = function (res, num) {
     //APIの返却値を<>で分割
@@ -843,16 +817,16 @@ var purseResponse = function (res, num) {
     // 日付とID分離処理、' ID:'で区切る
     var dateId = splitRes[2].split(' ID:');
     var date = dateId[0];
-    // IDが取得できない場合はnullにする
-    var id = dateId.length === 2 ? dateId[1] : null;
+    var id = dateId.length === 2 ? dateId[1] : '';
     var resJson = {
-        number: num,
+        number: num.toString(),
         name: splitRes[0],
         email: splitRes[1],
         date: date,
         text: splitRes[3],
-        threadTitle: splitRes[4],
+        // threadTitle: splitRes[4],
         id: id,
+        imgUrl: '',
     };
     // オブジェクトを返却
     return resJson;
@@ -914,15 +888,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 /**
  * したらば読み込み用モジュール
  */
-var request_promise_1 = __importDefault(__webpack_require__(/*! request-promise */ "request-promise")); //httpリクエスト
-var iconv = __webpack_require__(/*! iconv-lite */ "iconv-lite"); // 文字コード変換用パッケージ
-var log = __webpack_require__(/*! electron-log */ "electron-log");
+var axios_1 = __importDefault(__webpack_require__(/*! axios */ "axios"));
+var iconv_lite_1 = __importDefault(__webpack_require__(/*! iconv-lite */ "iconv-lite")); // 文字コード変換用パッケージ
 /**
  * コンストラクタ
- *
  */
 var ReadSitaraba = /** @class */ (function () {
     function ReadSitaraba() {
+        var _this = this;
         /**
          * レス読み込み
          * 引数で指定した板からレスを読む
@@ -930,78 +903,64 @@ var ReadSitaraba = /** @class */ (function () {
          * @param String // threadUrl スレURL
          * @param String // resNum レス番号
          */
-        this.read = function (threadUrl, resNum) {
-            return __awaiter(this, void 0, void 0, function () {
-                var requestUrl, options, responseJson;
-                return __generator(this, function (_a) {
-                    switch (_a.label) {
-                        case 0:
-                            requestUrl = threadUrl.replace('read.cgi', 'rawmode.cgi');
-                            if (resNum > 0) {
-                                // レス番号がある場合レス番号以降を取得
-                                requestUrl += resNum + '-';
-                            }
-                            else {
-                                // レス番号がない場合最新の1件取得
-                                requestUrl += 'l1';
-                            }
-                            options = {
-                                url: requestUrl,
-                                method: 'GET',
-                                encoding: null,
-                                timeout: 3 * 1000,
-                            };
-                            responseJson = [];
-                            //掲示板へのリクエスト実行
-                            console.log('[ReadSitaraba.js]したらばレス取得API呼び出し開始');
-                            return [4 /*yield*/, request_promise_1.default(options).then(function (body) {
-                                    console.debug('[ReadSitaraba.js]したらばレス取得API呼び出し成功');
-                                    //したらばAPIの文字コードはEUC-JPなのでUTF-8に変換する
-                                    var str = iconv.decode(Buffer.from(body), 'EUC-JP');
-                                    // レスポンスオブジェクト作成
-                                    responseJson = purseNewResponse(str);
-                                })];
-                        case 1:
-                            _a.sent();
-                            return [2 /*return*/, responseJson];
-                    }
-                });
+        this.read = function (threadUrl, resNum) { return __awaiter(_this, void 0, void 0, function () {
+            var requestUrl, options, response, str, responseJson;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        //掲示板へのリクエスト実行
+                        console.log('[ReadSitaraba.js]したらばレス取得API呼び出し開始');
+                        requestUrl = threadUrl.replace('read.cgi', 'rawmode.cgi');
+                        if (resNum > 0) {
+                            // レス番号がある場合レス番号以降を取得
+                            requestUrl += resNum + '-';
+                        }
+                        else {
+                            // レス番号がない場合最新の1件取得
+                            requestUrl += 'l1';
+                        }
+                        options = {
+                            url: requestUrl,
+                            method: 'GET',
+                            responseType: 'arraybuffer',
+                            timeout: 3 * 1000,
+                        };
+                        return [4 /*yield*/, axios_1.default(options)];
+                    case 1:
+                        response = _a.sent();
+                        str = iconv_lite_1.default.decode(Buffer.from(response.data), 'Shift_JIS');
+                        responseJson = purseNewResponse(str);
+                        return [2 /*return*/, responseJson];
+                }
             });
-        };
+        }); };
     }
     return ReadSitaraba;
 }());
-//取得したレスポンス（複数）のパース
-//戻りとしてパースしたjsonオブジェクトの配列を返す
-function purseNewResponse(res) {
+/**
+ * 取得したレスポンス（複数）のパース
+ * @param res
+ */
+var purseNewResponse = function (res) {
     //結果を格納する配列
     var result = [];
-    //新着レスを改行ごとにSplitする
+    // 新着レスを改行ごとにSplitする
     var resArray = res.split(/\r\n|\r|\n/);
-    //1行ごとにパースする
+    // 1行ごとにパースする
     resArray.forEach(function (value) {
-        //パースメソッド呼び出し
+        // パースメソッド呼び出し
         if (value.length > 0) {
             result.push(purseResponse(value));
         }
     });
-    // パースした<li>オブジェクトの配列を返却
     return result;
-}
-/**レスポンスのパース
- *Jsonオブジェクトを返却する
- *@param String // res レスポンス1レス
- *{
- * number: レス番号
- * name: 名前
- * email: メアド
- * date: 日付
- * text: 本文
- * threadTitle: スレタイ
- * id: ID
- *}
+};
+/**
+ * レスポンスのパース
+ * Jsonオブジェクトを返却する
+ * @param String // res レスポンス1レス
  */
-function purseResponse(res) {
+var purseResponse = function (res) {
     //APIの返却値を<>で分割
     //レスの要素
     //0:レス番号
@@ -1018,12 +977,13 @@ function purseResponse(res) {
         email: splitRes[2],
         date: splitRes[3],
         text: splitRes[4],
-        threadTitle: splitRes[5],
+        // threadTitle: splitRes[5],
         id: splitRes[6],
+        imgUrl: '',
     };
     // オブジェクトを返却
     return resJson;
-}
+};
 exports.default = ReadSitaraba;
 
 
@@ -1090,6 +1050,7 @@ var util_1 = __webpack_require__(/*! ./util */ "./src/main/util.ts");
 var getRes_1 = __importDefault(__webpack_require__(/*! ./getRes */ "./src/main/getRes.ts"));
 var bouyomi_chan_1 = __importDefault(__webpack_require__(/*! ./bouyomi-chan */ "./src/main/bouyomi-chan/index.ts"));
 var child_process_1 = __importDefault(__webpack_require__(/*! child_process */ "child_process"));
+var const_1 = __webpack_require__(/*! ./const */ "./src/main/const.ts");
 var exec = child_process_1.default.exec;
 var app;
 // サーバーをグローバル変数にセットできるようにする（サーバー停止処理のため）
@@ -1102,7 +1063,7 @@ var bouyomi;
  * resNumber:読み込み開始レス位置
  * port:ポート番号
  */
-electron_1.ipcMain.on('start-server', function (event, config) { return __awaiter(void 0, void 0, void 0, function () {
+electron_1.ipcMain.on(const_1.electronEvent['start-server'], function (event, config) { return __awaiter(void 0, void 0, void 0, function () {
     var ejs, list;
     return __generator(this, function (_a) {
         switch (_a.label) {
@@ -1129,7 +1090,7 @@ electron_1.ipcMain.on('start-server', function (event, config) { return __awaite
             case 1:
                 list = _a.sent();
                 globalThis.electron.seList = list.map(function (file) { return globalThis.config.sePath + "/" + file; });
-                console.log("SE\u30D5\u30A1\u30A4\u30EB\u6570=" + globalThis.electron.seList.length);
+                console.log("SE files = " + globalThis.electron.seList.length);
                 _a.label = 2;
             case 2:
                 // Twitchに接続
@@ -1141,7 +1102,7 @@ electron_1.ipcMain.on('start-server', function (event, config) { return __awaite
                         var imgUrl = './img/twitch.png';
                         var name = msg.displayName;
                         var text = msg.messageText;
-                        exports.sendDom(name, text, imgUrl);
+                        exports.sendDom({ name: name, text: text, imgUrl: imgUrl });
                     });
                 }
                 // Youtubeチャット
@@ -1157,14 +1118,14 @@ electron_1.ipcMain.on('start-server', function (event, config) { return __awaite
                         globalThis.electron.youtubeChat.on('end', function (reason) {
                             console.log('[Youtube Chat] disconnect');
                         });
-                        // // チャット受信
+                        // チャット受信
                         globalThis.electron.youtubeChat.on('comment', function (comment) {
                             var _a, _b;
                             var imgUrl = (_b = (_a = comment.author.thumbnail) === null || _a === void 0 ? void 0 : _a.url) !== null && _b !== void 0 ? _b : '';
                             var name = comment.author.name;
                             var text = comment.message[0].text;
                             electron_log_1.default.info(text);
-                            exports.sendDom(name, text, imgUrl);
+                            exports.sendDom({ name: name, text: text, imgUrl: imgUrl });
                         });
                         // // 何かエラーがあった
                         globalThis.electron.youtubeChat.on('error', function (err) {
@@ -1197,11 +1158,11 @@ electron_1.ipcMain.on('start-server', function (event, config) { return __awaite
                         console.log('I lost a client');
                     });
                 });
-                //指定したポートで待ち受け開始
+                // 指定したポートで待ち受け開始
                 server = app.listen(config.port, function () {
-                    console.log('[startServer]start server on port:' + config.port);
+                    console.log('[startServer] start server on port:' + config.port);
                 });
-                //成功メッセージ返却
+                // 成功メッセージ返却
                 event.returnValue = 'success';
                 return [2 /*return*/];
         }
@@ -1210,7 +1171,7 @@ electron_1.ipcMain.on('start-server', function (event, config) { return __awaite
 /**
  * サーバー停止
  */
-electron_1.ipcMain.on('stop-server', function (event) {
+electron_1.ipcMain.on(const_1.electronEvent['stop-server'], function (event) {
     console.log('[startServer]server stop');
     server.close();
     app = null;
@@ -1224,7 +1185,8 @@ electron_1.ipcMain.on('stop-server', function (event) {
         globalThis.electron.youtubeChat.removeAllListeners();
     }
 });
-electron_1.ipcMain.on('play-tamiyasu', function (event, args) {
+// 棒読みちゃん
+electron_1.ipcMain.on(const_1.electronEvent['play-tamiyasu'], function (event, args) {
     switch (config.typeYomiko) {
         case 'tamiyasu': {
             exec(config.tamiyasuPath + " " + args);
@@ -1237,17 +1199,39 @@ electron_1.ipcMain.on('play-tamiyasu', function (event, args) {
         }
     }
 });
-exports.sendDom = function (name, text, imgUrl) {
-    var domStr = "<li class=\"list-item\"><span class=\"icon-block\"><img class=\"icon\" src=\"" + imgUrl + "\"></span><div class=\"content\">";
-    if (globalThis.config.showName) {
-        domStr += "<span class=\"name\">" + name + "</span>";
+exports.createDom = function (message) {
+    var domStr = "\n  <li class=\"list-item\">\n    <span class=\"icon-block\">\n      <img class=\"icon\" src=\"" + message.imgUrl + "\">\n    </span>\n  <div class=\"content\">";
+    //レス番表示
+    if (globalThis.config.showNumber) {
+        domStr += "\n      <span class=\"resNumber\">" + message.number + "</span>\n    ";
     }
-    domStr += "<span class=\"res\">" + text + "</span></div></li>";
+    // 名前表示
+    if (globalThis.config.showName) {
+        domStr += "<span class=\"name\">" + message.name + "</span>";
+    }
+    // 時刻表示
+    if (globalThis.config.showTime) {
+        domStr += "<span class=\"date\">" + message.date + "</span>";
+    }
+    // 名前と本文を改行で分ける
+    if (globalThis.config.newLine) {
+        domStr += '<br />';
+    }
+    domStr += "\n    <span class=\"res\">\n      " + message.text + "\n    </span>\n    </div>\n  </li>";
+    return domStr;
+};
+/**
+ * コメントのDOMをブラウザに送る
+ * 必要ならレス着信音も鳴らす
+ * @param message
+ */
+exports.sendDom = function (message) {
+    var domStr = exports.createDom(message);
     if (globalThis.electron.socket)
         globalThis.electron.socket.send(domStr);
     if (config.playSe && globalThis.electron.seList.length > 0) {
         var wavfilepath = globalThis.electron.seList[Math.floor(Math.random() * globalThis.electron.seList.length)];
-        globalThis.electron.mainWindow.webContents.send('play-sound', { wavfilepath: wavfilepath, text: text });
+        globalThis.electron.mainWindow.webContents.send(const_1.electronEvent['play-sound'], { wavfilepath: wavfilepath, text: message.text });
     }
 };
 
@@ -1507,7 +1491,7 @@ exports.LiveChat = LiveChat;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-function parseThumbnailToImageItem(data, alt) {
+var parseThumbnailToImageItem = function (data, alt) {
     var thumbnail = data.pop();
     if (thumbnail) {
         return {
@@ -1518,11 +1502,11 @@ function parseThumbnailToImageItem(data, alt) {
         };
     }
     return;
-}
-function parseEmojiToImageItem(data) {
+};
+var parseEmojiToImageItem = function (data) {
     return parseThumbnailToImageItem(data.emoji.image.thumbnails, data.emoji.shortcuts.shift());
-}
-function parseMessages(runs) {
+};
+var parseMessages = function (runs) {
     return runs.map(function (run) {
         if ('text' in run) {
             return run;
@@ -1531,8 +1515,8 @@ function parseMessages(runs) {
             return parseEmojiToImageItem(run);
         }
     });
-}
-function actionToRenderer(action) {
+};
+exports.actionToRenderer = function (action) {
     if (!action.addChatItemAction) {
         return null;
     }
@@ -1549,14 +1533,12 @@ function actionToRenderer(action) {
     else {
         return item.liveChatMembershipItemRenderer;
     }
-}
-exports.actionToRenderer = actionToRenderer;
-function usecToTime(usec) {
+};
+exports.usecToTime = function (usec) {
     return Math.floor(Number(usec) / 1000);
-}
-exports.usecToTime = usecToTime;
-function parseData(data) {
-    var messageRenderer = actionToRenderer(data);
+};
+exports.parseData = function (data) {
+    var messageRenderer = exports.actionToRenderer(data);
     if (messageRenderer === null) {
         return null;
     }
@@ -1577,7 +1559,7 @@ function parseData(data) {
         message: parseMessages(message),
         membership: Boolean('headerSubtext' in messageRenderer),
         isOwner: false,
-        timestamp: usecToTime(messageRenderer.timestampUsec),
+        timestamp: exports.usecToTime(messageRenderer.timestampUsec),
     };
     if (messageRenderer.authorBadges) {
         var badge = messageRenderer.authorBadges[0].liveChatAuthorBadgeRenderer;
@@ -1605,8 +1587,7 @@ function parseData(data) {
         };
     }
     return ret;
-}
-exports.parseData = parseData;
+};
 
 
 /***/ }),
@@ -1743,28 +1724,6 @@ module.exports = require("iconv-lite");
 
 /***/ }),
 
-/***/ "jquery":
-/*!*************************!*\
-  !*** external "jquery" ***!
-  \*************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-module.exports = require("jquery");
-
-/***/ }),
-
-/***/ "jsdom":
-/*!************************!*\
-  !*** external "jsdom" ***!
-  \************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-module.exports = require("jsdom");
-
-/***/ }),
-
 /***/ "net":
 /*!**********************!*\
   !*** external "net" ***!
@@ -1784,17 +1743,6 @@ module.exports = require("net");
 /***/ (function(module, exports) {
 
 module.exports = require("path");
-
-/***/ }),
-
-/***/ "request-promise":
-/*!**********************************!*\
-  !*** external "request-promise" ***!
-  \**********************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-module.exports = require("request-promise");
 
 /***/ })
 

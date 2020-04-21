@@ -4,67 +4,67 @@ import { LiveChat } from '../main/youtube-chat';
 
 declare global {
   namespace electron {
-    var mainWindow: BrowserWindow;
+    let mainWindow: BrowserWindow;
     /** SEファイルリスト */
-    var seList: string[];
+    let seList: string[];
     /** Twitchチャットインスタンス */
-    var twitchChat: ChatClient;
+    let twitchChat: ChatClient;
     /** Youtubeチャットインスタンス */
-    var youtubeChat: LiveChat;
+    let youtubeChat: LiveChat;
     /** ブラウザとのWebSocket情報 */
-    var socket: WebSocket;
+    let socket: WebSocket;
     /** 掲示板との連続通信エラー回数 */
-    var threadConnectionError: number;
+    let threadConnectionError: number;
   }
   namespace config {
     /** 掲示板URL */
-    var url: string;
+    let url: string;
     /** 開始レス番号 */
-    var resNumber: string;
+    let resNumber: string;
     /** 初期表示テキスト */
-    var initMessage: string;
+    let initMessage: string;
     /** ポート番号 */
-    var port: number;
+    let port: number;
     /** 表示レス数 */
-    var dispNumber: number;
+    let dispNumber: number;
     /** 更新間隔 */
-    var interval: number;
+    let interval: number;
     /** Youtube チャンネルID */
-    var youtubeId: string;
+    let youtubeId: string;
     /** Twitch ユーザID */
-    var twitchId: string;
+    let twitchId: string;
     /**
      * レス表示順序
      * - true: 新着が下
      * - false: 新着が上
      */
-    var dispSort: boolean;
+    let dispSort: boolean;
     /**
      * 名前と本文を改行で分ける
      * - true: 分ける
      * - false: 分けない
      */
-    var newLine: boolean;
+    let newLine: boolean;
     /** レス番表示 */
-    var showNumber: boolean;
+    let showNumber: boolean;
     /** 名前表示 */
-    var showName: boolean;
+    let showName: boolean;
     /** 時刻表示 */
-    var showTime: boolean;
+    let showTime: boolean;
     /** 自動改行 */
-    var wordBreak: boolean;
+    let wordBreak: boolean;
     /** レス着信音のパス */
-    var sePath: string;
+    let sePath: string;
     /** レス着信音再生 */
-    var playSe: boolean;
+    let playSe: boolean;
     /** 読み子の種類 */
-    var typeYomiko: 'none' | 'tamiyasu' | 'bouyomi';
+    let typeYomiko: 'none' | 'tamiyasu' | 'bouyomi';
     /** 民安Talkのファイルパス */
-    var tamiyasuPath: string;
+    let tamiyasuPath: string;
     /** 棒読みちゃんの待ち受けポート */
-    var bouyomiPort: number;
+    let bouyomiPort: number;
     /** スレが通信エラーになった時の通知閾値 */
-    var notifyThreadConnectionErrorLimit: number;
+    let notifyThreadConnectionErrorLimit: number;
   }
 }
 

@@ -29,7 +29,7 @@ export interface CommentItem {
   timestamp: number;
 }
 
-function parseThumbnailToImageItem(data: Thumbnail[], alt: string): ImageItem | undefined {
+const parseThumbnailToImageItem = (data: Thumbnail[], alt: string): ImageItem | undefined => {
   const thumbnail = data.pop();
   if (thumbnail) {
     return {
@@ -40,13 +40,13 @@ function parseThumbnailToImageItem(data: Thumbnail[], alt: string): ImageItem | 
     };
   }
   return;
-}
+};
 
-function parseEmojiToImageItem(data: MessageEmoji): ImageItem | undefined {
+const parseEmojiToImageItem = (data: MessageEmoji): ImageItem | undefined => {
   return parseThumbnailToImageItem(data.emoji.image.thumbnails, data.emoji.shortcuts.shift()!);
-}
+};
 
-function parseMessages(runs: MessageRun[]): MessageItem[] {
+const parseMessages = (runs: MessageRun[]): MessageItem[] => {
   return runs.map((run: MessageRun) => {
     if ('text' in run) {
       return run;
@@ -54,9 +54,9 @@ function parseMessages(runs: MessageRun[]): MessageItem[] {
       return parseEmojiToImageItem(run)!;
     }
   });
-}
+};
 
-export function actionToRenderer(action: Action): LiveChatTextMessageRenderer | LiveChatPaidMessageRenderer | LiveChatPaidStickerRenderer | LiveChatMembershipItemRenderer | null {
+export const actionToRenderer = (action: Action): LiveChatTextMessageRenderer | LiveChatPaidMessageRenderer | LiveChatPaidStickerRenderer | LiveChatMembershipItemRenderer | null => {
   if (!action.addChatItemAction) {
     return null;
   }
@@ -70,13 +70,13 @@ export function actionToRenderer(action: Action): LiveChatTextMessageRenderer | 
   } else {
     return item.liveChatMembershipItemRenderer!;
   }
-}
+};
 
-export function usecToTime(usec: string): number {
+export const usecToTime = (usec: string): number => {
   return Math.floor(Number(usec) / 1000);
-}
+};
 
-export function parseData(data: Action): CommentItem | null {
+export const parseData = (data: Action): CommentItem | null => {
   const messageRenderer = actionToRenderer(data);
   if (messageRenderer === null) {
     return null;
@@ -127,4 +127,4 @@ export function parseData(data: Action): CommentItem | null {
   }
 
   return ret;
-}
+};

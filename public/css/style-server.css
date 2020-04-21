@@ -14,31 +14,28 @@ body {
 
 body {
   /*文字の縁取り*/
-  text-shadow: 1px 1px 0 #333,
-    -1px 1px 0 #333,
-    1px -1px 0 #333,
-    -1px -1px 0 #333;
+  text-shadow: 1px 1px 0 #333, -1px 1px 0 #333, 1px -1px 0 #333, -1px -1px 0 #333;
 }
 
 /*親となるDIVの高さ設定（新着を下表示のために使用している）*/
-#parent{
+#parent {
   height: 100%;
 }
 
 /*新着を下表示オプションをONにした際にul要素に追加するクラス*/
-.dispBottom{
-  position:absolute;
+.dispBottom {
+  position: absolute;
   bottom: 0;
 }
 
 /*自動改行オプションON*/
-.brakeOn{
+.brakeOn {
   word-break: break-word;
 }
 
 /*自動改行オプションOFF*/
-.brakeOff{
-  word-break: keep-all;;
+.brakeOff {
+  word-break: keep-all;
 }
 
 /*レス表示部分の設定*/
@@ -52,7 +49,7 @@ body {
 }
 /*レス番号の後に付け加える文字（区切り用）*/
 .resNumber::after {
-  content: " ";
+  content: ' ';
 }
 
 /*名前表示部分の設定*/
@@ -61,17 +58,17 @@ body {
 }
 /*名前の後に付け加える文字（区切り用）*/
 .name::after {
-  content: " ";
+  content: ' ';
 }
 
 /*時刻表示部分の設定（区切り用）*/
 .date {
-  font-size : 0.8em;
+  font-size: 0.8em;
   color: #feffa0;
 }
 /*時刻の後に付け加える文字*/
 .date::after {
-  content: " ";
+  content: ' ';
 }
 
 ul#res-list {
@@ -85,7 +82,7 @@ ul#res-list {
 li.list-item {
   display: block;
   /* コメント間の間隔 */
-  margin : 0.3em 0;
+  margin: 0.3em 0;
   display: flex;
 }
 
@@ -97,11 +94,11 @@ li.list-item {
   width: 2em;
   height: 2em;
   /*アイコン右の余白*/
-  margin-right:0.2em;
+  margin-right: 0.2em;
 }
 
 /* アイコン */
-img.icon{
+img.icon {
   border-radius: 50%; /*角を丸める*/
   width: 24px;
   height: 24px;
