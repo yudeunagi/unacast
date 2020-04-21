@@ -48,7 +48,7 @@ router.post('/', async (req, res, next) => {
       // レス着信音
       if (result.length > 0 && config.playSe && globalThis.electron.seList.length > 0) {
         const wavfilepath = globalThis.electron.seList[Math.floor(Math.random() * globalThis.electron.seList.length)];
-        globalThis.electron.mainWindow.webContents.send(electronEvent['play-sound'], wavfilepath);
+        globalThis.electron.mainWindow.webContents.send(electronEvent['play-sound'], { wavfilepath, text: response[response.length - 1].text });
       }
 
       // 返却
@@ -104,6 +104,7 @@ const buildResponseArray = (resObject: ShitarabaResponse[]) => {
   });
   return result;
 };
+
 /**
  * レスポンスのパース
  * レス番号とHTML文字列を格納したオブジェクトを返却する
@@ -111,7 +112,8 @@ const buildResponseArray = (resObject: ShitarabaResponse[]) => {
  * @return レス番 , HTML整形後のレスのオブジェクト
  */
 const buildResponse = (res: ShitarabaResponse) => {
-  const dom = createDom({ ...res });
+  res.imgUrl = readIcons.getRandomIcons();
+  const dom = createDom(res);
 
   // レス番とテキストをセットにしたJSONを返す
   const result: {
@@ -124,25 +126,6 @@ const buildResponse = (res: ShitarabaResponse) => {
 
   // JSONオブジェクトを返却
   return result;
-};
-
-/**
- * アイコン画像取得表示のためのimgタグを返す
- * @param String // name 名前
- * @param String // id ID、板によっては非表示だったりする、困る
- */
-const getIcon = (name: string, id: string) => {
-  const src = getIconFileName(name, id);
-  return `<img class="icon" src="${src}" />`;
-};
-/**
- * アイコン画像名取得、名前やIDを見て条件によって固定のアイコンを返す
- * @param String // name 名前
- * @param String // id ID、板によっては非表示だったりする、困る
- */
-const getIconFileName = (name: string, id: string) => {
-  // ランダムアイコン取得
-  return readIcons.getRandomIcons();
 };
 
 export default router;

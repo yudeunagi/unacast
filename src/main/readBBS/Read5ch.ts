@@ -113,7 +113,6 @@ class Read5ch {
       throw new Error('connection error');
     }
 
-    console.trace(JSON.stringify(responseJson));
     return responseJson;
   };
 }

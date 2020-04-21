@@ -303,17 +303,6 @@ exports.electronEvent = {
 
 "use strict";
 
-var __assign = (this && this.__assign) || function () {
-    __assign = Object.assign || function(t) {
-        for (var s, i = 1, n = arguments.length; i < n; i++) {
-            s = arguments[i];
-            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
-                t[p] = s[p];
-        }
-        return t;
-    };
-    return __assign.apply(this, arguments);
-};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -397,7 +386,7 @@ router.post('/', function (req, res, next) { return __awaiter(void 0, void 0, vo
                 // レス着信音
                 if (result.length > 0 && config.playSe && globalThis.electron.seList.length > 0) {
                     wavfilepath = globalThis.electron.seList[Math.floor(Math.random() * globalThis.electron.seList.length)];
-                    globalThis.electron.mainWindow.webContents.send(const_1.electronEvent['play-sound'], wavfilepath);
+                    globalThis.electron.mainWindow.webContents.send(const_1.electronEvent['play-sound'], { wavfilepath: wavfilepath, text: response[response.length - 1].text });
                 }
                 // 返却
                 res.header('Content-Type', 'application/json; charset=UTF-8');
@@ -459,7 +448,8 @@ var buildResponseArray = function (resObject) {
  */
 var buildResponse = function (res) {
     var _a;
-    var dom = startServer_1.createDom(__assign({}, res));
+    res.imgUrl = readIcons.getRandomIcons();
+    var dom = startServer_1.createDom(res);
     // レス番とテキストをセットにしたJSONを返す
     var result = {
         resNumber: (_a = res.number) === null || _a === void 0 ? void 0 : _a.toString(),
@@ -467,24 +457,6 @@ var buildResponse = function (res) {
     };
     // JSONオブジェクトを返却
     return result;
-};
-/**
- * アイコン画像取得表示のためのimgタグを返す
- * @param String // name 名前
- * @param String // id ID、板によっては非表示だったりする、困る
- */
-var getIcon = function (name, id) {
-    var src = getIconFileName(name, id);
-    return "<img class=\"icon\" src=\"" + src + "\" />";
-};
-/**
- * アイコン画像名取得、名前やIDを見て条件によって固定のアイコンを返す
- * @param String // name 名前
- * @param String // id ID、板によっては非表示だったりする、困る
- */
-var getIconFileName = function (name, id) {
-    // ランダムアイコン取得
-    return readIcons.getRandomIcons();
 };
 exports.default = router;
 
@@ -716,9 +688,7 @@ var Read5ch = /** @class */ (function () {
                             electron_log_1.default.error('[Read5ch.js]5ch系BBSレス取得APIリクエストエラー、message=' + error_1.message);
                         }
                         throw new Error('connection error');
-                    case 4:
-                        console.trace(JSON.stringify(responseJson));
-                        return [2 /*return*/, responseJson];
+                    case 4: return [2 /*return*/, responseJson];
                 }
             });
         }); };
