@@ -19,3 +19,5 @@ const isExistFile = (file: string) => {
     if (err.code === 'ENOENT') return false;
   }
 };
+
+export const sleep = (msec: number) => new Promise((resolve) => setTimeout(resolve, msec));

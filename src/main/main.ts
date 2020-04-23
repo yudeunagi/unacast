@@ -3,7 +3,9 @@ import path from 'path';
 import electron from 'electron';
 import log from 'electron-log';
 
-console.trace = () => {};
+console.trace = () => {
+  //
+};
 
 process.on('uncaughtException', (err) => {
   log.error('electron:event:uncaughtException');
@@ -17,6 +19,7 @@ const app = electron.app;
 app.allowRendererProcessReuse = true;
 
 // サーバー起動モジュール
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const ss = require('./startServer');
 console.trace(ss);
 

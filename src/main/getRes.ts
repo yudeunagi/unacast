@@ -2,7 +2,7 @@ import express from 'express';
 import bodyParser from 'body-parser'; // jsonパーサ
 const router = express.Router();
 import log from 'electron-log';
-
+import { ipcMain } from 'electron';
 import ReadIcons from './ReadIcons'; //アイコンファイル名取得
 const readIcons = new ReadIcons();
 
@@ -39,20 +39,32 @@ router.post('/', async (req, res, next) => {
     .read(threadUrl, resNum)
     .then(async (response) => {
       console.log('[getRes.js] fetch res success = ' + response.length);
+      res.header('Content-Type', 'application/json; charset=UTF-8');
+
       globalThis.electron.threadConnectionError = 0;
+      if (response.length === 0) {
+        res.send([]);
+        return;
+      }
 
       // 返却されたjsonオブジェクトを組み立てる
       const result = buildResponseArray(response);
-      console.log('[getRes.js] fetch res end');
+      console.log(`[getRes.js] fetch res end  result = ${result.length}`);
+      if (result.length === 0) {
+        res.send([]);
+        return;
+      }
 
       // レス着信音
-      if (result.length > 0 && config.playSe && globalThis.electron.seList.length > 0) {
+      if (config.playSe && globalThis.electron.seList.length > 0) {
         const wavfilepath = globalThis.electron.seList[Math.floor(Math.random() * globalThis.electron.seList.length)];
         globalThis.electron.mainWindow.webContents.send(electronEvent['play-sound'], { wavfilepath, text: response[response.length - 1].text });
+      } else if (globalThis.config.typeYomiko !== 'none') {
+        // レス着信音OFF + レス読み
+        ipcMain.emit(electronEvent['play-tamiyasu'], null, response[response.length - 1].text);
       }
 
       // 返却
-      res.header('Content-Type', 'application/json; charset=UTF-8');
       res.send(result);
     })
     .catch((err) => {

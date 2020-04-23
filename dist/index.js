@@ -347,6 +347,7 @@ var express_1 = __importDefault(__webpack_require__(/*! express */ "express"));
 var body_parser_1 = __importDefault(__webpack_require__(/*! body-parser */ "body-parser")); // jsonパーサ
 var router = express_1.default.Router();
 var electron_log_1 = __importDefault(__webpack_require__(/*! electron-log */ "electron-log"));
+var electron_1 = __webpack_require__(/*! electron */ "electron");
 var ReadIcons_1 = __importDefault(__webpack_require__(/*! ./ReadIcons */ "./src/main/ReadIcons.ts")); //アイコンファイル名取得
 var readIcons = new ReadIcons_1.default();
 var startServer_1 = __webpack_require__(/*! ./startServer */ "./src/main/startServer.ts");
@@ -380,16 +381,28 @@ router.post('/', function (req, res, next) { return __awaiter(void 0, void 0, vo
             var result, wavfilepath;
             return __generator(this, function (_a) {
                 console.log('[getRes.js] fetch res success = ' + response.length);
+                res.header('Content-Type', 'application/json; charset=UTF-8');
                 globalThis.electron.threadConnectionError = 0;
+                if (response.length === 0) {
+                    res.send([]);
+                    return [2 /*return*/];
+                }
                 result = buildResponseArray(response);
-                console.log('[getRes.js] fetch res end');
+                console.log("[getRes.js] fetch res end  result = " + result.length);
+                if (result.length === 0) {
+                    res.send([]);
+                    return [2 /*return*/];
+                }
                 // レス着信音
-                if (result.length > 0 && config.playSe && globalThis.electron.seList.length > 0) {
+                if (config.playSe && globalThis.electron.seList.length > 0) {
                     wavfilepath = globalThis.electron.seList[Math.floor(Math.random() * globalThis.electron.seList.length)];
                     globalThis.electron.mainWindow.webContents.send(const_1.electronEvent['play-sound'], { wavfilepath: wavfilepath, text: response[response.length - 1].text });
                 }
+                else if (globalThis.config.typeYomiko !== 'none') {
+                    // レス着信音OFF + レス読み
+                    electron_1.ipcMain.emit(const_1.electronEvent['play-tamiyasu'], null, response[response.length - 1].text);
+                }
                 // 返却
-                res.header('Content-Type', 'application/json; charset=UTF-8');
                 res.send(result);
                 return [2 /*return*/];
             });
@@ -480,7 +493,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var path_1 = __importDefault(__webpack_require__(/*! path */ "path"));
 var electron_1 = __importDefault(__webpack_require__(/*! electron */ "electron"));
 var electron_log_1 = __importDefault(__webpack_require__(/*! electron-log */ "electron-log"));
-console.trace = function () { };
+console.trace = function () {
+    //
+};
 process.on('uncaughtException', function (err) {
     electron_log_1.default.error('electron:event:uncaughtException');
     electron_log_1.default.error(err);
@@ -491,6 +506,7 @@ process.on('uncaughtException', function (err) {
 var app = electron_1.default.app;
 app.allowRendererProcessReuse = true;
 // サーバー起動モジュール
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 var ss = __webpack_require__(/*! ./startServer */ "./src/main/startServer.ts");
 console.trace(ss);
 // ウィンドウを作成するモジュール
@@ -898,7 +914,7 @@ var ReadSitaraba = /** @class */ (function () {
                         return [4 /*yield*/, axios_1.default(options)];
                     case 1:
                         response = _a.sent();
-                        str = iconv_lite_1.default.decode(Buffer.from(response.data), 'Shift_JIS');
+                        str = iconv_lite_1.default.decode(Buffer.from(response.data), 'EUC-JP');
                         responseJson = purseNewResponse(str);
                         return [2 /*return*/, responseJson];
                 }
@@ -1034,12 +1050,11 @@ var bouyomi;
  * port:ポート番号
  */
 electron_1.ipcMain.on(const_1.electronEvent['start-server'], function (event, config) { return __awaiter(void 0, void 0, void 0, function () {
-    var ejs, list;
+    var list;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
                 app = express_ws_1.default(express_1.default()).app;
-                ejs = __webpack_require__(/*! ejs */ "ejs");
                 app.set('view engine', 'ejs');
                 // viewディレクトリの指定
                 app.set('views', path_1.default.resolve(__dirname, '../views'));
@@ -1094,7 +1109,6 @@ electron_1.ipcMain.on(const_1.electronEvent['start-server'], function (event, co
                             var imgUrl = (_b = (_a = comment.author.thumbnail) === null || _a === void 0 ? void 0 : _a.url) !== null && _b !== void 0 ? _b : '';
                             var name = comment.author.name;
                             var text = comment.message[0].text;
-                            electron_log_1.default.info(text);
                             exports.sendDom({ name: name, text: text, imgUrl: imgUrl });
                         });
                         // // 何かエラーがあった
@@ -1112,7 +1126,7 @@ electron_1.ipcMain.on(const_1.electronEvent['start-server'], function (event, co
                 // 棒読みちゃん接続
                 if (config.typeYomiko === 'bouyomi') {
                     if (config.bouyomiPort) {
-                        bouyomi = new bouyomi_chan_1.default({ port: config.bouyomiPort });
+                        bouyomi = new bouyomi_chan_1.default({ port: config.bouyomiPort, volume: config.bouyomiVolume });
                     }
                 }
                 // WebSocketを立てる
@@ -1203,7 +1217,12 @@ exports.sendDom = function (message) {
         var wavfilepath = globalThis.electron.seList[Math.floor(Math.random() * globalThis.electron.seList.length)];
         globalThis.electron.mainWindow.webContents.send(const_1.electronEvent['play-sound'], { wavfilepath: wavfilepath, text: message.text });
     }
+    else if (globalThis.config.typeYomiko !== 'none') {
+        // レス着信音OFF + レス読み
+        electron_1.ipcMain.emit(const_1.electronEvent['play-tamiyasu'], null, message.text);
+    }
 };
+exports.default = {};
 
 
 /***/ }),
@@ -1244,6 +1263,7 @@ var isExistFile = function (file) {
             return false;
     }
 };
+exports.sleep = function (msec) { return new Promise(function (resolve) { return setTimeout(resolve, msec); }); };
 
 
 /***/ }),
@@ -1603,17 +1623,6 @@ module.exports = require("child_process");
 /***/ (function(module, exports) {
 
 module.exports = require("dank-twitch-irc");
-
-/***/ }),
-
-/***/ "ejs":
-/*!**********************!*\
-  !*** external "ejs" ***!
-  \**********************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-module.exports = require("ejs");
 
 /***/ }),
 

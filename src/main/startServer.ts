@@ -1,6 +1,6 @@
 import http from 'http';
 import path from 'path';
-import express from 'express';
+import express, { Request, Response } from 'express';
 import log from 'electron-log';
 import { ChatClient } from 'dank-twitch-irc';
 import { LiveChat } from './youtube-chat';
@@ -11,11 +11,11 @@ import { readWavFiles } from './util';
 import getRes from './getRes';
 import { CommentItem } from './youtube-chat/parser';
 import bouyomiChan from './bouyomi-chan';
-import child_process from 'child_process';
+import childProcess from 'child_process';
 import { electronEvent } from './const';
-const exec = child_process.exec;
+const exec = childProcess.exec;
 
-let app;
+let app: expressWs.Instance['app'];
 
 // サーバーをグローバル変数にセットできるようにする（サーバー停止処理のため）
 let server: http.Server;
@@ -31,7 +31,6 @@ let bouyomi: bouyomiChan;
  */
 ipcMain.on(electronEvent['start-server'], async (event: any, config: typeof globalThis['config']) => {
   app = expressWs(express()).app;
-  const ejs = require('ejs');
   app.set('view engine', 'ejs');
   // viewディレクトリの指定
   app.set('views', path.resolve(__dirname, '../views'));
@@ -42,7 +41,7 @@ ipcMain.on(electronEvent['start-server'], async (event: any, config: typeof glob
   console.log('[startServer]設定値 = ');
   console.log(globalThis.config);
 
-  app.get('/', (req, res, next) => {
+  app.get('/', (req: Request, res: Response, next) => {
     res.render('server', config);
     req.connection.end();
   });
@@ -90,7 +89,6 @@ ipcMain.on(electronEvent['start-server'], async (event: any, config: typeof glob
         const imgUrl = comment.author.thumbnail?.url ?? '';
         const name = comment.author.name;
         const text = (comment.message[0] as any).text;
-        log.info(text);
         sendDom({ name, text, imgUrl });
       });
       // // 何かエラーがあった
@@ -109,7 +107,7 @@ ipcMain.on(electronEvent['start-server'], async (event: any, config: typeof glob
   // 棒読みちゃん接続
   if (config.typeYomiko === 'bouyomi') {
     if (config.bouyomiPort) {
-      bouyomi = new bouyomiChan({ port: config.bouyomiPort });
+      bouyomi = new bouyomiChan({ port: config.bouyomiPort, volume: config.bouyomiVolume });
     }
   }
 
@@ -142,7 +140,7 @@ ipcMain.on(electronEvent['start-server'], async (event: any, config: typeof glob
 ipcMain.on(electronEvent['stop-server'], (event) => {
   console.log('[startServer]server stop');
   server.close();
-  app = null;
+  app = null as any;
   event.returnValue = 'stop';
 
   if (globalThis.electron.twitchChat) {
@@ -216,8 +214,14 @@ export const createDom = (message: UserComment) => {
 export const sendDom = (message: UserComment) => {
   const domStr = createDom(message);
   if (globalThis.electron.socket) globalThis.electron.socket.send(domStr);
+
   if (config.playSe && globalThis.electron.seList.length > 0) {
     const wavfilepath = globalThis.electron.seList[Math.floor(Math.random() * globalThis.electron.seList.length)];
     globalThis.electron.mainWindow.webContents.send(electronEvent['play-sound'], { wavfilepath, text: message.text });
+  } else if (globalThis.config.typeYomiko !== 'none') {
+    // レス着信音OFF + レス読み
+    ipcMain.emit(electronEvent['play-tamiyasu'], null, message.text);
   }
 };
+
+export default {};

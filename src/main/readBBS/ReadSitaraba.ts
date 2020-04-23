@@ -41,7 +41,7 @@ class ReadSitaraba {
       timeout: 3 * 1000,
     };
     const response = await axios(options);
-    const str = iconv.decode(Buffer.from(response.data), 'Shift_JIS');
+    const str = iconv.decode(Buffer.from(response.data), 'EUC-JP');
     const responseJson = purseNewResponse(str);
 
     return responseJson;

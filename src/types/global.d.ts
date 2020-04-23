@@ -63,6 +63,8 @@ declare global {
     let tamiyasuPath: string;
     /** 棒読みちゃんの待ち受けポート */
     let bouyomiPort: number;
+    /** 棒読みちゃんの音量 */
+    let bouyomiVolume: number;
     /** スレが通信エラーになった時の通知閾値 */
     let notifyThreadConnectionErrorLimit: number;
   }

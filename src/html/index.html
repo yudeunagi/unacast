@@ -103,7 +103,7 @@
 
           <p>更新間隔 <span id="spanDisp">10</span></p>
           <p style="width: 80%;">
-            <input id="rangeSpan" class="mdl-slider mdl-js-slider" type="range" min="5" max="30" value="10" tabindex="0" oninput="showVal(this.value)" />
+            <input id="rangeSpan" class="mdl-slider mdl-js-slider" type="range" min="5" max="30" value="10" tabindex="0" oninput="showVal('spanDisp', this.value)" />
           </p>
         </div>
 
@@ -205,10 +205,17 @@
             <input class="mdl-textfield__input" type="text" id="text-tamiyasu-path" />
           </div>
 
+          <h5>棒読みちゃん設定</h5>
           <div class="mdl-textfield mdl-js-textfield" style="width: 600px;">
-            <div class="subtitle">棒読みちゃんの待ち受けポート</div>
+            <div class="subtitle">待ち受けポート</div>
             <input class="mdl-textfield__input" type="text" id="text-bouyomi-port" />
           </div>
+          <div>
+          <span class="subtitle">音量</span> <span id="disp-bouyomi-volume">50</span></p>
+          <p style="width: 80%;">
+            <input id="bouyomi-volume" class="mdl-slider mdl-js-slider" type="range" min="-1" max="100" value="50" tabindex="0" oninput="showVal('disp-bouyomi-volume', this.value)" />
+          </p>
+        </div>
         </div>
 
         <div class="block">
@@ -225,9 +232,9 @@
         require('../../dist/scripts');
 
         /* 変更中（ドラッグ中） */
-        function showVal(newVal) {
-          $('#spanDisp').text(newVal);
-        }
+        const showVal = (id, newVal) => {
+          document.getElementById(`${id}`).innerText = newVal;
+        };
       </script>
     </div>
   </body>

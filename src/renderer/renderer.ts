@@ -1,6 +1,7 @@
 import electron from 'electron';
 import log from 'electron-log';
 import { electronEvent } from '../main/const';
+import { sleep } from '../main/util';
 
 const ipcRenderer = electron.ipcRenderer;
 
@@ -82,6 +83,7 @@ const buildConfigJson = () => {
   const sePath = (document.getElementById('text-se-path') as HTMLInputElement).value;
   const tamiyasuPath = (document.getElementById('text-tamiyasu-path') as HTMLInputElement).value;
   const bouyomiPort = parseInt((document.getElementById('text-bouyomi-port') as HTMLInputElement).value);
+  const bouyomiVolume = parseInt((document.getElementById('bouyomi-volume') as HTMLInputElement).value);
   const notifyThreadConnectionErrorLimit = parseInt((document.getElementById('text-notify-threadConnectionErrorLimit') as HTMLInputElement).value);
 
   //レス番表示設定
@@ -125,6 +127,7 @@ const buildConfigJson = () => {
     typeYomiko,
     tamiyasuPath,
     bouyomiPort,
+    bouyomiVolume,
     notifyThreadConnectionErrorLimit,
   };
 
@@ -164,6 +167,7 @@ const loadConfigToLocalStrage = () => {
     typeYomiko: 'none',
     tamiyasuPath: '',
     bouyomiPort: 50001,
+    bouyomiVolume: 50,
     notifyThreadConnectionErrorLimit: 0,
   };
 
@@ -224,6 +228,7 @@ const loadConfigToLocalStrage = () => {
   }
   (document.getElementById('text-tamiyasu-path') as any).value = config.tamiyasuPath;
   (document.getElementById('text-bouyomi-port') as any).value = config.bouyomiPort;
+  (document.getElementById('bouyomi-volume') as any).value = config.bouyomiVolume;
   (document.getElementById('text-notify-threadConnectionErrorLimit') as any).value = config.notifyThreadConnectionErrorLimit;
 
   console.debug('[renderer.js]config loaded');
@@ -244,7 +249,8 @@ ipcRenderer.on(electronEvent['play-sound'], async (event: any, arg: { wavfilepat
   } catch (e) {
     log.error(e);
   }
-  audioElem.onended = () => {
+  audioElem.onended = async () => {
+    await sleep(200);
     ipcRenderer.send(electronEvent['play-tamiyasu'], arg.text);
   };
 });
