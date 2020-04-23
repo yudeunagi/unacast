@@ -228,6 +228,7 @@ const loadConfigToLocalStrage = () => {
   }
   (document.getElementById('text-tamiyasu-path') as any).value = config.tamiyasuPath;
   (document.getElementById('text-bouyomi-port') as any).value = config.bouyomiPort;
+  (document.getElementById('disp-bouyomi-volume') as any).innerHTML = config.bouyomiVolume;
   (document.getElementById('bouyomi-volume') as any).value = config.bouyomiVolume;
   (document.getElementById('text-notify-threadConnectionErrorLimit') as any).value = config.notifyThreadConnectionErrorLimit;
 
