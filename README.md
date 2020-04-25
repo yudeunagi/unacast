@@ -57,6 +57,15 @@ OBSのソースで「ブラウザソース」を追加し、設定画面を開�
 
 --- 
 
+## Windowsでビルドしたい人向け
+Node.jsとyarnが入ってることが前提
+```
+git clone https://github.com/pasta04/unacast.git
+cd unacast
+yarn
+yarn buildwin
+```
+
 ## Todo
 
 * [x] TypeScript化(本体)
