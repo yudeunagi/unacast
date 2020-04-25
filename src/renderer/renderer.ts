@@ -1,7 +1,6 @@
 import electron from 'electron';
 import log from 'electron-log';
 import { electronEvent } from '../main/const';
-import { sleep } from '../main/util';
 
 const ipcRenderer = electron.ipcRenderer;
 
@@ -19,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const closeCancelButton = document.getElementById('button-close-dialog-cancel') as HTMLInputElement;
 
   //サーバーのON-OFFする
-  startButton.onclick = (event) => {
+  startButton.onclick = () => {
     //サーバー起動
     //設定情報取得
     const config = buildConfigJson();
@@ -42,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   };
   //サーバー停止ボタン
-  stopButton.onclick = (event) => {
+  stopButton.onclick = () => {
     const config = buildConfigJson();
     //設定情報をローカルストレージへ保存
     saveConfigToLocalStrage(config);
@@ -51,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
     (dialog as any).showModal();
   };
 
-  closeOkButton.onclick = (event) => {
+  closeOkButton.onclick = () => {
     const result = ipcRenderer.sendSync('stop-server');
     console.debug('[renderer.js]' + result);
     //ダイアログクローズ
@@ -61,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
     stopButton.disabled = true;
     return;
   };
-  closeCancelButton.onclick = (event) => {
+  closeCancelButton.onclick = () => {
     //ダイアログクローズ
     (dialog as any).close();
     return;
@@ -85,6 +84,7 @@ const buildConfigJson = () => {
   const bouyomiPort = parseInt((document.getElementById('text-bouyomi-port') as HTMLInputElement).value);
   const bouyomiVolume = parseInt((document.getElementById('bouyomi-volume') as HTMLInputElement).value);
   const notifyThreadConnectionErrorLimit = parseInt((document.getElementById('text-notify-threadConnectionErrorLimit') as HTMLInputElement).value);
+  const notifyThreadResLimit = parseInt((document.getElementById('text-notify-threadResLimit') as HTMLInputElement).value);
 
   //レス番表示設定
   const showNumber = (document.getElementById('checkbox-showNumber') as HTMLInputElement).checked === true;
@@ -102,9 +102,16 @@ const buildConfigJson = () => {
   const playSe = (document.getElementById('checkbox-playSe') as any).checked === true;
 
   let typeYomiko: typeof globalThis['config']['typeYomiko'] = 'none';
-  document.getElementsByName('typeYomiko').forEach((v, i: number) => {
+  document.getElementsByName('typeYomiko').forEach((v) => {
     const elem = v as HTMLInputElement;
     if (elem.checked) typeYomiko = elem.value as typeof globalThis['config']['typeYomiko'];
+  });
+
+  // コメント処理
+  let commentProcessType: typeof globalThis['config']['commentProcessType'] = 0;
+  document.getElementsByName('commentProcessType').forEach((v) => {
+    const elem = v as HTMLInputElement;
+    if (elem.checked) commentProcessType = Number(elem.value) as typeof globalThis['config']['commentProcessType'];
   });
 
   const config: typeof globalThis['config'] = {
@@ -129,6 +136,8 @@ const buildConfigJson = () => {
     bouyomiPort,
     bouyomiVolume,
     notifyThreadConnectionErrorLimit,
+    notifyThreadResLimit,
+    commentProcessType,
   };
 
   return config;
@@ -169,6 +178,8 @@ const loadConfigToLocalStrage = () => {
     bouyomiPort: 50001,
     bouyomiVolume: 50,
     notifyThreadConnectionErrorLimit: 0,
+    notifyThreadResLimit: 0,
+    commentProcessType: 0,
   };
 
   const storageStr = localStorage.getItem('config');
@@ -226,11 +237,20 @@ const loadConfigToLocalStrage = () => {
       (document.getElementById('yomiko_bouyomi') as any).checked = true;
       break;
   }
+
+  switch (config.commentProcessType) {
+    case 0:
+    case 1:
+      (document.getElementById(`commentProcessType_${config.commentProcessType}`) as any).checked = true;
+      break;
+  }
+
   (document.getElementById('text-tamiyasu-path') as any).value = config.tamiyasuPath;
   (document.getElementById('text-bouyomi-port') as any).value = config.bouyomiPort;
   (document.getElementById('disp-bouyomi-volume') as any).innerHTML = config.bouyomiVolume;
   (document.getElementById('bouyomi-volume') as any).value = config.bouyomiVolume;
   (document.getElementById('text-notify-threadConnectionErrorLimit') as any).value = config.notifyThreadConnectionErrorLimit;
+  (document.getElementById('text-notify-threadResLimit') as any).value = config.notifyThreadResLimit;
 
   console.debug('[renderer.js]config loaded');
 };
@@ -242,16 +262,34 @@ ipcRenderer.on(electronEvent['start-server-reply'], (event: any, arg: any) => {
 
 // 着信音再生
 const audioElem = new Audio();
-ipcRenderer.on(electronEvent['play-sound'], async (event: any, arg: { wavfilepath: string; text: string }) => {
-  console.log(`[renderer][play-sound]${JSON.stringify(arg)}`);
+ipcRenderer.on(electronEvent['play-sound-start'], (event: any, wavfilepath) => {
   try {
-    audioElem.src = arg.wavfilepath;
+    audioElem.src = wavfilepath;
     audioElem.play();
+    audioElem.onended = () => {
+      ipcRenderer.send(electronEvent['play-sound-end']);
+    };
+    audioElem.onerror = () => {
+      ipcRenderer.send(electronEvent['play-sound-end']);
+    };
   } catch (e) {
     log.error(e);
+    ipcRenderer.send(electronEvent['play-sound-end']);
   }
-  audioElem.onended = async () => {
-    await sleep(200);
-    ipcRenderer.send(electronEvent['play-tamiyasu'], arg.text);
-  };
 });
+
+ipcRenderer.on(electronEvent['wait-yomiko-time'], async (event: any, arg: string) => {
+  await yomikoTime(arg);
+  ipcRenderer.send(electronEvent['speaking-end']);
+});
+/** 音声合成が終わってそうな頃にreturn返す */
+const yomikoTime = async (msg: string) => {
+  return new Promise((resolve) => {
+    const uttr = new globalThis.SpeechSynthesisUtterance(msg);
+    uttr.volume = 0;
+    uttr.onend = (event) => {
+      resolve();
+    };
+    speechSynthesis.speak(uttr);
+  });
+};

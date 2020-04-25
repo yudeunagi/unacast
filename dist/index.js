@@ -286,7 +286,10 @@ exports.electronEvent = {
     /** 棒読み再生 */
     'play-tamiyasu': 'play-tamiyasu',
     /** レス着信音再生 */
-    'play-sound': 'play-sound',
+    'play-sound-start': 'play-sound-start',
+    'play-sound-end': 'play-sound-end',
+    'wait-yomiko-time': 'wait-yomiko-time',
+    'speaking-end': 'speaking-end',
     /** サーバー起動の返信 */
     'start-server-reply': 'start-server-reply',
 };
@@ -303,6 +306,17 @@ exports.electronEvent = {
 
 "use strict";
 
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -347,13 +361,11 @@ var express_1 = __importDefault(__webpack_require__(/*! express */ "express"));
 var body_parser_1 = __importDefault(__webpack_require__(/*! body-parser */ "body-parser")); // jsonパーサ
 var router = express_1.default.Router();
 var electron_log_1 = __importDefault(__webpack_require__(/*! electron-log */ "electron-log"));
-var electron_1 = __webpack_require__(/*! electron */ "electron");
 var ReadIcons_1 = __importDefault(__webpack_require__(/*! ./ReadIcons */ "./src/main/ReadIcons.ts")); //アイコンファイル名取得
 var readIcons = new ReadIcons_1.default();
 var startServer_1 = __webpack_require__(/*! ./startServer */ "./src/main/startServer.ts");
 var readSitaraba_1 = __importDefault(__webpack_require__(/*! ./readBBS/readSitaraba */ "./src/main/readBBS/readSitaraba.ts")); // したらば読み込み用モジュール
 var Read5ch_1 = __importDefault(__webpack_require__(/*! ./readBBS/Read5ch */ "./src/main/readBBS/Read5ch.ts")); // 5ch互換板読み込み用モジュール
-var const_1 = __webpack_require__(/*! ./const */ "./src/main/const.ts");
 var sitaraba = new readSitaraba_1.default();
 var read5ch = new Read5ch_1.default();
 // 掲示板読み込みモジュール、一度決定したら使いまわすためにグローバル宣言
@@ -362,69 +374,96 @@ var bbsModule = null;
 router.use(body_parser_1.default.urlencoded({ extended: true }));
 router.use(body_parser_1.default.json());
 /**
- * http://localhost:3000/getRes にGETメソッドのリクエストを投げると、
- * JSON形式で文字列を返す。
+ * ブラウザからの初期処理リクエスト
  */
-router.post('/', function (req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var threadUrl, resNum;
+router.get('/', function (req, res, next) { return __awaiter(void 0, void 0, void 0, function () {
+    var threadUrl, resNum, result, doms;
     return __generator(this, function (_a) {
-        threadUrl = req.body.threadUrl;
-        resNum = req.body.resNumber;
-        // リクエストURLを解析し、使用するモジュールを変更する（初回のみ）
-        if (bbsModule === null) {
-            bbsModule = analysBBSName(threadUrl);
-        }
-        // 選択したモジュールでレス取得処理を行う
-        bbsModule
-            .read(threadUrl, resNum)
-            .then(function (response) { return __awaiter(void 0, void 0, void 0, function () {
-            var result, wavfilepath;
-            return __generator(this, function (_a) {
-                console.log('[getRes.js] fetch res success = ' + response.length);
+        switch (_a.label) {
+            case 0:
+                threadUrl = globalThis.config.url;
+                resNum = globalThis.config.resNumber ? Number(globalThis.config.resNumber) : NaN;
                 res.header('Content-Type', 'application/json; charset=UTF-8');
-                globalThis.electron.threadConnectionError = 0;
-                if (response.length === 0) {
-                    res.send([]);
-                    return [2 /*return*/];
+                return [4 /*yield*/, getRes(threadUrl, resNum)];
+            case 1:
+                result = _a.sent();
+                // 末尾のレス番号を保存
+                if (result.length > 0 && result[result.length - 1].number) {
+                    globalThis.electron.threadNumber = Number(result[result.length - 1].number);
                 }
-                result = buildResponseArray(response);
-                console.log("[getRes.js] fetch res end  result = " + result.length);
-                if (result.length === 0) {
-                    res.send([]);
-                    return [2 /*return*/];
-                }
-                // レス着信音
-                if (config.playSe && globalThis.electron.seList.length > 0) {
-                    wavfilepath = globalThis.electron.seList[Math.floor(Math.random() * globalThis.electron.seList.length)];
-                    globalThis.electron.mainWindow.webContents.send(const_1.electronEvent['play-sound'], { wavfilepath: wavfilepath, text: response[response.length - 1].text });
-                }
-                else if (globalThis.config.typeYomiko !== 'none') {
-                    // レス着信音OFF + レス読み
-                    electron_1.ipcMain.emit(const_1.electronEvent['play-tamiyasu'], null, response[response.length - 1].text);
-                }
-                // 返却
-                res.send(result);
+                // 初回なのでキューを初期化
+                globalThis.electron.commentQueueList = [];
+                result.shift();
+                doms = result.map(function (item) { return startServer_1.createDom(item); });
+                res.send(JSON.stringify(doms));
                 return [2 /*return*/];
-            });
-        }); })
-            .catch(function (err) {
-            if (globalThis.config.notifyThreadConnectionErrorLimit > 0) {
-                globalThis.electron.threadConnectionError += 1;
-                if (globalThis.electron.threadConnectionError >= globalThis.config.notifyThreadConnectionErrorLimit) {
-                    globalThis.electron.threadConnectionError = 0;
-                    var icon = "./img/unacast.png";
-                    startServer_1.sendDom({
-                        name: 'unacastより',
-                        text: '掲示板が規定回数通信エラーになりました。設定を見直すか、掲示板URLを変更してください。',
-                        imgUrl: icon,
-                    });
-                }
-            }
-            electron_log_1.default.error(err);
-        });
-        return [2 /*return*/];
+        }
     });
 }); });
+exports.getResInterval = function () { return __awaiter(void 0, void 0, void 0, function () {
+    var result;
+    var _a;
+    return __generator(this, function (_b) {
+        switch (_b.label) {
+            case 0:
+                if (!(globalThis.electron.threadNumber > 0)) return [3 /*break*/, 2];
+                return [4 /*yield*/, getRes(globalThis.config.url, globalThis.electron.threadNumber)];
+            case 1:
+                result = _b.sent();
+                // 指定したレス番は除外対象
+                result.shift();
+                if (result.length > 0 && result[result.length - 1].number) {
+                    globalThis.electron.threadNumber = Number(result[result.length - 1].number);
+                    (_a = globalThis.electron.commentQueueList).push.apply(_a, result);
+                }
+                notifyThreadResLimit();
+                _b.label = 2;
+            case 2: return [2 /*return*/];
+        }
+    });
+}); };
+/**
+ * 掲示板のレスを取得する
+ * @param threadUrl スレのURL
+ * @param resNum この番号以降を取得する
+ */
+var getRes = function (threadUrl, resNum) { return __awaiter(void 0, void 0, void 0, function () {
+    var response, e_1;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                _a.trys.push([0, 2, , 3]);
+                // リクエストURLを解析し、使用するモジュールを変更する
+                bbsModule = analysBBSName(threadUrl);
+                return [4 /*yield*/, bbsModule.read(threadUrl, resNum)];
+            case 1:
+                response = _a.sent();
+                globalThis.electron.threadConnectionError = 0;
+                console.log("[getRes.js] fetch res end resNum = " + resNum + ", result = " + response.length);
+                return [2 /*return*/, response.map(function (res) {
+                        return __assign(__assign({}, res), { imgUrl: readIcons.getRandomIcons() });
+                    })];
+            case 2:
+                e_1 = _a.sent();
+                electron_log_1.default.error(e_1);
+                if (globalThis.config.notifyThreadConnectionErrorLimit > 0) {
+                    globalThis.electron.threadConnectionError += 1;
+                    if (globalThis.electron.threadConnectionError >= globalThis.config.notifyThreadConnectionErrorLimit) {
+                        globalThis.electron.threadConnectionError = 0;
+                        return [2 /*return*/, [
+                                {
+                                    name: 'unacastより',
+                                    imgUrl: './img/unacast.png',
+                                    text: '掲示板が規定回数通信エラーになりました。設定を見直すか、掲示板URLを変更してください。',
+                                },
+                            ]];
+                    }
+                }
+                return [2 /*return*/, []];
+            case 3: return [2 /*return*/];
+        }
+    });
+}); };
 /*
  * URLをみてどこのBBSか判定して使用するモジュールを返却する
  */
@@ -441,35 +480,14 @@ var analysBBSName = function (threadUrl) {
     // この辺も対応ドメインリストとか作ってちゃんと判定したほうがよさそう
     return read5ch;
 };
-/**
- * レスポンスの生成
- * レスポンスオブジェクトの配列をHTMLに変換
- */
-var buildResponseArray = function (resObject) {
-    //結果を格納する配列
-    var result = [];
-    resObject.forEach(function (value) {
-        result.push(buildResponse(value));
-    });
-    return result;
-};
-/**
- * レスポンスのパース
- * レス番号とHTML文字列を格納したオブジェクトを返却する
- * @param object // レスオブジェクト（ReadShitaraba.jsとか参照）
- * @return レス番 , HTML整形後のレスのオブジェクト
- */
-var buildResponse = function (res) {
-    var _a;
-    res.imgUrl = readIcons.getRandomIcons();
-    var dom = startServer_1.createDom(res);
-    // レス番とテキストをセットにしたJSONを返す
-    var result = {
-        resNumber: (_a = res.number) === null || _a === void 0 ? void 0 : _a.toString(),
-        html: dom,
-    };
-    // JSONオブジェクトを返却
-    return result;
+var notifyThreadResLimit = function () {
+    if (globalThis.config.notifyThreadResLimit > 0 && globalThis.electron.threadNumber >= globalThis.config.notifyThreadResLimit) {
+        globalThis.electron.commentQueueList.push({
+            name: 'unacastより',
+            imgUrl: './img/unacast.png',
+            text: "\u30EC\u30B9\u304C" + globalThis.config.notifyThreadResLimit + "\u3092\u8D85\u3048\u307E\u3057\u305F",
+        });
+    }
 };
 exports.default = router;
 
@@ -519,6 +537,8 @@ globalThis.electron = {
     youtubeChat: undefined,
     socket: null,
     threadConnectionError: 0,
+    threadNumber: 0,
+    commentQueueList: [],
 };
 // 全てのウィンドウが閉じたら終了
 app.on('window-all-closed', function () {
@@ -628,21 +648,22 @@ var lastByte = 0;
 var Read5ch = /** @class */ (function () {
     function Read5ch() {
         var _this = this;
+        // constructor() {}
         /**
          * レス読み込み
          * 引数で指定した板からレスを読む
          * レス番号を指定していない場合は最新1件取得
-         * @param String // threadUrl スレURL
-         * @param String // resNum レス番号
+         * @param threadUrl スレURL
+         * @param resNum レス番号
          */
         this.read = function (threadUrl, resNum) { return __awaiter(_this, void 0, void 0, function () {
-            var rep, requestUrl, range, options, responseJson, response, headers, str, error_1, rsArray;
+            var rep, requestUrl, range, options, responseJson, response, headers, str, error_1;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        console.log("[Read5ch] threadUrl=" + threadUrl + " resNum=" + resNum);
-                        //板や最終日レス番号がかわったら最初からとり直す(lastmodifiと rangeのリセット)
-                        if (threadUrl != lastThreadUrl || parseInt(resNum) < lastResNumber || resNum === '') {
+                        // log.info(`[Read5ch] threadUrl=${threadUrl} resNum=${resNum}`);
+                        // 板や最終日レス番号がかわったら最初からとり直す(lastmodifiと rangeのリセット)
+                        if (threadUrl != lastThreadUrl || Number.isNaN(resNum) || resNum < lastResNumber) {
                             lastThreadUrl = threadUrl;
                             lastModified = null;
                             lastByte = 0;
@@ -692,8 +713,7 @@ var Read5ch = /** @class */ (function () {
                         return [3 /*break*/, 4];
                     case 3:
                         error_1 = _a.sent();
-                        rsArray = new Array();
-                        responseJson = rsArray;
+                        responseJson = [];
                         if (error_1.status == NOT_MODIFIED) {
                             electron_log_1.default.error('[Read5ch.js]5ch系BBSレス取得APIリクエストエラー、NOT_MODIFIED');
                         }
@@ -733,11 +753,11 @@ var purseNewResponse = function (res, resNum) {
         resArray.pop();
     }
     // レス指定なしの場合最後の1件取得
-    if (resNum === null || resNum === '') {
+    if (Number.isNaN(resNum)) {
         num = resArray.length - 1;
     }
     else {
-        num = parseInt(resNum) - 1;
+        num = resNum - 1;
     }
     // 1行ごとにパースする
     for (; num < resArray.length; num++) {
@@ -760,7 +780,7 @@ var purseDiffResponse = function (res, resNum) {
     //結果を格納する配列
     var result = [];
     // レス番号
-    var num = parseInt(resNum);
+    var num = resNum;
     //新着レスを改行ごとにSplitする
     var resArray = res.split(/\r\n|\r|\n/);
     // 新着なしなら戻る。
@@ -881,21 +901,20 @@ var iconv_lite_1 = __importDefault(__webpack_require__(/*! iconv-lite */ "iconv-
  */
 var ReadSitaraba = /** @class */ (function () {
     function ReadSitaraba() {
+        // constructor() {}
         var _this = this;
         /**
          * レス読み込み
-         * 引数で指定した板からレスを読む
-         * レス番号を指定していない場合は最新1件取得
-         * @param String // threadUrl スレURL
-         * @param String // resNum レス番号
+         * @description 引数で指定した板からレスを読む。
+         * @description レス番号を指定していない場合は最新1件取得
+         * @param threadUrl スレURL
+         * @param resNum レス番号
          */
         this.read = function (threadUrl, resNum) { return __awaiter(_this, void 0, void 0, function () {
             var requestUrl, options, response, str, responseJson;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        //掲示板へのリクエスト実行
-                        console.log('[ReadSitaraba.js]したらばレス取得API呼び出し開始');
                         requestUrl = threadUrl.replace('read.cgi', 'rawmode.cgi');
                         if (resNum > 0) {
                             // レス番号がある場合レス番号以降を取得
@@ -1020,8 +1039,22 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+var __spreadArrays = (this && this.__spreadArrays) || function () {
+    for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
+    for (var r = Array(s), k = 0, i = 0; i < il; i++)
+        for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)
+            r[k] = a[j];
+    return r;
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var path_1 = __importDefault(__webpack_require__(/*! path */ "path"));
@@ -1033,15 +1066,19 @@ var electron_1 = __webpack_require__(/*! electron */ "electron");
 var express_ws_1 = __importDefault(__webpack_require__(/*! express-ws */ "express-ws"));
 var util_1 = __webpack_require__(/*! ./util */ "./src/main/util.ts");
 // レス取得APIをセット
-var getRes_1 = __importDefault(__webpack_require__(/*! ./getRes */ "./src/main/getRes.ts"));
+var getRes_1 = __importStar(__webpack_require__(/*! ./getRes */ "./src/main/getRes.ts"));
 var bouyomi_chan_1 = __importDefault(__webpack_require__(/*! ./bouyomi-chan */ "./src/main/bouyomi-chan/index.ts"));
-var child_process_1 = __importDefault(__webpack_require__(/*! child_process */ "child_process"));
+var child_process_1 = __webpack_require__(/*! child_process */ "child_process");
 var const_1 = __webpack_require__(/*! ./const */ "./src/main/const.ts");
-var exec = child_process_1.default.exec;
 var app;
 // サーバーをグローバル変数にセットできるようにする（サーバー停止処理のため）
 var server;
+/** 棒読みちゃんインスタンス */
 var bouyomi;
+/** スレッド定期取得のイベント */
+var threadIntervalEvent;
+/** キュー処理実行するか */
+var isExecuteQue = false;
 /**
  * サーバー起動
  * config:設定を格納したjson、以下jsonの中身
@@ -1087,7 +1124,7 @@ electron_1.ipcMain.on(const_1.electronEvent['start-server'], function (event, co
                         var imgUrl = './img/twitch.png';
                         var name = msg.displayName;
                         var text = msg.messageText;
-                        exports.sendDom({ name: name, text: text, imgUrl: imgUrl });
+                        globalThis.electron.commentQueueList.push({ imgUrl: imgUrl, name: name, text: text });
                     });
                 }
                 // Youtubeチャット
@@ -1109,9 +1146,9 @@ electron_1.ipcMain.on(const_1.electronEvent['start-server'], function (event, co
                             var imgUrl = (_b = (_a = comment.author.thumbnail) === null || _a === void 0 ? void 0 : _a.url) !== null && _b !== void 0 ? _b : '';
                             var name = comment.author.name;
                             var text = comment.message[0].text;
-                            exports.sendDom({ name: name, text: text, imgUrl: imgUrl });
+                            globalThis.electron.commentQueueList.push({ imgUrl: imgUrl, name: name, text: text });
                         });
-                        // // 何かエラーがあった
+                        // 何かエラーがあった
                         globalThis.electron.youtubeChat.on('error', function (err) {
                             electron_log_1.default.error('[Youtube Chat] error');
                             electron_log_1.default.error(err);
@@ -1129,6 +1166,11 @@ electron_1.ipcMain.on(const_1.electronEvent['start-server'], function (event, co
                         bouyomi = new bouyomi_chan_1.default({ port: config.bouyomiPort, volume: config.bouyomiVolume });
                     }
                 }
+                // レス取得定期実行
+                threadIntervalEvent = setInterval(function () { return getRes_1.getResInterval(); }, globalThis.config.interval * 1000);
+                // キュー処理の開始
+                isExecuteQue = true;
+                taskScheduler();
                 // WebSocketを立てる
                 app.ws('/ws', function (ws, req) {
                     globalThis.electron.socket = ws;
@@ -1160,29 +1202,112 @@ electron_1.ipcMain.on(const_1.electronEvent['stop-server'], function (event) {
     server.close();
     app = null;
     event.returnValue = 'stop';
+    // キュー処理停止
+    isExecuteQue = false;
+    globalThis.electron.commentQueueList = [];
+    // Twitchチャットの停止
     if (globalThis.electron.twitchChat) {
         globalThis.electron.twitchChat.close();
         globalThis.electron.twitchChat.removeAllListeners();
     }
+    // Youtubeチャットの停止
     if (globalThis.electron.youtubeChat) {
         globalThis.electron.youtubeChat.stop();
         globalThis.electron.youtubeChat.removeAllListeners();
     }
-});
-// 棒読みちゃん
-electron_1.ipcMain.on(const_1.electronEvent['play-tamiyasu'], function (event, args) {
-    switch (config.typeYomiko) {
-        case 'tamiyasu': {
-            exec(config.tamiyasuPath + " " + args);
-            break;
-        }
-        case 'bouyomi': {
-            if (bouyomi)
-                bouyomi.speak(args);
-            break;
-        }
+    // レス取得の停止
+    if (threadIntervalEvent) {
+        clearInterval(threadIntervalEvent);
     }
 });
+/**
+ * キューに溜まったコメントを処理する
+ */
+var taskScheduler = function () { return __awaiter(void 0, void 0, void 0, function () {
+    var temp, comment;
+    var _a, _b;
+    return __generator(this, function (_c) {
+        switch (_c.label) {
+            case 0:
+                if (!(((_b = (_a = globalThis.electron) === null || _a === void 0 ? void 0 : _a.commentQueueList) === null || _b === void 0 ? void 0 : _b.length) > 0)) return [3 /*break*/, 3];
+                if (!(globalThis.config.commentProcessType === 0)) return [3 /*break*/, 1];
+                temp = __spreadArrays(globalThis.electron.commentQueueList);
+                globalThis.electron.commentQueueList = [];
+                sendDom(temp);
+                return [3 /*break*/, 3];
+            case 1:
+                comment = globalThis.electron.commentQueueList.shift();
+                return [4 /*yield*/, sendDom([comment])];
+            case 2:
+                _c.sent();
+                _c.label = 3;
+            case 3:
+                if (!isExecuteQue) return [3 /*break*/, 5];
+                return [4 /*yield*/, util_1.sleep(100)];
+            case 4:
+                _c.sent();
+                taskScheduler();
+                _c.label = 5;
+            case 5: return [2 /*return*/];
+        }
+    });
+}); };
+/** 読み子によって発話中であるか */
+var isSpeaking = false;
+/** 読み子を再生する */
+var playYomiko = function (msg) { return __awaiter(void 0, void 0, void 0, function () {
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                // log.info('[playYomiko] start');
+                isSpeaking = true;
+                // 読み子呼び出し
+                switch (config.typeYomiko) {
+                    case 'tamiyasu': {
+                        child_process_1.exec(config.tamiyasuPath + " " + msg);
+                        break;
+                    }
+                    case 'bouyomi': {
+                        if (bouyomi)
+                            bouyomi.speak(msg);
+                        break;
+                    }
+                }
+                // 読み子が読んでる時間分相当待つ
+                globalThis.electron.mainWindow.webContents.send(const_1.electronEvent['wait-yomiko-time'], msg);
+                _a.label = 1;
+            case 1:
+                if (!isSpeaking) return [3 /*break*/, 3];
+                return [4 /*yield*/, util_1.sleep(50)];
+            case 2:
+                _a.sent();
+                return [3 /*break*/, 1];
+            case 3: return [2 /*return*/];
+        }
+    });
+}); };
+electron_1.ipcMain.on(const_1.electronEvent['speaking-end'], function (event) { return (isSpeaking = false); });
+var isPlayingSe = false;
+var playSe = function () { return __awaiter(void 0, void 0, void 0, function () {
+    var wavfilepath;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                wavfilepath = globalThis.electron.seList[Math.floor(Math.random() * globalThis.electron.seList.length)];
+                isPlayingSe = true;
+                globalThis.electron.mainWindow.webContents.send(const_1.electronEvent['play-sound-start'], wavfilepath);
+                _a.label = 1;
+            case 1:
+                if (!isPlayingSe) return [3 /*break*/, 3];
+                return [4 /*yield*/, util_1.sleep(50)];
+            case 2:
+                _a.sent();
+                return [3 /*break*/, 1];
+            case 3: return [2 /*return*/];
+        }
+    });
+}); };
+electron_1.ipcMain.on(const_1.electronEvent['play-sound-end'], function (event) { return (isPlayingSe = false); });
 exports.createDom = function (message) {
     var domStr = "\n  <li class=\"list-item\">\n    <span class=\"icon-block\">\n      <img class=\"icon\" src=\"" + message.imgUrl + "\">\n    </span>\n  <div class=\"content\">";
     //レス番表示
@@ -1209,19 +1334,29 @@ exports.createDom = function (message) {
  * 必要ならレス着信音も鳴らす
  * @param message
  */
-exports.sendDom = function (message) {
-    var domStr = exports.createDom(message);
-    if (globalThis.electron.socket)
-        globalThis.electron.socket.send(domStr);
-    if (config.playSe && globalThis.electron.seList.length > 0) {
-        var wavfilepath = globalThis.electron.seList[Math.floor(Math.random() * globalThis.electron.seList.length)];
-        globalThis.electron.mainWindow.webContents.send(const_1.electronEvent['play-sound'], { wavfilepath: wavfilepath, text: message.text });
-    }
-    else if (globalThis.config.typeYomiko !== 'none') {
-        // レス着信音OFF + レス読み
-        electron_1.ipcMain.emit(const_1.electronEvent['play-tamiyasu'], null, message.text);
-    }
-};
+var sendDom = function (messageList) { return __awaiter(void 0, void 0, void 0, function () {
+    var domStr;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                domStr = messageList.map(function (message) { return exports.createDom(message); }).join('\n');
+                if (globalThis.electron.socket)
+                    globalThis.electron.socket.send(domStr);
+                if (!(config.playSe && globalThis.electron.seList.length > 0)) return [3 /*break*/, 2];
+                return [4 /*yield*/, playSe()];
+            case 1:
+                _a.sent();
+                _a.label = 2;
+            case 2:
+                if (!(globalThis.config.typeYomiko !== 'none')) return [3 /*break*/, 4];
+                return [4 /*yield*/, playYomiko(messageList[messageList.length - 1].text)];
+            case 3:
+                _a.sent();
+                _a.label = 4;
+            case 4: return [2 /*return*/];
+        }
+    });
+}); };
 exports.default = {};
 
 

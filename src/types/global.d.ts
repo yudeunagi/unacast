@@ -13,8 +13,12 @@ declare global {
     let youtubeChat: LiveChat;
     /** ブラウザとのWebSocket情報 */
     let socket: WebSocket;
+    /** 掲示板の読み込み済みのレス番号 */
+    let threadNumber: number;
     /** 掲示板との連続通信エラー回数 */
     let threadConnectionError: number;
+    /** コメントの処理待ちリスト */
+    let commentQueueList: UserComment[];
   }
   namespace config {
     /** 掲示板URL */
@@ -67,6 +71,14 @@ declare global {
     let bouyomiVolume: number;
     /** スレが通信エラーになった時の通知閾値 */
     let notifyThreadConnectionErrorLimit: number;
+    /** スレのレス数が超えた時の通知 */
+    let notifyThreadResLimit: number;
+    /**
+     * レスの処理方法
+     * - 0: 新着を優先
+     * - 1: 1個ずつ順に処理
+     */
+    let commentProcessType: 0 | 1;
   }
 }
 

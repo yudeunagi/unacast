@@ -3,24 +3,25 @@
  */
 import axios, { AxiosRequestConfig } from 'axios';
 import iconv from 'iconv-lite'; // 文字コード変換用パッケージ
+import log from 'electron-log';
 export type ShitarabaResponse = ReturnType<typeof purseResponse>;
 
 /**
  * コンストラクタ
  */
 class ReadSitaraba {
-  constructor() {}
+  // constructor() {}
 
   /**
    * レス読み込み
-   * 引数で指定した板からレスを読む
-   * レス番号を指定していない場合は最新1件取得
-   * @param String // threadUrl スレURL
-   * @param String // resNum レス番号
+   * @description 引数で指定した板からレスを読む。
+   * @description レス番号を指定していない場合は最新1件取得
+   * @param threadUrl スレURL
+   * @param resNum レス番号
    */
   read = async (threadUrl: string, resNum: number) => {
     //掲示板へのリクエスト実行
-    console.log('[ReadSitaraba.js]したらばレス取得API呼び出し開始');
+    // log.info('[ReadSitaraba.js]したらばレス取得API呼び出し開始');
 
     // リクエストURL作成
     // URLの「read.cgi」を「rawmode.cgi」に変換
@@ -34,6 +35,7 @@ class ReadSitaraba {
     }
 
     // リクエストオプションの設定
+    // log.info(requestUrl);
     const options: AxiosRequestConfig = {
       url: requestUrl,
       method: 'GET',

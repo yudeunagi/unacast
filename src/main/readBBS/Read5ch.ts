@@ -23,18 +23,18 @@ let lastByte = 0;
  *
  */
 class Read5ch {
-  constructor() {}
+  // constructor() {}
   /**
    * レス読み込み
    * 引数で指定した板からレスを読む
    * レス番号を指定していない場合は最新1件取得
-   * @param String // threadUrl スレURL
-   * @param String // resNum レス番号
+   * @param threadUrl スレURL
+   * @param resNum レス番号
    */
-  read = async (threadUrl: string, resNum: string) => {
-    console.log(`[Read5ch] threadUrl=${threadUrl} resNum=${resNum}`);
-    //板や最終日レス番号がかわったら最初からとり直す(lastmodifiと rangeのリセット)
-    if (threadUrl != lastThreadUrl || parseInt(resNum) < lastResNumber || resNum === '') {
+  read = async (threadUrl: string, resNum: number) => {
+    // log.info(`[Read5ch] threadUrl=${threadUrl} resNum=${resNum}`);
+    // 板や最終日レス番号がかわったら最初からとり直す(lastmodifiと rangeのリセット)
+    if (threadUrl != lastThreadUrl || Number.isNaN(resNum) || resNum < lastResNumber) {
       lastThreadUrl = threadUrl;
       lastModified = null;
       lastByte = 0;
@@ -101,8 +101,7 @@ class Read5ch {
         console.trace('[Read5ch.read]lastByte=' + lastByte);
       }
     } catch (error) {
-      const rsArray = new Array();
-      responseJson = rsArray;
+      responseJson = [];
       if (error.status == NOT_MODIFIED) {
         log.error('[Read5ch.js]5ch系BBSレス取得APIリクエストエラー、NOT_MODIFIED');
       } else if (error.status == RANGE_NOT_SATISFIABLE) {
@@ -123,7 +122,7 @@ class Read5ch {
  * @param res 板から返却されたdat
  * @param resNum リクエストされたレス番号
  */
-const purseNewResponse = (res: string, resNum: string) => {
+const purseNewResponse = (res: string, resNum: number) => {
   // 結果を格納する配列
   const result: ReturnType<typeof purseResponse>[] = [];
   // レス番号
@@ -141,10 +140,10 @@ const purseNewResponse = (res: string, resNum: string) => {
   }
 
   // レス指定なしの場合最後の1件取得
-  if (resNum === null || resNum === '') {
+  if (Number.isNaN(resNum)) {
     num = resArray.length - 1;
   } else {
-    num = parseInt(resNum) - 1;
+    num = resNum - 1;
   }
 
   // 1行ごとにパースする
@@ -165,11 +164,11 @@ const purseNewResponse = (res: string, resNum: string) => {
  * @param res 板から返却されたdat1行分
  * @param resNum リクエストされたレス番号
  */
-const purseDiffResponse = (res: string, resNum: string) => {
+const purseDiffResponse = (res: string, resNum: number) => {
   //結果を格納する配列
   const result: ReturnType<typeof purseResponse>[] = [];
   // レス番号
-  let num = parseInt(resNum);
+  let num = resNum;
 
   //新着レスを改行ごとにSplitする
   const resArray = res.split(/\r\n|\r|\n/);

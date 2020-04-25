@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>unacast</title>
     <!--Jquery読み込み-->
-    <script>
+    <!-- <script>
       window.jQuery = window.$ = require('../../node_modules/jquery/dist/jquery.slim.min.js');
-    </script>
+    </script> -->
     <!-- CSSの読み込み Material Design Lite -->
     <link rel="stylesheet" href="../../node_modules/material-design-lite/material.min.css" />
     <script src="../../node_modules/material-design-lite/material.min.js"></script>
@@ -114,12 +114,6 @@
             <input id="text-init-message" class="mdl-textfield__input" type="text" value="" />
           </div>
 
-          <!-- <div class="mdl-textfield mdl-js-textfield">
-        表示レス数（未実装）
-        <input id="text-disp-number" class="mdl-textfield__input" type="text" pattern="[0-9]{0,2}?">
-        <span class="mdl-textfield__error">0-99 までの数値を入れてください</span>
-      </div> -->
-
           <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="checkbox-showNumber">
             <input type="checkbox" id="checkbox-showNumber" class="mdl-checkbox__input" value="1" checked />
             <span class="mdl-checkbox__label">レス番表示(掲示板レスのみ有効)</span>
@@ -137,7 +131,7 @@
 
           <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="checkbox-wordBreak">
             <input type="checkbox" id="checkbox-wordBreak" class="mdl-checkbox__input" value="1" checked />
-            <span class="mdl-checkbox__label">自動改行する(掲示板レスのみ有効)</span>
+            <span class="mdl-checkbox__label">自動改行する</span>
           </label>
 
           <div class="mdl-textfield mdl-js-textfield">
@@ -211,20 +205,40 @@
             <input class="mdl-textfield__input" type="text" id="text-bouyomi-port" />
           </div>
           <div>
-          <span class="subtitle">音量</span> <span id="disp-bouyomi-volume">50</span></p>
-          <p style="width: 80%;">
-            <input id="bouyomi-volume" class="mdl-slider mdl-js-slider" type="range" min="-1" max="100" value="50" tabindex="0" oninput="showVal('disp-bouyomi-volume', this.value)" />
-          </p>
-        </div>
+            <span class="subtitle">音量</span> <span id="disp-bouyomi-volume">50</span></p>
+            <p style="width: 80%;">
+              <input id="bouyomi-volume" class="mdl-slider mdl-js-slider" type="range" min="-1" max="100" value="50" tabindex="0" oninput="showVal('disp-bouyomi-volume', this.value)" />
+            </p>
+          </div>
         </div>
 
         <div class="block">
-          <h5>通知設定</h5>
-          <div class="mdl-textfield mdl-js-textfield">
+          <h5>その他</h5>
+          <div class="mdl-textfield mdl-js-textfield"  style="width: 600px;">
+            <div class="subtitle">スレのレス番号が超えた時に通知する値(0で使用しない)</div>
+            <input id="text-notify-threadResLimit" class="mdl-textfield__input" type="text" required="true" pattern="[0-9]{0,5}?" value="0" />
+            <span class="mdl-textfield__error">0-10000 までの数値を入れてください</span>
+          </div>
+
+          <div class="mdl-textfield mdl-js-textfield"  style="width: 600px;">
             <div class="subtitle">掲示板が連続で通信エラーになった時に通知する閾値(0で使用しない)</div>
             <input id="text-notify-threadConnectionErrorLimit" class="mdl-textfield__input" type="text" required="true" pattern="[0-9]{0,2}?" value="0" />
             <span class="mdl-textfield__error">0-99 までの数値を入れてください</span>
           </div>
+
+          <div class="mdl-textfield mdl-js-textfield" style="width: 100vw;">
+            <div class="subtitle">レスの処理単位</div>
+            <label class="mdl-radio mdl-js-radio" for="commentProcessType_0">
+              <input id="commentProcessType_0" class="mdl-radio__button" type="radio" name="commentProcessType" value="0" />
+              <span class="mdl-radio__label">新着を優先(着信音等が鳴ってる場合は中断されます)</span>
+            </label>
+
+            <label class="mdl-radio mdl-js-radio" for="commentProcessType_1">
+              <input id="commentProcessType_1" class="mdl-radio__button" type="radio" name="commentProcessType" value="1" />
+              <span class="mdl-radio__label">1つずつ</span>
+            </label>
+          </div>
+
         </div>
       </form>
 

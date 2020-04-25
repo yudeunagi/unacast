@@ -2,14 +2,12 @@ import express from 'express';
 import bodyParser from 'body-parser'; // jsonパーサ
 const router = express.Router();
 import log from 'electron-log';
-import { ipcMain } from 'electron';
 import ReadIcons from './ReadIcons'; //アイコンファイル名取得
 const readIcons = new ReadIcons();
 
-import { sendDom, createDom } from './startServer';
-import ReadSitaraba, { ShitarabaResponse } from './readBBS/readSitaraba'; // したらば読み込み用モジュール
+import { createDom } from './startServer';
+import ReadSitaraba from './readBBS/readSitaraba'; // したらば読み込み用モジュール
 import Read5ch from './readBBS/Read5ch'; // 5ch互換板読み込み用モジュール
-import { electronEvent } from './const';
 const sitaraba = new ReadSitaraba();
 const read5ch = new Read5ch();
 // 掲示板読み込みモジュール、一度決定したら使いまわすためにグローバル宣言
@@ -20,71 +18,81 @@ router.use(bodyParser.urlencoded({ extended: true }));
 router.use(bodyParser.json());
 
 /**
- * http://localhost:3000/getRes にGETメソッドのリクエストを投げると、
- * JSON形式で文字列を返す。
+ * ブラウザからの初期処理リクエスト
  */
-router.post('/', async (req, res, next) => {
+router.get('/', async (req, res, next) => {
   // リクエストからURLとレス番号を取得する
-  const threadUrl = req.body.threadUrl;
+  const threadUrl: string = globalThis.config.url;
   // レス番号取得
-  const resNum = req.body.resNumber;
+  const resNum: number = globalThis.config.resNumber ? Number(globalThis.config.resNumber) : NaN;
+  res.header('Content-Type', 'application/json; charset=UTF-8');
 
-  // リクエストURLを解析し、使用するモジュールを変更する（初回のみ）
-  if (bbsModule === null) {
-    bbsModule = analysBBSName(threadUrl) as any;
+  const result = await getRes(threadUrl, resNum);
+
+  // 末尾のレス番号を保存
+  if (result.length > 0 && result[result.length - 1].number) {
+    globalThis.electron.threadNumber = Number(result[result.length - 1].number);
   }
+  // 初回なのでキューを初期化
+  globalThis.electron.commentQueueList = [];
 
-  // 選択したモジュールでレス取得処理を行う
-  bbsModule
-    .read(threadUrl, resNum)
-    .then(async (response) => {
-      console.log('[getRes.js] fetch res success = ' + response.length);
-      res.header('Content-Type', 'application/json; charset=UTF-8');
-
-      globalThis.electron.threadConnectionError = 0;
-      if (response.length === 0) {
-        res.send([]);
-        return;
-      }
-
-      // 返却されたjsonオブジェクトを組み立てる
-      const result = buildResponseArray(response);
-      console.log(`[getRes.js] fetch res end  result = ${result.length}`);
-      if (result.length === 0) {
-        res.send([]);
-        return;
-      }
-
-      // レス着信音
-      if (config.playSe && globalThis.electron.seList.length > 0) {
-        const wavfilepath = globalThis.electron.seList[Math.floor(Math.random() * globalThis.electron.seList.length)];
-        globalThis.electron.mainWindow.webContents.send(electronEvent['play-sound'], { wavfilepath, text: response[response.length - 1].text });
-      } else if (globalThis.config.typeYomiko !== 'none') {
-        // レス着信音OFF + レス読み
-        ipcMain.emit(electronEvent['play-tamiyasu'], null, response[response.length - 1].text);
-      }
-
-      // 返却
-      res.send(result);
-    })
-    .catch((err) => {
-      if (globalThis.config.notifyThreadConnectionErrorLimit > 0) {
-        globalThis.electron.threadConnectionError += 1;
-        if (globalThis.electron.threadConnectionError >= globalThis.config.notifyThreadConnectionErrorLimit) {
-          globalThis.electron.threadConnectionError = 0;
-          const icon = `./img/unacast.png`;
-          sendDom({
-            name: 'unacastより',
-            text: '掲示板が規定回数通信エラーになりました。設定を見直すか、掲示板URLを変更してください。',
-            imgUrl: icon,
-          });
-        }
-      }
-      log.error(err);
-    });
-
-  return;
+  result.shift();
+  const doms = result.map((item) => createDom(item));
+  res.send(JSON.stringify(doms));
 });
+
+export const getResInterval = async () => {
+  if (globalThis.electron.threadNumber > 0) {
+    const result = await getRes(globalThis.config.url, globalThis.electron.threadNumber);
+    // 指定したレス番は除外対象
+    result.shift();
+    if (result.length > 0 && result[result.length - 1].number) {
+      globalThis.electron.threadNumber = Number(result[result.length - 1].number);
+      globalThis.electron.commentQueueList.push(...result);
+    }
+    notifyThreadResLimit();
+  }
+};
+
+/**
+ * 掲示板のレスを取得する
+ * @param threadUrl スレのURL
+ * @param resNum この番号以降を取得する
+ */
+const getRes = async (threadUrl: string, resNum: number): Promise<UserComment[]> => {
+  try {
+    // リクエストURLを解析し、使用するモジュールを変更する
+    bbsModule = analysBBSName(threadUrl) as any;
+
+    // 選択したモジュールでレス取得処理を行う
+    const response = await bbsModule.read(threadUrl, resNum);
+    globalThis.electron.threadConnectionError = 0;
+    console.log(`[getRes.js] fetch res end resNum = ${resNum}, result = ${response.length}`);
+
+    return response.map((res) => {
+      return {
+        ...res,
+        imgUrl: readIcons.getRandomIcons(),
+      };
+    });
+  } catch (e) {
+    log.error(e);
+    if (globalThis.config.notifyThreadConnectionErrorLimit > 0) {
+      globalThis.electron.threadConnectionError += 1;
+      if (globalThis.electron.threadConnectionError >= globalThis.config.notifyThreadConnectionErrorLimit) {
+        globalThis.electron.threadConnectionError = 0;
+        return [
+          {
+            name: 'unacastより',
+            imgUrl: './img/unacast.png',
+            text: '掲示板が規定回数通信エラーになりました。設定を見直すか、掲示板URLを変更してください。',
+          },
+        ];
+      }
+    }
+    return [];
+  }
+};
 
 /*
  * URLをみてどこのBBSか判定して使用するモジュールを返却する
@@ -104,40 +112,14 @@ const analysBBSName = (threadUrl: string) => {
   return read5ch;
 };
 
-/**
- * レスポンスの生成
- * レスポンスオブジェクトの配列をHTMLに変換
- */
-const buildResponseArray = (resObject: ShitarabaResponse[]) => {
-  //結果を格納する配列
-  const result: ReturnType<typeof buildResponse>[] = [];
-  resObject.forEach((value) => {
-    result.push(buildResponse(value));
-  });
-  return result;
-};
-
-/**
- * レスポンスのパース
- * レス番号とHTML文字列を格納したオブジェクトを返却する
- * @param object // レスオブジェクト（ReadShitaraba.jsとか参照）
- * @return レス番 , HTML整形後のレスのオブジェクト
- */
-const buildResponse = (res: ShitarabaResponse) => {
-  res.imgUrl = readIcons.getRandomIcons();
-  const dom = createDom(res);
-
-  // レス番とテキストをセットにしたJSONを返す
-  const result: {
-    resNumber: string;
-    html: string;
-  } = {
-    resNumber: res.number?.toString(),
-    html: dom,
-  };
-
-  // JSONオブジェクトを返却
-  return result;
+const notifyThreadResLimit = () => {
+  if (globalThis.config.notifyThreadResLimit > 0 && globalThis.electron.threadNumber >= globalThis.config.notifyThreadResLimit) {
+    globalThis.electron.commentQueueList.push({
+      name: 'unacastより',
+      imgUrl: './img/unacast.png',
+      text: `レスが${globalThis.config.notifyThreadResLimit}を超えました`,
+    });
+  }
 };
 
 export default router;

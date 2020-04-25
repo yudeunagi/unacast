@@ -34,6 +34,8 @@ globalThis.electron = {
   youtubeChat: undefined as any,
   socket: null as any,
   threadConnectionError: 0,
+  threadNumber: 0,
+  commentQueueList: [],
 };
 
 // 全てのウィンドウが閉じたら終了

@@ -6,21 +6,27 @@ import { ChatClient } from 'dank-twitch-irc';
 import { LiveChat } from './youtube-chat';
 import { ipcMain } from 'electron';
 import expressWs from 'express-ws';
-import { readWavFiles } from './util';
+import { readWavFiles, sleep } from './util';
 // レス取得APIをセット
-import getRes from './getRes';
+import getRes, { getResInterval } from './getRes';
 import { CommentItem } from './youtube-chat/parser';
 import bouyomiChan from './bouyomi-chan';
-import childProcess from 'child_process';
+import { exec } from 'child_process';
 import { electronEvent } from './const';
-const exec = childProcess.exec;
 
 let app: expressWs.Instance['app'];
 
 // サーバーをグローバル変数にセットできるようにする（サーバー停止処理のため）
 let server: http.Server;
 
+/** 棒読みちゃんインスタンス */
 let bouyomi: bouyomiChan;
+
+/** スレッド定期取得のイベント */
+let threadIntervalEvent: ReturnType<typeof setInterval>;
+
+/** キュー処理実行するか */
+let isExecuteQue = false;
 
 /**
  * サーバー起動
@@ -67,7 +73,7 @@ ipcMain.on(electronEvent['start-server'], async (event: any, config: typeof glob
       const imgUrl = './img/twitch.png';
       const name = msg.displayName;
       const text = msg.messageText;
-      sendDom({ name, text, imgUrl });
+      globalThis.electron.commentQueueList.push({ imgUrl, name, text });
     });
   }
 
@@ -89,9 +95,9 @@ ipcMain.on(electronEvent['start-server'], async (event: any, config: typeof glob
         const imgUrl = comment.author.thumbnail?.url ?? '';
         const name = comment.author.name;
         const text = (comment.message[0] as any).text;
-        sendDom({ name, text, imgUrl });
+        globalThis.electron.commentQueueList.push({ imgUrl, name, text });
       });
-      // // 何かエラーがあった
+      // 何かエラーがあった
       globalThis.electron.youtubeChat.on('error', (err: Error) => {
         log.error('[Youtube Chat] error');
         log.error(err);
@@ -110,6 +116,13 @@ ipcMain.on(electronEvent['start-server'], async (event: any, config: typeof glob
       bouyomi = new bouyomiChan({ port: config.bouyomiPort, volume: config.bouyomiVolume });
     }
   }
+
+  // レス取得定期実行
+  threadIntervalEvent = setInterval(() => getResInterval(), globalThis.config.interval * 1000);
+
+  // キュー処理の開始
+  isExecuteQue = true;
+  taskScheduler();
 
   // WebSocketを立てる
   app.ws('/ws', (ws, req) => {
@@ -143,30 +156,92 @@ ipcMain.on(electronEvent['stop-server'], (event) => {
   app = null as any;
   event.returnValue = 'stop';
 
+  // キュー処理停止
+  isExecuteQue = false;
+  globalThis.electron.commentQueueList = [];
+
+  // Twitchチャットの停止
   if (globalThis.electron.twitchChat) {
     globalThis.electron.twitchChat.close();
     globalThis.electron.twitchChat.removeAllListeners();
   }
 
+  // Youtubeチャットの停止
   if (globalThis.electron.youtubeChat) {
     globalThis.electron.youtubeChat.stop();
     globalThis.electron.youtubeChat.removeAllListeners();
   }
+
+  // レス取得の停止
+  if (threadIntervalEvent) {
+    clearInterval(threadIntervalEvent);
+  }
 });
 
-// 棒読みちゃん
-ipcMain.on(electronEvent['play-tamiyasu'], (event, args: string) => {
+/**
+ * キューに溜まったコメントを処理する
+ */
+const taskScheduler = async () => {
+  // log.info('taskScheduler');
+  if (globalThis.electron?.commentQueueList?.length > 0) {
+    if (globalThis.config.commentProcessType === 0) {
+      // 一括
+      const temp = [...globalThis.electron.commentQueueList];
+      globalThis.electron.commentQueueList = [];
+      sendDom(temp);
+    } else {
+      // 1個ずつ
+      const comment = globalThis.electron.commentQueueList.shift() as UserComment;
+      await sendDom([comment]);
+    }
+  }
+
+  if (isExecuteQue) {
+    await sleep(100);
+    taskScheduler();
+  }
+};
+
+/** 読み子によって発話中であるか */
+let isSpeaking = false;
+/** 読み子を再生する */
+const playYomiko = async (msg: string) => {
+  // log.info('[playYomiko] start');
+  isSpeaking = true;
+
+  // 読み子呼び出し
   switch (config.typeYomiko) {
     case 'tamiyasu': {
-      exec(`${config.tamiyasuPath} ${args}`);
+      exec(`${config.tamiyasuPath} ${msg}`);
       break;
     }
     case 'bouyomi': {
-      if (bouyomi) bouyomi.speak(args);
+      if (bouyomi) bouyomi.speak(msg);
       break;
     }
   }
-});
+  // 読み子が読んでる時間分相当待つ
+  globalThis.electron.mainWindow.webContents.send(electronEvent['wait-yomiko-time'], msg);
+  while (isSpeaking) {
+    await sleep(50);
+  }
+  // log.info('[playYomiko] end');
+};
+ipcMain.on(electronEvent['speaking-end'], (event) => (isSpeaking = false));
+
+let isPlayingSe = false;
+const playSe = async () => {
+  // log.info('[playSe] start');
+  const wavfilepath = globalThis.electron.seList[Math.floor(Math.random() * globalThis.electron.seList.length)];
+  isPlayingSe = true;
+  globalThis.electron.mainWindow.webContents.send(electronEvent['play-sound-start'], wavfilepath);
+
+  while (isPlayingSe) {
+    await sleep(50);
+  }
+  // log.info('[playSe] end');
+};
+ipcMain.on(electronEvent['play-sound-end'], (event) => (isPlayingSe = false));
 
 export const createDom = (message: UserComment) => {
   let domStr = `
@@ -211,16 +286,18 @@ export const createDom = (message: UserComment) => {
  * 必要ならレス着信音も鳴らす
  * @param message
  */
-export const sendDom = (message: UserComment) => {
-  const domStr = createDom(message);
+const sendDom = async (messageList: UserComment[]) => {
+  // メッセージをブラウザに送信
+  const domStr = messageList.map((message) => createDom(message)).join('\n');
   if (globalThis.electron.socket) globalThis.electron.socket.send(domStr);
 
+  // レス着信音
   if (config.playSe && globalThis.electron.seList.length > 0) {
-    const wavfilepath = globalThis.electron.seList[Math.floor(Math.random() * globalThis.electron.seList.length)];
-    globalThis.electron.mainWindow.webContents.send(electronEvent['play-sound'], { wavfilepath, text: message.text });
-  } else if (globalThis.config.typeYomiko !== 'none') {
-    // レス着信音OFF + レス読み
-    ipcMain.emit(electronEvent['play-tamiyasu'], null, message.text);
+    await playSe();
+  }
+
+  if (globalThis.config.typeYomiko !== 'none') {
+    await playYomiko(messageList[messageList.length - 1].text);
   }
 };
 

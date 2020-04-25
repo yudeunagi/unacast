@@ -6,7 +6,11 @@ export const electronEvent = {
   /** 棒読み再生 */
   'play-tamiyasu': 'play-tamiyasu',
   /** レス着信音再生 */
-  'play-sound': 'play-sound',
+  'play-sound-start': 'play-sound-start',
+  'play-sound-end': 'play-sound-end',
+
+  'wait-yomiko-time': 'wait-yomiko-time',
+  'speaking-end': 'speaking-end',
 
   /** サーバー起動の返信 */
   'start-server-reply': 'start-server-reply',
