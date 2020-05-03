@@ -186,8 +186,12 @@ const taskScheduler = async () => {
   if (globalThis.electron?.commentQueueList?.length > 0) {
     if (globalThis.config.commentProcessType === 0) {
       // 一括
-      const temp = [...globalThis.electron.commentQueueList];
+      let temp = [...globalThis.electron.commentQueueList];
       globalThis.electron.commentQueueList = [];
+      // 新着が上の場合は逆順にする
+      if (!globalThis.config.dispSort) {
+        temp = temp.reverse();
+      }
       sendDom(temp);
     } else {
       // 1個ずつ

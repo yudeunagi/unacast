@@ -1233,6 +1233,10 @@ var taskScheduler = function () { return __awaiter(void 0, void 0, void 0, funct
                 if (!(globalThis.config.commentProcessType === 0)) return [3 /*break*/, 1];
                 temp = __spreadArrays(globalThis.electron.commentQueueList);
                 globalThis.electron.commentQueueList = [];
+                // 新着が上の場合は逆順にする
+                if (!globalThis.config.dispSort) {
+                    temp = temp.reverse();
+                }
                 sendDom(temp);
                 return [3 /*break*/, 3];
             case 1:
