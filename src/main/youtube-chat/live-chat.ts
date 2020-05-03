@@ -22,7 +22,7 @@ type LiveChatResponse = [
     endpoint: string;
     csn: string;
     xsrf_token: string;
-  }
+  },
 ];
 
 /**

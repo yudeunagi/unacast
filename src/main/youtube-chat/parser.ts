@@ -56,7 +56,9 @@ const parseMessages = (runs: MessageRun[]): MessageItem[] => {
   });
 };
 
-export const actionToRenderer = (action: Action): LiveChatTextMessageRenderer | LiveChatPaidMessageRenderer | LiveChatPaidStickerRenderer | LiveChatMembershipItemRenderer | null => {
+export const actionToRenderer = (
+  action: Action,
+): LiveChatTextMessageRenderer | LiveChatPaidMessageRenderer | LiveChatPaidStickerRenderer | LiveChatMembershipItemRenderer | null => {
   if (!action.addChatItemAction) {
     return null;
   }
