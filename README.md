@@ -72,7 +72,7 @@ yarn buildwin
 * [x] レス着信時のランダムサウンド再生
 * [x] Twitch対応
 * [x] 本体とviewの接続のWebSocket化
-* [ ] レスの通信もWebSocketにする
+* [x] レスの通信もWebSocketにする
 * [x] Youtube対応
 * [x] 掲示板取得で通信エラーが繰り返された時の通知
 * [ ] TypeScript化(view)
