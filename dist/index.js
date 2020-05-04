@@ -630,9 +630,9 @@ else {
             ]);
             tray.setToolTip('∈(ﾟ◎ﾟ)∋ｳﾅｰ');
             tray.setContextMenu(contextMenu);
-            tray.on('click', function (event) {
-                globalThis.electron.mainWindow.focus();
-            });
+            // タスクトレイクリック時の挙動
+            tray.on('click', function (event) { return globalThis.electron.chatWindow.focus(); });
+            tray.on('double-click', function (event) { return globalThis.electron.mainWindow.focus(); });
         });
         createChatWindow_1();
     });

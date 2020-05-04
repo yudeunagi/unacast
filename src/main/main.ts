@@ -123,9 +123,9 @@ if (!app.requestSingleInstanceLock()) {
       ]);
       tray.setToolTip('∈(ﾟ◎ﾟ)∋ｳﾅｰ');
       tray.setContextMenu(contextMenu);
-      tray.on('click', (event) => {
-        globalThis.electron.mainWindow.focus();
-      });
+      // タスクトレイクリック時の挙動
+      tray.on('click', (event) => globalThis.electron.chatWindow.focus());
+      tray.on('double-click', (event) => globalThis.electron.mainWindow.focus());
     });
 
     createChatWindow();
