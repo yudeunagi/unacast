@@ -1184,7 +1184,7 @@ var isExecuteQue = false;
  * port:ポート番号
  */
 electron_1.ipcMain.on(const_1.electronEvent['start-server'], function (event, config) { return __awaiter(void 0, void 0, void 0, function () {
-    var list;
+    var id, list;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -1200,7 +1200,11 @@ electron_1.ipcMain.on(const_1.electronEvent['start-server'], function (event, co
                     res.render('server', config);
                     req.connection.end();
                 });
-                //静的コンテンツはpublicディレクトリの中身を使用するという宣言
+                id = new Date().getTime();
+                app.get('/id', function (req, res, next) {
+                    res.send("" + id);
+                });
+                // 静的コンテンツはpublicディレクトリの中身を使用するという宣言
                 app.use(express_1.default.static(path_1.default.resolve(__dirname, '../public')));
                 // 2ch互換掲示板の取得
                 app.use('/getRes', getRes_1.default);

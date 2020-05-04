@@ -1,3 +1,5 @@
+let id = null;
+
 window.onload = () => {
   readThread();
 
@@ -15,6 +17,9 @@ window.onload = () => {
 
   // WebSocket接続
   setInterval(checkWsConnect, 3 * 1000);
+
+  // サーバー再起動されてたらリロードする
+  setInterval(checkId, 5 * 1000);
 };
 
 /** @type WebSocket */
@@ -106,6 +111,34 @@ const readThread = () => {
       //エラー処理
       console.log(error);
     });
+};
+
+/**
+ * サーバーのバージョンをチェックする
+ */
+const checkId = async () => {
+  const port = $('#port').val();
+  const requestUrl = `http://localhost:${port}/id`;
+  try {
+    const res = await fetch(requestUrl, {
+      method: 'GET',
+      encoding: null,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!res.ok || res.status !== 200) throw new Error(`[readThread] 通信エラー url = ${requestUrl}`);
+    const resText = await res.text();
+    if (id) {
+      // 再起動を検知したらリロード
+      if (id !== resText) window.location.reload();
+    } else {
+      id = resText;
+    }
+  } catch (error) {
+    console.log(error);
+  }
 };
 
 //レスをリスト追加

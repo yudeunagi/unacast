@@ -51,7 +51,13 @@ ipcMain.on(electronEvent['start-server'], async (event: any, config: typeof glob
     res.render('server', config);
     req.connection.end();
   });
-  //静的コンテンツはpublicディレクトリの中身を使用するという宣言
+
+  const id = new Date().getTime();
+  app.get('/id', (req: Request, res: Response, next) => {
+    res.send(`${id}`);
+  });
+
+  // 静的コンテンツはpublicディレクトリの中身を使用するという宣言
   app.use(express.static(path.resolve(__dirname, '../public')));
 
   // 2ch互換掲示板の取得
