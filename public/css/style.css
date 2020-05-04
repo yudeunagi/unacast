@@ -22,3 +22,12 @@ h5 {
 .mdl-textfield {
   padding: 10px 0;
 }
+
+.labeledInputArea {
+  display: flex;
+}
+
+.labeledInputArea > span {
+  margin-right: 5px;
+  color: darkgray;
+}

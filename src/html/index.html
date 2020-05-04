@@ -49,20 +49,26 @@
 
         <div class="block">
           <h5>レス・コメント取得先</h5>
-          <div class="mdl-textfield mdl-js-textfield" style="width: 600px;">
+          <div class="mdl-textfield mdl-js-textfield" style="width: 100%">
             <div class="subtitle">掲示板URL</div>
             <input id="text-url" class="mdl-textfield__input" type="text" required="true" pattern="http.?://.+" value="http://jbbs.shitaraba.net/bbs/read.cgi/radio/31003/1564068767/" />
             <span id="text-url-error" class="mdl-textfield__error">URLを入力してください</span>
           </div>
 
-          <div class="mdl-textfield mdl-js-textfield" style="width: 600px;">
+          <div class="mdl-textfield mdl-js-textfield" style="width: 100%">
             <div class="subtitle">Youtube チャンネルID</div>
-            <input class="mdl-textfield__input" type="text" id="text-youtube-id" />
+            <div class="labeledInputArea">
+              <span>https://www.youtube.com/channel/</span>
+              <input class="mdl-textfield__input" type="text" id="text-youtube-id" pattern="^(?!.*http.?:).*$" />
+            </div>
           </div>
 
-          <div class="mdl-textfield mdl-js-textfield" style="width: 600px;">
+          <div class="mdl-textfield mdl-js-textfield" style="width: 100%">
             <div class="subtitle">Twitch ユーザID</div>
-            <input class="mdl-textfield__input" type="text" id="text-twitch-id" />
+            <div class="labeledInputArea">
+              <span>https://www.twitch.tv/</span>
+              <input class="mdl-textfield__input" type="text" id="text-twitch-id" pattern="^(?!.*http.?:).*$" />
+            </div>
           </div>
         </div>
 
