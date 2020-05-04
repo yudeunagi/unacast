@@ -112,6 +112,7 @@ const analysBBSName = (threadUrl: string) => {
   return read5ch;
 };
 
+/** エラー回数が規定回数以上かチェックして、超えてたら通知する */
 const notifyThreadResLimit = () => {
   if (globalThis.config.notifyThreadResLimit > 0 && globalThis.electron.threadNumber >= globalThis.config.notifyThreadResLimit) {
     globalThis.electron.commentQueueList.push({

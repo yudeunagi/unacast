@@ -482,6 +482,7 @@ var analysBBSName = function (threadUrl) {
     // この辺も対応ドメインリストとか作ってちゃんと判定したほうがよさそう
     return read5ch;
 };
+/** エラー回数が規定回数以上かチェックして、超えてたら通知する */
 var notifyThreadResLimit = function () {
     if (globalThis.config.notifyThreadResLimit > 0 && globalThis.electron.threadNumber >= globalThis.config.notifyThreadResLimit) {
         globalThis.electron.commentQueueList.push({
