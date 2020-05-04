@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
   console.debug('[renderer.js] DOM Content Loaded');
 });
 
-// サーバー起動返信
+// コメント表示
 ipcRenderer.on(electronEvent['show-comment'], (event: any, args: { config: typeof globalThis['config']; dom: string }) => {
   log.info('[show-comment] received');
   const dom = document.getElementById('res-list') as HTMLInputElement;
@@ -32,4 +32,11 @@ ipcRenderer.on(electronEvent['show-comment'], (event: any, args: { config: typeo
   if (isBottom) {
     document.documentElement.scrollTo(0, document.documentElement.scrollHeight);
   }
+});
+
+// リセット
+ipcRenderer.on(electronEvent['clear-comment'], (event: any) => {
+  log.info('[clear-comment] received');
+  const dom = document.getElementById('res-list') as HTMLInputElement;
+  dom.innerHTML = '';
 });

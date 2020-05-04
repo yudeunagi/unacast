@@ -36,6 +36,8 @@ let isExecuteQue = false;
  * port:ポート番号
  */
 ipcMain.on(electronEvent['start-server'], async (event: any, config: typeof globalThis['config']) => {
+  globalThis.electron.chatWindow.webContents.send(electronEvent['clear-comment']);
+
   app = expressWs(express()).app;
   app.set('view engine', 'ejs');
   // viewディレクトリの指定

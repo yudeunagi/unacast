@@ -292,6 +292,8 @@ exports.electronEvent = {
     'speaking-end': 'speaking-end',
     /** コメント表示 */
     'show-comment': 'show-comment',
+    /** コメント欄初期化 */
+    'clear-comment': 'clear-comment',
     /** サーバー起動の返信 */
     'start-server-reply': 'start-server-reply',
 };
@@ -1188,6 +1190,7 @@ electron_1.ipcMain.on(const_1.electronEvent['start-server'], function (event, co
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
+                globalThis.electron.chatWindow.webContents.send(const_1.electronEvent['clear-comment']);
                 app = express_ws_1.default(express_1.default()).app;
                 app.set('view engine', 'ejs');
                 // viewディレクトリの指定

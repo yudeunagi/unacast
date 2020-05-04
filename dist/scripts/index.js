@@ -286,7 +286,7 @@ eval("\n\nvar http = __webpack_require__(/*! http */ \"http\");\nvar https = __w
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-eval("\r\nObject.defineProperty(exports, \"__esModule\", { value: true });\r\nexports.electronEvent = {\r\n    /** サーバー起動 */\r\n    'start-server': 'start-server',\r\n    /** サーバー停止 */\r\n    'stop-server': 'stop-server',\r\n    /** 棒読み再生 */\r\n    'play-tamiyasu': 'play-tamiyasu',\r\n    /** レス着信音再生 */\r\n    'play-sound-start': 'play-sound-start',\r\n    'play-sound-end': 'play-sound-end',\r\n    'wait-yomiko-time': 'wait-yomiko-time',\r\n    'speaking-end': 'speaking-end',\r\n    /** コメント表示 */\r\n    'show-comment': 'show-comment',\r\n    /** サーバー起動の返信 */\r\n    'start-server-reply': 'start-server-reply',\r\n};\r\n\n\n//# sourceURL=webpack:///./src/main/const.ts?");
+eval("\r\nObject.defineProperty(exports, \"__esModule\", { value: true });\r\nexports.electronEvent = {\r\n    /** サーバー起動 */\r\n    'start-server': 'start-server',\r\n    /** サーバー停止 */\r\n    'stop-server': 'stop-server',\r\n    /** 棒読み再生 */\r\n    'play-tamiyasu': 'play-tamiyasu',\r\n    /** レス着信音再生 */\r\n    'play-sound-start': 'play-sound-start',\r\n    'play-sound-end': 'play-sound-end',\r\n    'wait-yomiko-time': 'wait-yomiko-time',\r\n    'speaking-end': 'speaking-end',\r\n    /** コメント表示 */\r\n    'show-comment': 'show-comment',\r\n    /** コメント欄初期化 */\r\n    'clear-comment': 'clear-comment',\r\n    /** サーバー起動の返信 */\r\n    'start-server-reply': 'start-server-reply',\r\n};\r\n\n\n//# sourceURL=webpack:///./src/main/const.ts?");
 
 /***/ }),
 
