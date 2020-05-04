@@ -2,6 +2,7 @@
 import path from 'path';
 import electron, { Tray, Menu, dialog } from 'electron';
 import log from 'electron-log';
+import { sleep } from './util';
 
 console.trace = () => {
   //
@@ -124,8 +125,17 @@ if (!app.requestSingleInstanceLock()) {
       tray.setToolTip('∈(ﾟ◎ﾟ)∋ｳﾅｰ');
       tray.setContextMenu(contextMenu);
       // タスクトレイクリック時の挙動
-      tray.on('click', (event) => globalThis.electron.chatWindow.focus());
-      tray.on('double-click', (event) => globalThis.electron.mainWindow.focus());
+      let isDoubleClicked = false;
+      tray.on('click', async (event) => {
+        isDoubleClicked = false;
+        await sleep(200);
+        if (isDoubleClicked) return;
+        globalThis.electron.chatWindow.focus();
+      });
+      tray.on('double-click', (event) => {
+        isDoubleClicked = true;
+        globalThis.electron.mainWindow.focus();
+      });
     });
 
     createChatWindow();
