@@ -31,15 +31,15 @@ class BouyomiChan {
   /**
    * 速度（-1:棒読みちゃん画面上の設定）
    */
-  private speed = 100;
+  private speed = -1;
   /**
    * 音程（-1:棒読みちゃん画面上の設定）
    */
-  private tone = 100;
+  private tone = -1;
   /**
    * 音量（-1:棒読みちゃん画面上の設定）
    */
-  private volume = 50;
+  private volume = -1;
   /**
    * 声質（ 0:棒読みちゃん画面上の設定、1:女性1、2:女性2、3:男性1、4:男性2、5:中性、6:ロボット、7:機械1、8:機械2、10001～:SAPI5）
    */

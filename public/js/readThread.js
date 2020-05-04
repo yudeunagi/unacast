@@ -23,7 +23,7 @@ window.onload = () => {
 };
 
 /** @type WebSocket */
-var socket;
+let socket;
 
 /** WebSocketの接続 */
 const checkWsConnect = () => {
@@ -54,7 +54,7 @@ const checkWsConnect = () => {
  * WebSocket疎通確認用変数
  * @description ping投げる前にfalseにしておき、返ってきたらtrueにする
  */
-var pingReturn = false;
+let pingReturn = false;
 
 /** WebSocket疎通確認 */
 const pingWs = async () => {

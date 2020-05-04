@@ -1,0 +1,7 @@
+{
+  "extends": ["../.eslintrc.json"],
+  "env": {
+    "jquery": true,
+    "browser": true
+  }
+}
