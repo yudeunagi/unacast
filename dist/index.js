@@ -395,8 +395,13 @@ router.get('/', function (req, res, next) { return __awaiter(void 0, void 0, voi
                 if (result.length > 0 && result[result.length - 1].number) {
                     globalThis.electron.threadNumber = Number(result[result.length - 1].number);
                 }
+                else {
+                    // 読み込み失敗時はとりあえず指定されたレス番か1にする
+                    globalThis.electron.threadNumber = resNum ? resNum : 1;
+                }
                 // 初回なのでキューを初期化
-                globalThis.electron.commentQueueList = [];
+                // サーバー立てるとこで初期化してる
+                // globalThis.electron.commentQueueList = [];
                 result.shift();
                 doms = result.map(function (item) { return startServer_1.createDom(item); });
                 res.send(JSON.stringify(doms));
@@ -1235,10 +1240,6 @@ var threadIntervalEvent;
 var isExecuteQue = false;
 /**
  * サーバー起動
- * config:設定を格納したjson、以下jsonの中身
- * url:掲示板URL
- * resNumber:読み込み開始レス位置
- * port:ポート番号
  */
 electron_1.ipcMain.on(const_1.electronEvent['start-server'], function (event, config) { return __awaiter(void 0, void 0, void 0, function () {
     var id, list;
@@ -1246,6 +1247,9 @@ electron_1.ipcMain.on(const_1.electronEvent['start-server'], function (event, co
         switch (_a.label) {
             case 0:
                 globalThis.electron.chatWindow.webContents.send(const_1.electronEvent['clear-comment']);
+                globalThis.electron.threadNumber = 0;
+                globalThis.electron.commentQueueList = [];
+                globalThis.electron.threadConnectionError = 0;
                 app = express_ws_1.default(express_1.default()).app;
                 app.set('view engine', 'ejs');
                 // viewディレクトリの指定

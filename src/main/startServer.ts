@@ -30,13 +30,12 @@ let isExecuteQue = false;
 
 /**
  * サーバー起動
- * config:設定を格納したjson、以下jsonの中身
- * url:掲示板URL
- * resNumber:読み込み開始レス位置
- * port:ポート番号
  */
 ipcMain.on(electronEvent['start-server'], async (event: any, config: typeof globalThis['config']) => {
   globalThis.electron.chatWindow.webContents.send(electronEvent['clear-comment']);
+  globalThis.electron.threadNumber = 0;
+  globalThis.electron.commentQueueList = [];
+  globalThis.electron.threadConnectionError = 0;
 
   app = expressWs(express()).app;
   app.set('view engine', 'ejs');

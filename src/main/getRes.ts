@@ -32,9 +32,13 @@ router.get('/', async (req, res, next) => {
   // 末尾のレス番号を保存
   if (result.length > 0 && result[result.length - 1].number) {
     globalThis.electron.threadNumber = Number(result[result.length - 1].number);
+  } else {
+    // 読み込み失敗時はとりあえず指定されたレス番か1にする
+    globalThis.electron.threadNumber = resNum ? resNum : 1;
   }
   // 初回なのでキューを初期化
-  globalThis.electron.commentQueueList = [];
+  // サーバー立てるとこで初期化してる
+  // globalThis.electron.commentQueueList = [];
 
   result.shift();
   const doms = result.map((item) => createDom(item));
