@@ -290,6 +290,8 @@ exports.electronEvent = {
     'play-sound-end': 'play-sound-end',
     'wait-yomiko-time': 'wait-yomiko-time',
     'speaking-end': 'speaking-end',
+    /** コメント表示 */
+    'show-comment': 'show-comment',
     /** サーバー起動の返信 */
     'start-server-reply': 'start-server-reply',
 };
@@ -506,10 +508,17 @@ exports.default = router;
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 // Electronのモジュール
 var path_1 = __importDefault(__webpack_require__(/*! path */ "path"));
-var electron_1 = __importDefault(__webpack_require__(/*! electron */ "electron"));
+var electron_1 = __importStar(__webpack_require__(/*! electron */ "electron"));
 var electron_log_1 = __importDefault(__webpack_require__(/*! electron-log */ "electron-log"));
 console.trace = function () {
     //
@@ -522,55 +531,131 @@ process.on('uncaughtException', function (err) {
 });
 // アプリケーションをコントロールするモジュール
 var app = electron_1.default.app;
-app.allowRendererProcessReuse = true;
-// サーバー起動モジュール
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-var ss = __webpack_require__(/*! ./startServer */ "./src/main/startServer.ts");
-console.trace(ss);
-// ウィンドウを作成するモジュール
-var BrowserWindow = electron_1.default.BrowserWindow;
-// メインウィンドウはGCされないようにグローバル宣言
-globalThis.electron = {
-    mainWindow: undefined,
-    seList: [],
-    twitchChat: undefined,
-    youtubeChat: undefined,
-    socket: null,
-    threadConnectionError: 0,
-    threadNumber: 0,
-    commentQueueList: [],
-};
-// 全てのウィンドウが閉じたら終了
-app.on('window-all-closed', function () {
-    if (process.platform != 'darwin') {
-        app.quit();
-    }
-});
-// Electronの初期化完了後に実行
-app.on('ready', function () {
-    // ウィンドウサイズを1280*720（フレームサイズを含まない）に設定する
-    globalThis.electron.mainWindow = new BrowserWindow({
-        width: 700,
-        height: 720,
-        useContentSize: true,
-        icon: __dirname + './../../icon.png',
-        webPreferences: {
-            nodeIntegration: true,
-        },
+// 多重起動防止
+if (!app.requestSingleInstanceLock()) {
+    electron_log_1.default.error('It is terminated for multiple launches.');
+    app.quit();
+}
+else {
+    app.allowRendererProcessReuse = true;
+    var iconPath_1 = path_1.default.resolve(__dirname, '../icon.png');
+    // サーバー起動モジュール
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    var ss = __webpack_require__(/*! ./startServer */ "./src/main/startServer.ts");
+    console.trace(ss);
+    // ウィンドウを作成するモジュール
+    var BrowserWindow_1 = electron_1.default.BrowserWindow;
+    // メインウィンドウはGCされないようにグローバル宣言
+    globalThis.electron = {
+        mainWindow: null,
+        chatWindow: null,
+        seList: [],
+        twitchChat: null,
+        youtubeChat: null,
+        socket: null,
+        threadConnectionError: 0,
+        threadNumber: 0,
+        commentQueueList: [],
+    };
+    // 全てのウィンドウが閉じたら終了
+    // app.on('window-all-closed', () => {
+    //   if (process.platform != 'darwin') {
+    //     app.quit();
+    //   }
+    // });
+    // Electronの初期化完了後に実行
+    app.on('ready', function () {
+        // ウィンドウサイズを（フレームサイズを含まない）設定
+        globalThis.electron.mainWindow = new BrowserWindow_1({
+            width: 700,
+            height: 720,
+            useContentSize: true,
+            icon: iconPath_1,
+            webPreferences: {
+                nodeIntegration: true,
+            },
+            skipTaskbar: true,
+        });
+        globalThis.electron.mainWindow.setTitle('unacast');
+        globalThis.electron.mainWindow.setMenu(null);
+        // レンダラーで使用するhtmlファイルを指定する
+        globalThis.electron.mainWindow.loadURL(path_1.default.resolve(__dirname, '../src/html/index.html'));
+        // ウィンドウが閉じられたらアプリも終了
+        globalThis.electron.mainWindow.on('close', function (event) {
+            event.preventDefault();
+            electron_1.dialog
+                .showMessageBox(globalThis.electron.mainWindow, {
+                type: 'question',
+                buttons: ['Yes', 'No'],
+                // title: '',
+                message: '終了しますか？',
+            })
+                .then(function (value) {
+                if (value.response === 0) {
+                    app.exit();
+                }
+            });
+        });
+        globalThis.electron.mainWindow.on('closed', function () {
+            electron_log_1.default.info('window close');
+            app.exit();
+        });
+        // 開発者ツールを開く
+        // globalThis.electron.mainWindow.webContents.openDevTools();
+        var tray = null;
+        app.whenReady().then(function () {
+            tray = new electron_1.Tray(iconPath_1);
+            var contextMenu = electron_1.Menu.buildFromTemplate([
+                {
+                    label: '設定',
+                    click: function () {
+                        globalThis.electron.mainWindow.focus();
+                    },
+                },
+                {
+                    label: 'コメント',
+                    click: function () {
+                        globalThis.electron.chatWindow.focus();
+                    },
+                },
+                {
+                    label: '終了',
+                    click: function () {
+                        globalThis.electron.mainWindow.close();
+                    },
+                },
+            ]);
+            tray.setToolTip('∈(ﾟ◎ﾟ)∋ｳﾅｰ');
+            tray.setContextMenu(contextMenu);
+            tray.on('click', function (event) {
+                globalThis.electron.mainWindow.focus();
+            });
+        });
+        createChatWindow_1();
     });
-    globalThis.electron.mainWindow.setTitle('unacast');
-    globalThis.electron.mainWindow.setMenu(null);
-    //使用するhtmlファイルを指定する
-    globalThis.electron.mainWindow.loadURL(path_1.default.resolve(__dirname, '../src/html/index.html'));
-    // ウィンドウが閉じられたらアプリも終了
-    globalThis.electron.mainWindow.on('closed', function () {
-        globalThis.electron.mainWindow = undefined;
-    });
-    // 開発者ツールを開く
-    // globalThis.electron.mainWindow.webContents.openDevTools();
-});
-// 音声再生できるようにする
-app.commandLine.appendSwitch('--autoplay-policy', 'no-user-gesture-required');
+    var createChatWindow_1 = function () {
+        var chatWindow = new BrowserWindow_1({
+            width: 400,
+            useContentSize: true,
+            icon: iconPath_1,
+            webPreferences: {
+                nodeIntegration: true,
+            },
+            // タスクバーに表示しない
+            skipTaskbar: true,
+            // 閉じれなくする
+            closable: false,
+        });
+        chatWindow.setTitle('unacast');
+        chatWindow.setMenu(null);
+        // レンダラーで使用するhtmlファイルを指定する
+        chatWindow.loadURL(path_1.default.resolve(__dirname, '../src/html/chat.html'));
+        globalThis.electron.chatWindow = chatWindow;
+        // chatWindow.webContents.openDevTools();
+    };
+    // 音声再生できるようにする
+    app.commandLine.appendSwitch('--autoplay-policy', 'no-user-gesture-required');
+}
 
 
 /***/ }),
@@ -1003,6 +1088,17 @@ exports.default = ReadSitaraba;
 
 "use strict";
 
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -1117,48 +1213,11 @@ electron_1.ipcMain.on(const_1.electronEvent['start-server'], function (event, co
             case 2:
                 // Twitchに接続
                 if (globalThis.config.twitchId) {
-                    globalThis.electron.twitchChat = new dank_twitch_irc_1.ChatClient();
-                    globalThis.electron.twitchChat.connect();
-                    globalThis.electron.twitchChat.join(globalThis.config.twitchId);
-                    globalThis.electron.twitchChat.on('PRIVMSG', function (msg) {
-                        var imgUrl = './img/twitch.png';
-                        var name = msg.displayName;
-                        var text = msg.messageText;
-                        globalThis.electron.commentQueueList.push({ imgUrl: imgUrl, name: name, text: text });
-                    });
+                    startTwitchChat();
                 }
                 // Youtubeチャット
                 if (globalThis.config.youtubeId) {
-                    try {
-                        console.log('[Youtube Chat] connect started');
-                        globalThis.electron.youtubeChat = new youtube_chat_1.LiveChat({ channelId: globalThis.config.youtubeId });
-                        // 接続開始イベント
-                        globalThis.electron.youtubeChat.on('start', function (liveId) {
-                            console.log("[Youtube Chat] connected liveId = " + liveId);
-                        });
-                        // 接続終了イベント
-                        globalThis.electron.youtubeChat.on('end', function (reason) {
-                            console.log('[Youtube Chat] disconnect');
-                        });
-                        // チャット受信
-                        globalThis.electron.youtubeChat.on('comment', function (comment) {
-                            var _a, _b;
-                            var imgUrl = (_b = (_a = comment.author.thumbnail) === null || _a === void 0 ? void 0 : _a.url) !== null && _b !== void 0 ? _b : '';
-                            var name = comment.author.name;
-                            var text = comment.message[0].text;
-                            globalThis.electron.commentQueueList.push({ imgUrl: imgUrl, name: name, text: text });
-                        });
-                        // 何かエラーがあった
-                        globalThis.electron.youtubeChat.on('error', function (err) {
-                            electron_log_1.default.error('[Youtube Chat] error');
-                            electron_log_1.default.error(err);
-                            globalThis.electron.youtubeChat.stop();
-                        });
-                        globalThis.electron.youtubeChat.start();
-                    }
-                    catch (e) {
-                        process.exit(1);
-                    }
+                    startYoutubeChat();
                 }
                 // 棒読みちゃん接続
                 if (config.typeYomiko === 'bouyomi') {
@@ -1194,6 +1253,77 @@ electron_1.ipcMain.on(const_1.electronEvent['start-server'], function (event, co
         }
     });
 }); });
+var startTwitchChat = function () { return __awaiter(void 0, void 0, void 0, function () {
+    var twitchChat;
+    return __generator(this, function (_a) {
+        try {
+            twitchChat = new dank_twitch_irc_1.ChatClient();
+            twitchChat.connect();
+            twitchChat.join(globalThis.config.twitchId);
+            twitchChat.on('PRIVMSG', function (msg) {
+                var imgUrl = './img/twitch.png';
+                var name = msg.displayName;
+                var text = msg.messageText;
+                globalThis.electron.commentQueueList.push({ imgUrl: imgUrl, name: name, text: text });
+            });
+            globalThis.electron.twitchChat = twitchChat;
+        }
+        catch (e) {
+            electron_log_1.default.error(e);
+        }
+        return [2 /*return*/];
+    });
+}); };
+var startYoutubeChat = function () { return __awaiter(void 0, void 0, void 0, function () {
+    var tubeResult, e_1;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                _a.trys.push([0, 4, , 5]);
+                console.log('[Youtube Chat] connect started');
+                globalThis.electron.youtubeChat = new youtube_chat_1.LiveChat({ channelId: globalThis.config.youtubeId });
+                // 接続開始イベント
+                globalThis.electron.youtubeChat.on('start', function (liveId) {
+                    console.log("[Youtube Chat] connected liveId = " + liveId);
+                });
+                // 接続終了イベント
+                globalThis.electron.youtubeChat.on('end', function (reason) {
+                    console.log('[Youtube Chat] disconnect');
+                });
+                // チャット受信
+                globalThis.electron.youtubeChat.on('comment', function (comment) {
+                    var _a, _b;
+                    electron_log_1.default.info('[Youtube] received');
+                    var imgUrl = (_b = (_a = comment.author.thumbnail) === null || _a === void 0 ? void 0 : _a.url) !== null && _b !== void 0 ? _b : '';
+                    var name = comment.author.name;
+                    var text = comment.message[0].text;
+                    globalThis.electron.commentQueueList.push({ imgUrl: imgUrl, name: name, text: text });
+                });
+                // 何かエラーがあった
+                globalThis.electron.youtubeChat.on('error', function (err) {
+                    electron_log_1.default.error("[Youtube Chat] error " + err.message);
+                    // log.error(err);
+                    // globalThis.electron.youtubeChat.stop();
+                });
+                return [4 /*yield*/, globalThis.electron.youtubeChat.start()];
+            case 1:
+                tubeResult = _a.sent();
+                if (!!tubeResult) return [3 /*break*/, 3];
+                return [4 /*yield*/, util_1.sleep(5000)];
+            case 2:
+                _a.sent();
+                startYoutubeChat();
+                _a.label = 3;
+            case 3: return [3 /*break*/, 5];
+            case 4:
+                e_1 = _a.sent();
+                // たぶんここには来ない
+                electron_log_1.default.error(e_1);
+                return [3 /*break*/, 5];
+            case 5: return [2 /*return*/];
+        }
+    });
+}); };
 /**
  * サーバー停止
  */
@@ -1314,20 +1444,25 @@ var playSe = function () { return __awaiter(void 0, void 0, void 0, function () 
 electron_1.ipcMain.on(const_1.electronEvent['play-sound-end'], function (event) { return (isPlayingSe = false); });
 exports.createDom = function (message) {
     var domStr = "\n  <li class=\"list-item\">\n    <span class=\"icon-block\">\n      <img class=\"icon\" src=\"" + message.imgUrl + "\">\n    </span>\n  <div class=\"content\">";
-    //レス番表示
-    if (globalThis.config.showNumber) {
+    var isResNameShowed = false;
+    // レス番表示
+    if (globalThis.config.showNumber && message.number) {
         domStr += "\n      <span class=\"resNumber\">" + message.number + "</span>\n    ";
+        isResNameShowed = true;
     }
     // 名前表示
-    if (globalThis.config.showName) {
+    if (globalThis.config.showName && message.name) {
         domStr += "<span class=\"name\">" + message.name + "</span>";
+        isResNameShowed = true;
     }
     // 時刻表示
-    if (globalThis.config.showTime) {
+    if (globalThis.config.showTime && message.date) {
         domStr += "<span class=\"date\">" + message.date + "</span>";
+        isResNameShowed = true;
     }
     // 名前と本文を改行で分ける
-    if (globalThis.config.newLine) {
+    // 名前や時刻の行が一つも無ければ、改行しない
+    if (globalThis.config.newLine && isResNameShowed) {
         domStr += '<br />';
     }
     domStr += "\n    <span class=\"res\">\n      " + message.text + "\n    </span>\n    </div>\n  </li>";
@@ -1339,13 +1474,22 @@ exports.createDom = function (message) {
  * @param message
  */
 var sendDom = function (messageList) { return __awaiter(void 0, void 0, void 0, function () {
-    var domStr;
+    var domStr, domStr2, e_2;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
+                _a.trys.push([0, 5, , 6]);
                 domStr = messageList.map(function (message) { return exports.createDom(message); }).join('\n');
                 if (globalThis.electron.socket)
                     globalThis.electron.socket.send(domStr);
+                domStr2 = messageList
+                    .map(function (message) {
+                    var imgUrl = message.imgUrl && message.imgUrl.match(/^\./) ? '../../public/' + message.imgUrl : message.imgUrl;
+                    return __assign(__assign({}, message), { imgUrl: imgUrl });
+                })
+                    .map(function (message) { return exports.createDom(message); })
+                    .join('\n');
+                globalThis.electron.chatWindow.webContents.send(const_1.electronEvent['show-comment'], { config: globalThis.config, dom: domStr2 });
                 if (!(config.playSe && globalThis.electron.seList.length > 0)) return [3 /*break*/, 2];
                 return [4 /*yield*/, playSe()];
             case 1:
@@ -1357,7 +1501,12 @@ var sendDom = function (messageList) { return __awaiter(void 0, void 0, void 0, 
             case 3:
                 _a.sent();
                 _a.label = 4;
-            case 4: return [2 /*return*/];
+            case 4: return [3 /*break*/, 6];
+            case 5:
+                e_2 = _a.sent();
+                electron_log_1.default.error(e_2);
+                return [3 /*break*/, 6];
+            case 6: return [2 /*return*/];
         }
     });
 }); };

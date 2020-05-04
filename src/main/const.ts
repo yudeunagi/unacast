@@ -12,6 +12,9 @@ export const electronEvent = {
   'wait-yomiko-time': 'wait-yomiko-time',
   'speaking-end': 'speaking-end',
 
+  /** コメント表示 */
+  'show-comment': 'show-comment',
+
   /** サーバー起動の返信 */
   'start-server-reply': 'start-server-reply',
 };

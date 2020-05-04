@@ -66,48 +66,12 @@ ipcMain.on(electronEvent['start-server'], async (event: any, config: typeof glob
 
   // Twitchに接続
   if (globalThis.config.twitchId) {
-    globalThis.electron.twitchChat = new ChatClient();
-    globalThis.electron.twitchChat.connect();
-    globalThis.electron.twitchChat.join(globalThis.config.twitchId);
-    globalThis.electron.twitchChat.on('PRIVMSG', (msg) => {
-      const imgUrl = './img/twitch.png';
-      const name = msg.displayName;
-      const text = msg.messageText;
-      globalThis.electron.commentQueueList.push({ imgUrl, name, text });
-    });
+    startTwitchChat();
   }
 
   // Youtubeチャット
   if (globalThis.config.youtubeId) {
-    try {
-      console.log('[Youtube Chat] connect started');
-      globalThis.electron.youtubeChat = new LiveChat({ channelId: globalThis.config.youtubeId });
-      // 接続開始イベント
-      globalThis.electron.youtubeChat.on('start', (liveId: string) => {
-        console.log(`[Youtube Chat] connected liveId = ${liveId}`);
-      });
-      // 接続終了イベント
-      globalThis.electron.youtubeChat.on('end', (reason?: string) => {
-        console.log('[Youtube Chat] disconnect');
-      });
-      // チャット受信
-      globalThis.electron.youtubeChat.on('comment', (comment: CommentItem) => {
-        const imgUrl = comment.author.thumbnail?.url ?? '';
-        const name = comment.author.name;
-        const text = (comment.message[0] as any).text;
-        globalThis.electron.commentQueueList.push({ imgUrl, name, text });
-      });
-      // 何かエラーがあった
-      globalThis.electron.youtubeChat.on('error', (err: Error) => {
-        log.error('[Youtube Chat] error');
-        log.error(err);
-        globalThis.electron.youtubeChat.stop();
-      });
-
-      globalThis.electron.youtubeChat.start();
-    } catch (e) {
-      process.exit(1);
-    }
+    startYoutubeChat();
   }
 
   // 棒読みちゃん接続
@@ -146,6 +110,61 @@ ipcMain.on(electronEvent['start-server'], async (event: any, config: typeof glob
   // 成功メッセージ返却
   event.returnValue = 'success';
 });
+
+const startTwitchChat = async () => {
+  try {
+    const twitchChat = new ChatClient();
+    twitchChat.connect();
+    twitchChat.join(globalThis.config.twitchId);
+    twitchChat.on('PRIVMSG', (msg) => {
+      const imgUrl = './img/twitch.png';
+      const name = msg.displayName;
+      const text = msg.messageText;
+      globalThis.electron.commentQueueList.push({ imgUrl, name, text });
+    });
+    globalThis.electron.twitchChat = twitchChat;
+  } catch (e) {
+    log.error(e);
+  }
+};
+
+const startYoutubeChat = async () => {
+  try {
+    console.log('[Youtube Chat] connect started');
+    globalThis.electron.youtubeChat = new LiveChat({ channelId: globalThis.config.youtubeId });
+    // 接続開始イベント
+    globalThis.electron.youtubeChat.on('start', (liveId: string) => {
+      console.log(`[Youtube Chat] connected liveId = ${liveId}`);
+    });
+    // 接続終了イベント
+    globalThis.electron.youtubeChat.on('end', (reason?: string) => {
+      console.log('[Youtube Chat] disconnect');
+    });
+    // チャット受信
+    globalThis.electron.youtubeChat.on('comment', (comment: CommentItem) => {
+      log.info('[Youtube] received');
+      const imgUrl = comment.author.thumbnail?.url ?? '';
+      const name = comment.author.name;
+      const text = (comment.message[0] as any).text;
+      globalThis.electron.commentQueueList.push({ imgUrl, name, text });
+    });
+    // 何かエラーがあった
+    globalThis.electron.youtubeChat.on('error', (err: Error) => {
+      log.error(`[Youtube Chat] error ${err.message}`);
+      // log.error(err);
+      // globalThis.electron.youtubeChat.stop();
+    });
+
+    const tubeResult = await globalThis.electron.youtubeChat.start();
+    if (!tubeResult) {
+      await sleep(5000);
+      startYoutubeChat();
+    }
+  } catch (e) {
+    // たぶんここには来ない
+    log.error(e);
+  }
+};
 
 /**
  * サーバー停止
@@ -255,23 +274,29 @@ export const createDom = (message: UserComment) => {
     </span>
   <div class="content">`;
 
-  //レス番表示
-  if (globalThis.config.showNumber) {
+  let isResNameShowed = false;
+
+  // レス番表示
+  if (globalThis.config.showNumber && message.number) {
     domStr += `
       <span class="resNumber">${message.number}</span>
     `;
+    isResNameShowed = true;
   }
   // 名前表示
-  if (globalThis.config.showName) {
+  if (globalThis.config.showName && message.name) {
     domStr += `<span class="name">${message.name}</span>`;
+    isResNameShowed = true;
   }
   // 時刻表示
-  if (globalThis.config.showTime) {
+  if (globalThis.config.showTime && message.date) {
     domStr += `<span class="date">${message.date}</span>`;
+    isResNameShowed = true;
   }
 
   // 名前と本文を改行で分ける
-  if (globalThis.config.newLine) {
+  // 名前や時刻の行が一つも無ければ、改行しない
+  if (globalThis.config.newLine && isResNameShowed) {
     domStr += '<br />';
   }
 
@@ -291,17 +316,35 @@ export const createDom = (message: UserComment) => {
  * @param message
  */
 const sendDom = async (messageList: UserComment[]) => {
-  // メッセージをブラウザに送信
-  const domStr = messageList.map((message) => createDom(message)).join('\n');
-  if (globalThis.electron.socket) globalThis.electron.socket.send(domStr);
+  try {
+    // メッセージをブラウザに送信
+    const domStr = messageList.map((message) => createDom(message)).join('\n');
+    if (globalThis.electron.socket) globalThis.electron.socket.send(domStr);
 
-  // レス着信音
-  if (config.playSe && globalThis.electron.seList.length > 0) {
-    await playSe();
-  }
+    // レンダラーのコメント一覧にも表示
+    const domStr2 = messageList
+      .map((message) => {
+        const imgUrl = message.imgUrl && message.imgUrl.match(/^\./) ? '../../public/' + message.imgUrl : message.imgUrl;
+        return {
+          ...message,
+          imgUrl,
+        };
+      })
+      .map((message) => createDom(message))
+      .join('\n');
+    globalThis.electron.chatWindow.webContents.send(electronEvent['show-comment'], { config: globalThis.config, dom: domStr2 });
 
-  if (globalThis.config.typeYomiko !== 'none') {
-    await playYomiko(messageList[messageList.length - 1].text);
+    // レス着信音
+    if (config.playSe && globalThis.electron.seList.length > 0) {
+      await playSe();
+    }
+
+    // 読み子
+    if (globalThis.config.typeYomiko !== 'none') {
+      await playYomiko(messageList[messageList.length - 1].text);
+    }
+  } catch (e) {
+    log.error(e);
   }
 };
 

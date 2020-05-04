@@ -33,9 +33,12 @@ const main = {
 const renderer = {
   mode: 'development',
   target: 'electron-renderer',
-  entry: path.join(__dirname, 'src', 'renderer', 'renderer'),
+  entry: {
+    index: './src/renderer/renderer',
+    chat: './src/renderer/chat',
+  },
   output: {
-    filename: 'index.js',
+    filename: '[name].js',
     path: path.resolve(__dirname, 'dist', 'scripts'),
   },
   resolve: {

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>unacast - chat</title>
+    <!-- CSSの読み込み Material Design Lite -->
+    <link rel="stylesheet" href="../../node_modules/material-design-lite/material.min.css" />
+    <script src="../../node_modules/material-design-lite/material.min.js"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
+    <!-- CSSの読み込み 自作CSS -->
+    <link rel="stylesheet" href="../../public/css/style-server.css" />
+    <script>
+      require('../../dist/scripts/chat');
+    </script>
+    <style>
+      body {
+        overflow-y: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="parent">
+      <ul id="res-list" style="margin: 0px;"></ul>
+    </div>
+  </body>
+</html>

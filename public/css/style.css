@@ -1,3 +1,24 @@
 .maincontaints {
   padding: 5px 1em 5px 1em;
 }
+.block {
+  border-radius: 10px;
+  padding: 10px;
+  border: solid 1px lightgray;
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+
+h5 {
+  margin: 0px;
+  font-weight: bold;
+}
+
+.subtitle {
+  margin: 0px;
+  font-weight: bold;
+}
+
+.mdl-textfield {
+  padding: 10px 0;
+}

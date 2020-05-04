@@ -5,6 +5,7 @@ import { LiveChat } from '../main/youtube-chat';
 declare global {
   namespace electron {
     let mainWindow: BrowserWindow;
+    let chatWindow: BrowserWindow;
     /** SEファイルリスト */
     let seList: string[];
     /** Twitchチャットインスタンス */
