@@ -52,6 +52,7 @@ ipcMain.on(electronEvent['start-server'], async (event: any, config: typeof glob
     req.connection.end();
   });
 
+  // サーバーIDのIF
   const id = new Date().getTime();
   app.get('/id', (req: Request, res: Response, next) => {
     res.send(`${id}`);
@@ -117,11 +118,16 @@ ipcMain.on(electronEvent['start-server'], async (event: any, config: typeof glob
   event.returnValue = 'success';
 });
 
+/**
+ * Twitchチャットに接続
+ * @description 再接続処理はライブラリが勝手にやってくれる
+ */
 const startTwitchChat = async () => {
   try {
     const twitchChat = new ChatClient();
     twitchChat.connect();
     twitchChat.join(globalThis.config.twitchId);
+    // チャット受信
     twitchChat.on('PRIVMSG', (msg) => {
       const imgUrl = './img/twitch.png';
       const name = msg.displayName;
@@ -134,6 +140,7 @@ const startTwitchChat = async () => {
   }
 };
 
+/** Youtubeチャットに接続 */
 const startYoutubeChat = async () => {
   try {
     console.log('[Youtube Chat] connect started');

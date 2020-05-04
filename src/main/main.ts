@@ -8,19 +8,19 @@ console.trace = () => {
 };
 
 process.on('uncaughtException', (err) => {
-  log.error('electron:event:uncaughtException');
   log.error(err);
-  log.error(err.stack);
-  // app.quit();
 });
+
 // アプリケーションをコントロールするモジュール
 const app = electron.app;
 
 // 多重起動防止
 if (!app.requestSingleInstanceLock()) {
-  log.error('It is terminated for multiple launches.');
+  log.error('[app] It is terminated for multiple launches.');
   app.quit();
 } else {
+  log.info('[app] started');
+
   app.allowRendererProcessReuse = true;
 
   const iconPath = path.resolve(__dirname, '../icon.png');
@@ -74,6 +74,7 @@ if (!app.requestSingleInstanceLock()) {
 
     // ウィンドウが閉じられたらアプリも終了
     globalThis.electron.mainWindow.on('close', (event) => {
+      // 確認ダイアログではいをクリックしたら閉じる
       event.preventDefault();
       dialog
         .showMessageBox(globalThis.electron.mainWindow, {
@@ -89,13 +90,14 @@ if (!app.requestSingleInstanceLock()) {
         });
     });
     globalThis.electron.mainWindow.on('closed', () => {
-      log.info('window close');
+      log.info('[app] close');
       app.exit();
     });
 
     // 開発者ツールを開く
     // globalThis.electron.mainWindow.webContents.openDevTools();
 
+    // タスクトレイの設定
     let tray = null;
     app.whenReady().then(() => {
       tray = new Tray(iconPath);

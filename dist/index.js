@@ -525,19 +525,17 @@ console.trace = function () {
     //
 };
 process.on('uncaughtException', function (err) {
-    electron_log_1.default.error('electron:event:uncaughtException');
     electron_log_1.default.error(err);
-    electron_log_1.default.error(err.stack);
-    // app.quit();
 });
 // アプリケーションをコントロールするモジュール
 var app = electron_1.default.app;
 // 多重起動防止
 if (!app.requestSingleInstanceLock()) {
-    electron_log_1.default.error('It is terminated for multiple launches.');
+    electron_log_1.default.error('[app] It is terminated for multiple launches.');
     app.quit();
 }
 else {
+    electron_log_1.default.info('[app] started');
     app.allowRendererProcessReuse = true;
     var iconPath_1 = path_1.default.resolve(__dirname, '../icon.png');
     // サーバー起動モジュール
@@ -583,6 +581,7 @@ else {
         globalThis.electron.mainWindow.loadURL(path_1.default.resolve(__dirname, '../src/html/index.html'));
         // ウィンドウが閉じられたらアプリも終了
         globalThis.electron.mainWindow.on('close', function (event) {
+            // 確認ダイアログではいをクリックしたら閉じる
             event.preventDefault();
             electron_1.dialog
                 .showMessageBox(globalThis.electron.mainWindow, {
@@ -598,11 +597,12 @@ else {
             });
         });
         globalThis.electron.mainWindow.on('closed', function () {
-            electron_log_1.default.info('window close');
+            electron_log_1.default.info('[app] close');
             app.exit();
         });
         // 開発者ツールを開く
         // globalThis.electron.mainWindow.webContents.openDevTools();
+        // タスクトレイの設定
         var tray = null;
         app.whenReady().then(function () {
             tray = new electron_1.Tray(iconPath_1);
@@ -1258,6 +1258,10 @@ electron_1.ipcMain.on(const_1.electronEvent['start-server'], function (event, co
         }
     });
 }); });
+/**
+ * Twitchチャットに接続
+ * @description 再接続処理はライブラリが勝手にやってくれる
+ */
 var startTwitchChat = function () { return __awaiter(void 0, void 0, void 0, function () {
     var twitchChat;
     return __generator(this, function (_a) {
@@ -1265,6 +1269,7 @@ var startTwitchChat = function () { return __awaiter(void 0, void 0, void 0, fun
             twitchChat = new dank_twitch_irc_1.ChatClient();
             twitchChat.connect();
             twitchChat.join(globalThis.config.twitchId);
+            // チャット受信
             twitchChat.on('PRIVMSG', function (msg) {
                 var imgUrl = './img/twitch.png';
                 var name = msg.displayName;
@@ -1279,6 +1284,7 @@ var startTwitchChat = function () { return __awaiter(void 0, void 0, void 0, fun
         return [2 /*return*/];
     });
 }); };
+/** Youtubeチャットに接続 */
 var startYoutubeChat = function () { return __awaiter(void 0, void 0, void 0, function () {
     var tubeResult, e_1;
     return __generator(this, function (_a) {
