@@ -6,7 +6,7 @@ if (process.argv.length < 3) {
 }
 
 const PLATFORM = process.argv[2];
-const ASAR = process.argv[3] ? process.argv[3] : '';
+const ASAR = process.argv[3] ? `--${process.argv[3]}` : '';
 
 const execParam = `
 npx electron-packager ./ unacast --platform=${PLATFORM} --arch=x64 --overwrite --icon=icon.ico ${ASAR}
