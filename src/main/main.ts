@@ -98,7 +98,7 @@ if (!app.requestSingleInstanceLock()) {
     });
 
     // 開発者ツールを開く
-    globalThis.electron.mainWindow.webContents.openDevTools();
+    // globalThis.electron.mainWindow.webContents.openDevTools();
 
     // タスクトレイの設定
     let tray = null;

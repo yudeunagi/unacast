@@ -619,7 +619,7 @@ else {
             app.exit();
         });
         // 開発者ツールを開く
-        globalThis.electron.mainWindow.webContents.openDevTools();
+        // globalThis.electron.mainWindow.webContents.openDevTools();
         // タスクトレイの設定
         var tray = null;
         app.whenReady().then(function () {
