@@ -1631,11 +1631,11 @@ exports.createDom = function (message) {
  * @param message
  */
 var sendDom = function (messageList) { return __awaiter(void 0, void 0, void 0, function () {
-    var domStr, socketObject, domStr2, e_3;
+    var domStr, socketObject, domStr2, MIN_DISP_TIME, e_3;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
-                _a.trys.push([0, 5, , 6]);
+                _a.trys.push([0, 7, , 8]);
                 domStr = messageList.map(function (message) { return exports.createDom(message); }).join('\n');
                 socketObject = {
                     type: 'add',
@@ -1663,14 +1663,21 @@ var sendDom = function (messageList) { return __awaiter(void 0, void 0, void 0, 
                 _a.sent();
                 _a.label = 4;
             case 4:
+                if (!(globalThis.config.dispType === 1)) return [3 /*break*/, 6];
+                MIN_DISP_TIME = 2.5 * 1000;
+                return [4 /*yield*/, util_1.sleep(MIN_DISP_TIME)];
+            case 5:
+                _a.sent();
+                _a.label = 6;
+            case 6:
                 // 鳴らし終わって読み子が終わった
                 resetInitMessage();
-                return [3 /*break*/, 6];
-            case 5:
+                return [3 /*break*/, 8];
+            case 7:
                 e_3 = _a.sent();
                 electron_log_1.default.error(e_3);
-                return [3 /*break*/, 6];
-            case 6: return [2 /*return*/];
+                return [3 /*break*/, 8];
+            case 8: return [2 /*return*/];
         }
     });
 }); };

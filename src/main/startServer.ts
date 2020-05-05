@@ -440,6 +440,12 @@ const sendDom = async (messageList: UserComment[]) => {
       await playYomiko(messageList[messageList.length - 1].text);
     }
 
+    // 追加で表示を維持する時間
+    if (globalThis.config.dispType === 1) {
+      const MIN_DISP_TIME = 2.5 * 1000;
+      await sleep(MIN_DISP_TIME);
+    }
+
     // 鳴らし終わって読み子が終わった
     resetInitMessage();
   } catch (e) {
