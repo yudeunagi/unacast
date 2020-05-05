@@ -11,13 +11,14 @@ document.addEventListener('DOMContentLoaded', () => {
   //停止確認ダイアログ
   const dialog = document.getElementById('close-dialog') as HTMLElement;
 
-  //起動・停止ボタン
+  // 起動・停止ボタン
   const startButton = document.getElementById('button-server-start') as HTMLInputElement;
   const stopButton = document.getElementById('button-server-stop') as HTMLInputElement;
+  // ダイアログのボタン
   const closeOkButton = document.getElementById('button-close-dialog-ok') as HTMLInputElement;
   const closeCancelButton = document.getElementById('button-close-dialog-cancel') as HTMLInputElement;
 
-  //サーバーのON-OFFする
+  // サーバーのON-OFFする
   startButton.onclick = () => {
     //サーバー起動
     //設定情報取得
@@ -50,6 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
     (dialog as any).showModal();
   };
 
+  // ダイアログ
   closeOkButton.onclick = () => {
     const result = ipcRenderer.sendSync('stop-server');
     console.debug('[renderer.js]' + result);

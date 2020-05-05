@@ -7,8 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "webpack -w",
     "start": "electron . --asar",
-    "buildwin": "electron-packager ./ unacast --platform=win32 --arch=x64 --overwrite --icon=icon.ico --asar",
-    "buildmac": "electron-packager ./ unacast --platform=darwin --arch=x64 --overwrite --asar",
+    "buildwin": "node electron-package.js win32 asar",
+    "buildmac": "node electron-package.js darwin asar",
     "macbuildmemo": "echo macのビルドで --icon=icon.ico を指定するとなぜか The path argument must be one of type string, Buffer, or URL. Received type undefined って言われるので外しておく、あと管理者権限のコマンドプロンプトで実行してね（シンボリックリンク作れないので）",
     "changecode": "chcp 65001"
   },

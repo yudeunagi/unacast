@@ -388,7 +388,7 @@ router.get('/', function (req, res, next) { return __awaiter(void 0, void 0, voi
                 threadUrl = globalThis.config.url;
                 resNum = globalThis.config.resNumber ? Number(globalThis.config.resNumber) : NaN;
                 res.header('Content-Type', 'application/json; charset=UTF-8');
-                return [4 /*yield*/, getRes(threadUrl, resNum)];
+                return [4 /*yield*/, exports.getRes(threadUrl, resNum)];
             case 1:
                 result = _a.sent();
                 // 末尾のレス番号を保存
@@ -409,34 +409,12 @@ router.get('/', function (req, res, next) { return __awaiter(void 0, void 0, voi
         }
     });
 }); });
-exports.getResInterval = function () { return __awaiter(void 0, void 0, void 0, function () {
-    var result;
-    var _a;
-    return __generator(this, function (_b) {
-        switch (_b.label) {
-            case 0:
-                if (!(globalThis.electron.threadNumber > 0)) return [3 /*break*/, 2];
-                return [4 /*yield*/, getRes(globalThis.config.url, globalThis.electron.threadNumber)];
-            case 1:
-                result = _b.sent();
-                // 指定したレス番は除外対象
-                result.shift();
-                if (result.length > 0 && result[result.length - 1].number) {
-                    globalThis.electron.threadNumber = Number(result[result.length - 1].number);
-                    (_a = globalThis.electron.commentQueueList).push.apply(_a, result);
-                }
-                notifyThreadResLimit();
-                _b.label = 2;
-            case 2: return [2 /*return*/];
-        }
-    });
-}); };
 /**
  * 掲示板のレスを取得する
  * @param threadUrl スレのURL
  * @param resNum この番号以降を取得する
  */
-var getRes = function (threadUrl, resNum) { return __awaiter(void 0, void 0, void 0, function () {
+exports.getRes = function (threadUrl, resNum) { return __awaiter(void 0, void 0, void 0, function () {
     var response, e_1;
     return __generator(this, function (_a) {
         switch (_a.label) {
@@ -455,6 +433,7 @@ var getRes = function (threadUrl, resNum) { return __awaiter(void 0, void 0, voi
             case 2:
                 e_1 = _a.sent();
                 electron_log_1.default.error(e_1);
+                // エラー回数が規定回数以上かチェックして、超えてたら通知する
                 if (globalThis.config.notifyThreadConnectionErrorLimit > 0) {
                     globalThis.electron.threadConnectionError += 1;
                     if (globalThis.electron.threadConnectionError >= globalThis.config.notifyThreadConnectionErrorLimit) {
@@ -488,16 +467,6 @@ var analysBBSName = function (threadUrl) {
     // どこにも該当しなかったらとりあえず5chで
     // この辺も対応ドメインリストとか作ってちゃんと判定したほうがよさそう
     return read5ch;
-};
-/** エラー回数が規定回数以上かチェックして、超えてたら通知する */
-var notifyThreadResLimit = function () {
-    if (globalThis.config.notifyThreadResLimit > 0 && globalThis.electron.threadNumber >= globalThis.config.notifyThreadResLimit) {
-        globalThis.electron.commentQueueList.push({
-            name: 'unacastより',
-            imgUrl: './img/unacast.png',
-            text: "\u30EC\u30B9\u304C" + globalThis.config.notifyThreadResLimit + "\u3092\u8D85\u3048\u307E\u3057\u305F",
-        });
-    }
 };
 exports.default = router;
 
@@ -645,7 +614,7 @@ else {
             app.exit();
         });
         // 開発者ツールを開く
-        // globalThis.electron.mainWindow.webContents.openDevTools();
+        globalThis.electron.mainWindow.webContents.openDevTools();
         // タスクトレイの設定
         var tray = null;
         app.whenReady().then(function () {
@@ -1234,8 +1203,8 @@ var app;
 var server;
 /** 棒読みちゃんインスタンス */
 var bouyomi;
-/** スレッド定期取得のイベント */
-var threadIntervalEvent;
+/** スレッド定期取得実行するか */
+var threadIntervalEvent = false;
 /** キュー処理実行するか */
 var isExecuteQue = false;
 /**
@@ -1293,7 +1262,8 @@ electron_1.ipcMain.on(const_1.electronEvent['start-server'], function (event, co
                     }
                 }
                 // レス取得定期実行
-                threadIntervalEvent = setInterval(function () { return getRes_1.getResInterval(); }, globalThis.config.interval * 1000);
+                threadIntervalEvent = true;
+                getResInterval();
                 // キュー処理の開始
                 isExecuteQue = true;
                 taskScheduler();
@@ -1408,6 +1378,8 @@ electron_1.ipcMain.on(const_1.electronEvent['stop-server'], function (event) {
     // キュー処理停止
     isExecuteQue = false;
     globalThis.electron.commentQueueList = [];
+    // レス取得の停止
+    threadIntervalEvent = false;
     // Twitchチャットの停止
     if (globalThis.electron.twitchChat) {
         globalThis.electron.twitchChat.close();
@@ -1418,11 +1390,61 @@ electron_1.ipcMain.on(const_1.electronEvent['stop-server'], function (event) {
         globalThis.electron.youtubeChat.stop();
         globalThis.electron.youtubeChat.removeAllListeners();
     }
-    // レス取得の停止
-    if (threadIntervalEvent) {
-        clearInterval(threadIntervalEvent);
-    }
 });
+var getResInterval = function () { return __awaiter(void 0, void 0, void 0, function () {
+    var result;
+    var _a;
+    return __generator(this, function (_b) {
+        switch (_b.label) {
+            case 0:
+                if (!(globalThis.electron.threadNumber > 0)) return [3 /*break*/, 3];
+                return [4 /*yield*/, getRes_1.getRes(globalThis.config.url, globalThis.electron.threadNumber)];
+            case 1:
+                result = _b.sent();
+                // 指定したレス番は除外対象
+                result.shift();
+                if (result.length > 0 && result[result.length - 1].number) {
+                    globalThis.electron.threadNumber = Number(result[result.length - 1].number);
+                    (_a = globalThis.electron.commentQueueList).push.apply(_a, result);
+                }
+                return [4 /*yield*/, notifyThreadResLimit()];
+            case 2:
+                _b.sent();
+                _b.label = 3;
+            case 3:
+                if (!threadIntervalEvent) return [3 /*break*/, 5];
+                return [4 /*yield*/, util_1.sleep(globalThis.config.interval * 1000)];
+            case 4:
+                _b.sent();
+                getResInterval();
+                _b.label = 5;
+            case 5: return [2 /*return*/];
+        }
+    });
+}); };
+/** レス番が上限かチェックして、超えてたら通知する */
+var notifyThreadResLimit = function () { return __awaiter(void 0, void 0, void 0, function () {
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                if (!(globalThis.config.notifyThreadResLimit > 0 && globalThis.electron.threadNumber >= globalThis.config.notifyThreadResLimit)) return [3 /*break*/, 2];
+                globalThis.electron.commentQueueList.push({
+                    name: 'unacastより',
+                    imgUrl: './img/unacast.png',
+                    text: "\u30EC\u30B9\u304C" + globalThis.config.notifyThreadResLimit + "\u3092\u8D85\u3048\u307E\u3057\u305F\u3002\u6B21\u30B9\u30EC\u3092\u7ACB\u3066\u3066\u304F\u3060\u3055\u3044\u3002",
+                });
+                // 次スレ検索ポーリング処理を走らせる
+                // スレ立て中だと思うのでちょっと待つ
+                return [4 /*yield*/, util_1.sleep(10 * 1000)];
+            case 1:
+                // 次スレ検索ポーリング処理を走らせる
+                // スレ立て中だと思うのでちょっと待つ
+                _a.sent();
+                _a.label = 2;
+            case 2: return [2 /*return*/];
+        }
+    });
+}); };
 /**
  * キューに溜まったコメントを処理する
  */

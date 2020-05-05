@@ -45,25 +45,12 @@ router.get('/', async (req, res, next) => {
   res.send(JSON.stringify(doms));
 });
 
-export const getResInterval = async () => {
-  if (globalThis.electron.threadNumber > 0) {
-    const result = await getRes(globalThis.config.url, globalThis.electron.threadNumber);
-    // 指定したレス番は除外対象
-    result.shift();
-    if (result.length > 0 && result[result.length - 1].number) {
-      globalThis.electron.threadNumber = Number(result[result.length - 1].number);
-      globalThis.electron.commentQueueList.push(...result);
-    }
-    notifyThreadResLimit();
-  }
-};
-
 /**
  * 掲示板のレスを取得する
  * @param threadUrl スレのURL
  * @param resNum この番号以降を取得する
  */
-const getRes = async (threadUrl: string, resNum: number): Promise<UserComment[]> => {
+export const getRes = async (threadUrl: string, resNum: number): Promise<UserComment[]> => {
   try {
     // リクエストURLを解析し、使用するモジュールを変更する
     bbsModule = analysBBSName(threadUrl) as any;
@@ -81,6 +68,7 @@ const getRes = async (threadUrl: string, resNum: number): Promise<UserComment[]>
     });
   } catch (e) {
     log.error(e);
+    // エラー回数が規定回数以上かチェックして、超えてたら通知する
     if (globalThis.config.notifyThreadConnectionErrorLimit > 0) {
       globalThis.electron.threadConnectionError += 1;
       if (globalThis.electron.threadConnectionError >= globalThis.config.notifyThreadConnectionErrorLimit) {
@@ -114,17 +102,6 @@ const analysBBSName = (threadUrl: string) => {
   // どこにも該当しなかったらとりあえず5chで
   // この辺も対応ドメインリストとか作ってちゃんと判定したほうがよさそう
   return read5ch;
-};
-
-/** エラー回数が規定回数以上かチェックして、超えてたら通知する */
-const notifyThreadResLimit = () => {
-  if (globalThis.config.notifyThreadResLimit > 0 && globalThis.electron.threadNumber >= globalThis.config.notifyThreadResLimit) {
-    globalThis.electron.commentQueueList.push({
-      name: 'unacastより',
-      imgUrl: './img/unacast.png',
-      text: `レスが${globalThis.config.notifyThreadResLimit}を超えました`,
-    });
-  }
 };
 
 export default router;

@@ -8,7 +8,7 @@ import { ipcMain } from 'electron';
 import expressWs from 'express-ws';
 import { readWavFiles, sleep } from './util';
 // レス取得APIをセット
-import getRes, { getResInterval } from './getRes';
+import getRes, { getRes as getBbsResponse } from './getRes';
 import { CommentItem } from './youtube-chat/parser';
 import bouyomiChan from './bouyomi-chan';
 import { exec } from 'child_process';
@@ -22,8 +22,8 @@ let server: http.Server;
 /** 棒読みちゃんインスタンス */
 let bouyomi: bouyomiChan;
 
-/** スレッド定期取得のイベント */
-let threadIntervalEvent: ReturnType<typeof setInterval>;
+/** スレッド定期取得実行するか */
+let threadIntervalEvent = false;
 
 /** キュー処理実行するか */
 let isExecuteQue = false;
@@ -90,7 +90,8 @@ ipcMain.on(electronEvent['start-server'], async (event: any, config: typeof glob
   }
 
   // レス取得定期実行
-  threadIntervalEvent = setInterval(() => getResInterval(), globalThis.config.interval * 1000);
+  threadIntervalEvent = true;
+  getResInterval();
 
   // キュー処理の開始
   isExecuteQue = true;
@@ -193,6 +194,8 @@ ipcMain.on(electronEvent['stop-server'], (event) => {
   isExecuteQue = false;
   globalThis.electron.commentQueueList = [];
 
+  // レス取得の停止
+  threadIntervalEvent = false;
   // Twitchチャットの停止
   if (globalThis.electron.twitchChat) {
     globalThis.electron.twitchChat.close();
@@ -204,12 +207,39 @@ ipcMain.on(electronEvent['stop-server'], (event) => {
     globalThis.electron.youtubeChat.stop();
     globalThis.electron.youtubeChat.removeAllListeners();
   }
-
-  // レス取得の停止
-  if (threadIntervalEvent) {
-    clearInterval(threadIntervalEvent);
-  }
 });
+
+const getResInterval = async () => {
+  if (globalThis.electron.threadNumber > 0) {
+    const result = await getBbsResponse(globalThis.config.url, globalThis.electron.threadNumber);
+    // 指定したレス番は除外対象
+    result.shift();
+    if (result.length > 0 && result[result.length - 1].number) {
+      globalThis.electron.threadNumber = Number(result[result.length - 1].number);
+      globalThis.electron.commentQueueList.push(...result);
+    }
+    await notifyThreadResLimit();
+  }
+  if (threadIntervalEvent) {
+    await sleep(globalThis.config.interval * 1000);
+    getResInterval();
+  }
+};
+
+/** レス番が上限かチェックして、超えてたら通知する */
+const notifyThreadResLimit = async () => {
+  if (globalThis.config.notifyThreadResLimit > 0 && globalThis.electron.threadNumber >= globalThis.config.notifyThreadResLimit) {
+    globalThis.electron.commentQueueList.push({
+      name: 'unacastより',
+      imgUrl: './img/unacast.png',
+      text: `レスが${globalThis.config.notifyThreadResLimit}を超えました。次スレを立ててください。`,
+    });
+    // 次スレ検索ポーリング処理を走らせる
+
+    // スレ立て中だと思うのでちょっと待つ
+    await sleep(10 * 1000);
+  }
+};
 
 /**
  * キューに溜まったコメントを処理する
