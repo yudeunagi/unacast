@@ -29,7 +29,7 @@ let threadIntervalEvent = false;
 let isExecuteQue = false;
 
 /**
- * サーバー起動
+ * 設定の適用
  */
 ipcMain.on(electronEvent['apply-config'], async (event: any, config: typeof globalThis['config']) => {
   log.info('[apply-config] start');
@@ -44,6 +44,9 @@ ipcMain.on(electronEvent['apply-config'], async (event: any, config: typeof glob
   if (isChangeSePath) {
     await findSeList();
   }
+
+  // initメッセージ
+  resetInitMessage();
 
   // スレのURL
   if (isChangedUrl) {
@@ -408,7 +411,11 @@ const sendDom = async (messageList: UserComment[]) => {
   try {
     // メッセージをブラウザに送信
     const domStr = messageList.map((message) => createDom(message)).join('\n');
-    if (globalThis.electron.socket) globalThis.electron.socket.send(domStr);
+    const socketObject: CommentSocketMessage = {
+      type: 'add',
+      message: domStr,
+    };
+    if (globalThis.electron.socket) globalThis.electron.socket.send(JSON.stringify(socketObject));
 
     // レンダラーのコメント一覧にも表示
     const domStr2 = messageList
@@ -432,8 +439,21 @@ const sendDom = async (messageList: UserComment[]) => {
     if (globalThis.config.typeYomiko !== 'none') {
       await playYomiko(messageList[messageList.length - 1].text);
     }
+
+    // 鳴らし終わって読み子が終わった
+    resetInitMessage();
   } catch (e) {
     log.error(e);
+  }
+};
+
+const resetInitMessage = () => {
+  if (globalThis.electron.socket && globalThis.config.dispType === 1) {
+    const resetObj: CommentSocketMessage = {
+      type: 'reset',
+      message: globalThis.config.initMessage,
+    };
+    globalThis.electron.socket.send(JSON.stringify(resetObj));
   }
 };
 

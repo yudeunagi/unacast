@@ -80,6 +80,12 @@ declare global {
      * - 1: 1個ずつ順に処理
      */
     let commentProcessType: 0 | 1;
+    /**
+     * コメント表示方法
+     * - 0: チャット風
+     * - 1: SpeechCast風
+     */
+    let dispType: 0 | 1;
   }
 }
 

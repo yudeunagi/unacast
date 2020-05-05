@@ -37,6 +37,7 @@ h5 {
 
 .labeledInputArea {
   display: flex;
+  align-items: center;
 }
 
 .labeledInputArea > span {

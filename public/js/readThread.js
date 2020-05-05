@@ -1,25 +1,45 @@
+/** サーバーID */
 let id = null;
 
-window.onload = () => {
-  readThread();
+/** 表示順。trueなら新着が下 */
+let dispSort = false;
+/** 横幅超過時の折返し */
+let wordBreak = false;
+/**
+ * 表示タイプ
+ * - 0: チャット
+ * - 1: SpeechCast
+ */
+let dispType = 0;
+/** ポート番号 */
+let port = 3000;
 
+window.onload = () => {
+  // 埋め込みパラメータの取得
+  port = $('#port').val();
+  dispSort = $('#dispSort').val() === 'true';
+  wordBreak = $('#wordBreak').val() === 'true';
+  dispType = Number($('#dispType').val());
+
+  // クラスの付与
   // 新着下表示オプションがONの場合、ul要素に.bottomを付与する
-  if ($('#dispSort').val() === 'true') {
+  if (dispSort) {
     $('#res-list').addClass('dispBottom');
   }
-
   // 自動改行オプションによってクラスを付与する
-  if ($('#wordBreak').val() === 'true') {
+  if (wordBreak) {
     $('#res-list').addClass('brakeOn');
   } else {
     $('#res-list').addClass('brakeOff');
   }
 
+  readThread();
+
   // WebSocket接続
   setInterval(checkWsConnect, 3 * 1000);
 
   // サーバー再起動されてたらリロードする
-  setInterval(checkId, 5 * 1000);
+  setInterval(checkServerId, 5 * 1000);
 };
 
 /** @type WebSocket */
@@ -28,8 +48,7 @@ let socket;
 /** WebSocketの接続 */
 const checkWsConnect = () => {
   if (socket) return;
-  const port = $('#port').val();
-  const url = 'ws://localhost:' + port + '/ws';
+  const url = `ws://localhost:${port}/ws`;
   console.log(`WS 接続開始: ${url}`);
 
   socket = new this.WebSocket(url);
@@ -45,7 +64,17 @@ const checkWsConnect = () => {
       pingReturn = true;
     } else {
       console.debug(e);
-      prependItems(e.data);
+      const json = JSON.parse(e.data);
+      switch (json.type) {
+        case 'add': {
+          addCommentItems(json.message);
+          break;
+        }
+        case 'reset': {
+          resetCommentView(json.message);
+          break;
+        }
+      }
     }
   });
 };
@@ -75,10 +104,8 @@ const sleep = (msec) => new Promise((resolve) => setTimeout(resolve, msec));
  * スレの初期一覧を読み込む
  */
 const readThread = () => {
-  // ポート番号の取得
-  const port = $('#port').val();
   // 内部で作成したレス取得APIを呼び出す
-  const requestUrl = 'http://localhost:' + port + '/getRes';
+  const requestUrl = `http://localhost:${port}/getRes`;
   //fetchでレスを取得する
   fetch(requestUrl, {
     method: 'GET',
@@ -103,9 +130,11 @@ const readThread = () => {
         return;
       }
 
-      resJson.forEach((resObj) => {
-        prependItems(resObj);
-      });
+      if (dispType === 0) {
+        resJson.forEach(async (resObj) => {
+          await addCommentItems(resObj);
+        });
+      }
     })
     .catch((error) => {
       //エラー処理
@@ -116,8 +145,7 @@ const readThread = () => {
 /**
  * サーバーのバージョンをチェックする
  */
-const checkId = async () => {
-  const port = $('#port').val();
+const checkServerId = async () => {
   const requestUrl = `http://localhost:${port}/id`;
   try {
     const res = await fetch(requestUrl, {
@@ -141,12 +169,38 @@ const checkId = async () => {
   }
 };
 
-//レスをリスト追加
-const prependItems = (html) => {
-  // 表示順オプションで上に追加するか下に追加するか選ぶ
-  if ($('#dispSort').val() === 'true') {
-    $('#res-list').append(html);
-  } else {
-    $('#res-list').prepend(html);
+/**
+ * レスをリスト追加
+ * @param {string} html
+ */
+const addCommentItems = async (html) => {
+  switch (dispType) {
+    case 0: {
+      // 表示順オプションで上に追加するか下に追加するか選ぶ
+      if (dispSort) {
+        $('#res-list').append(html);
+      } else {
+        $('#res-list').prepend(html);
+      }
+      break;
+    }
+    case 1: {
+      // 初期メッセージを非表示にする
+      $('#initMessage').hide();
+      $('#res-list').append(html);
+      break;
+    }
+    default: {
+    }
   }
+};
+
+/**
+ * 初期状態に戻す
+ * @param {string} message
+ */
+const resetCommentView = (message) => {
+  $('#res-list > li:nth-child(2)').remove();
+  $('#initMessage > .name').text(message);
+  $('#initMessage').show();
 };

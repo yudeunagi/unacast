@@ -13,3 +13,8 @@ type UserComment = {
   id?: string;
   email?: string;
 };
+
+type CommentSocketMessage = {
+  type: 'add' | 'reset';
+  message: string;
+};

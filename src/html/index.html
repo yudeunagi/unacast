@@ -48,7 +48,10 @@
 
         <div class="mdl-textfield mdl-js-textfield" style="width: 100%">
           <div class="subtitle">ポート番号</div>
-          <input id="text-port-number" class="mdl-textfield__input" type="text" required="true" pattern="[0-9]{0,4}?" value="3000" />
+          <div class="labeledInputArea">
+            <span>https://localhost:</span>
+            <input id="text-port-number" class="mdl-textfield__input" type="text" required="true" pattern="[0-9]{0,4}?" value="3000" />
+          </div>
           <span class="mdl-textfield__error">0-9999 までの数値を入れてください</span>
         </div>
 
@@ -57,7 +60,7 @@
           <div class="mdl-textfield mdl-js-textfield" style="width: 100%">
             <div class="subtitle">掲示板URL</div>
             <div class="caption">サーバ起動中に変更した場合は、最新の1レスがコメント欄に表示されます。</div>
-            <input id="text-url" class="mdl-textfield__input" type="text" required="true" pattern="http.?://.+" value="http://jbbs.shitaraba.net/bbs/read.cgi/radio/31003/1564068767/" />
+            <input id="text-url" class="mdl-textfield__input" type="text" required="true" pattern="http.?://.+" value="" />
             <span id="text-url-error" class="mdl-textfield__error">URLを入力してください</span>
           </div>
 
@@ -83,7 +86,7 @@
           <div class="mdl-textfield mdl-js-textfield" style="width: 100%;">
             <div class="subtitle">開始レス番号</div>
             <div class="caption">サーバ起動後、ブラウザからの初回アクセス時に表示するレスの開始番号です。省略した場合は表示しません。</div>
-            <input id="text-res-number" class="mdl-textfield__input" type="text" pattern="[0-9]{0,3}?" value="575" />
+            <input id="text-res-number" class="mdl-textfield__input" type="text" pattern="[0-9]{0,3}?" value="" />
             <span class="mdl-textfield__error">0-999 までの数値を入れてください</span>
           </div>
 
@@ -96,7 +99,21 @@
         <div class="block">
           <h5>表示設定</h5>
           <div class="mdl-textfield mdl-js-textfield" style="width: 100%;">
+            <div class="subtitle">表示タイプ</div>
+            <label class="mdl-radio mdl-js-radio" for="dispType_0">
+              <input id="dispType_0" class="mdl-radio__button" type="radio" name="dispType" value="0"/>
+              <span class="mdl-radio__label">チャット風</span>
+            </label>
+
+            <label class="mdl-radio mdl-js-radio" for="dispType_1">
+              <input id="dispType_1" class="mdl-radio__button" type="radio" name="dispType" value="1" />
+              <span class="mdl-radio__label">SpeechCast風</span>
+            </label>
+          </div>
+
+          <div class="mdl-textfield mdl-js-textfield" style="width: 100%;">
             <div class="subtitle">初期表示テキスト</div>
+            <div class="caption">SpeechCast風表示ではレスが無い時の字幕になります。</div>
             <input id="text-init-message" class="mdl-textfield__input" type="text" value="" />
           </div>
 

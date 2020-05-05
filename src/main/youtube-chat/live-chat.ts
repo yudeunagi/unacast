@@ -112,6 +112,7 @@ export class LiveChat extends EventEmitter {
       });
 
       if (items.length > 0) {
+        console.log(`[Youtube-chat] items = ${items.length}`);
         const item = items[items.length - 1];
         if (item) this.prevTime = item.timestamp;
       }

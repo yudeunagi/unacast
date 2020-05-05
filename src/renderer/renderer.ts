@@ -1,6 +1,7 @@
 import electron from 'electron';
 import log from 'electron-log';
 import { electronEvent } from '../main/const';
+import { sleep } from '../main/util';
 
 const ipcRenderer = electron.ipcRenderer;
 
@@ -92,6 +93,11 @@ const toggleInputFormDisable = (isDisabled: boolean) => {
     (v as HTMLInputElement).disabled = isDisabled;
     (v.parentNode as HTMLElement).style.backgroundColor = isDisabled ? 'lightgray' : '';
   });
+  document.getElementsByName('dispType').forEach((v, i) => {
+    (v as HTMLInputElement).disabled = isDisabled;
+    (v.parentNode as HTMLElement).style.backgroundColor = isDisabled ? 'lightgray' : '';
+  });
+
   (document.getElementById('checkbox-wordBreak') as any).disabled = isDisabled;
   (document.getElementById('checkbox-wordBreak') as any).parentNode.style.backgroundColor = isDisabled ? 'lightgray' : '';
 };
@@ -145,6 +151,12 @@ const buildConfigJson = () => {
     if (elem.checked) commentProcessType = Number(elem.value) as typeof globalThis['config']['commentProcessType'];
   });
 
+  let dispType: typeof globalThis['config']['dispType'] = 0;
+  document.getElementsByName('dispType').forEach((v) => {
+    const elem = v as HTMLInputElement;
+    if (elem.checked) dispType = Number(elem.value) as typeof globalThis['config']['dispType'];
+  });
+
   const config: typeof globalThis['config'] = {
     url: url,
     resNumber,
@@ -169,6 +181,7 @@ const buildConfigJson = () => {
     notifyThreadConnectionErrorLimit,
     notifyThreadResLimit,
     commentProcessType,
+    dispType,
   };
 
   return config;
@@ -211,6 +224,7 @@ const loadConfigToLocalStrage = () => {
     notifyThreadConnectionErrorLimit: 0,
     notifyThreadResLimit: 0,
     commentProcessType: 0,
+    dispType: 0,
   };
 
   const storageStr = localStorage.getItem('config');
@@ -276,6 +290,13 @@ const loadConfigToLocalStrage = () => {
       break;
   }
 
+  switch (config.dispType) {
+    case 0:
+    case 1:
+      (document.getElementById(`dispType_${config.dispType}`) as any).checked = true;
+      break;
+  }
+
   (document.getElementById('text-tamiyasu-path') as any).value = config.tamiyasuPath;
   (document.getElementById('text-bouyomi-port') as any).value = config.bouyomiPort;
   (document.getElementById('disp-bouyomi-volume') as any).innerHTML = config.bouyomiVolume;
@@ -314,7 +335,10 @@ ipcRenderer.on(electronEvent['wait-yomiko-time'], async (event: any, arg: string
   ipcRenderer.send(electronEvent['speaking-end']);
 });
 
-/** 音声合成が終わってそうな頃にreturn返す */
+/**
+ * 音声合成が終わってそうな頃にreturn返す
+ * @param 読み込む文章
+ */
 const yomikoTime = async (msg: string) => {
   return new Promise((resolve) => {
     const uttr = new globalThis.SpeechSynthesisUtterance(msg);
@@ -323,6 +347,11 @@ const yomikoTime = async (msg: string) => {
       resolve();
     };
     speechSynthesis.speak(uttr);
+
+    // 10秒経ったら強制的に終わらせる
+    sleep(10 * 1000).then(() => {
+      resolve();
+    });
   });
 };
 
