@@ -11,16 +11,27 @@ document.addEventListener('DOMContentLoaded', () => {
   //停止確認ダイアログ
   const dialog = document.getElementById('close-dialog') as HTMLElement;
 
-  // 起動・停止ボタン
-  const startButton = document.getElementById('button-server-start') as HTMLInputElement;
-  const stopButton = document.getElementById('button-server-stop') as HTMLInputElement;
   // ダイアログのボタン
   const closeOkButton = document.getElementById('button-close-dialog-ok') as HTMLInputElement;
   const closeCancelButton = document.getElementById('button-close-dialog-cancel') as HTMLInputElement;
 
-  // サーバーのON-OFFする
+  // 設定適用ボタン
+  const applyButton = document.getElementById('button-config-apply') as HTMLInputElement;
+  applyButton.onclick = () => {
+    const config = buildConfigJson();
+    console.log('[renderer.js]config=');
+    console.log(config);
+    //設定情報をローカルストレージへ保存
+    saveConfigToLocalStrage(config);
+
+    ipcRenderer.send(electronEvent['apply-config'], config);
+  };
+
+  // 起動・停止ボタン
+  const startButton = document.getElementById('button-server-start') as HTMLInputElement;
   startButton.onclick = () => {
-    //サーバー起動
+    toggleInputFormDisable(true);
+
     //設定情報取得
     const config = buildConfigJson();
     console.log('[renderer.js]config=');
@@ -28,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     //設定情報をローカルストレージへ保存
     saveConfigToLocalStrage(config);
 
-    //URLとポートを指定していない場合はエラー
+    // URLとポートを指定していない場合はエラー
     if (config.url === null || config.url.length < 1 || config.port === null || (config.port as any).length < 1) {
       return;
     }
@@ -41,22 +52,22 @@ document.addEventListener('DOMContentLoaded', () => {
     startButton.disabled = true;
     return;
   };
-  //サーバー停止ボタン
-  stopButton.onclick = () => {
-    const config = buildConfigJson();
-    //設定情報をローカルストレージへ保存
-    saveConfigToLocalStrage(config);
 
+  //サーバー停止ボタン
+  const stopButton = document.getElementById('button-server-stop') as HTMLInputElement;
+  stopButton.onclick = () => {
     //確認ダイアログを表示
     (dialog as any).showModal();
   };
 
-  // ダイアログ
+  // サーバー停止確認ダイアログ
   closeOkButton.onclick = () => {
     const result = ipcRenderer.sendSync('stop-server');
     console.debug('[renderer.js]' + result);
     //ダイアログクローズ
     (dialog as any).close();
+
+    toggleInputFormDisable(false);
     // サーバー起動・停止ボタン状態変更
     startButton.disabled = false;
     stopButton.disabled = true;
@@ -69,7 +80,25 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 });
 
-//サーバー起動用のパラメータを作成する
+/**
+ * サーバ起動中にいじっちゃいけない設定の活性状態を切り替える
+ * @param isDisabled 非活性ならtrue
+ */
+const toggleInputFormDisable = (isDisabled: boolean) => {
+  (document.getElementById('text-port-number') as HTMLInputElement).disabled = isDisabled;
+  (document.getElementById('text-youtube-id') as HTMLInputElement).disabled = isDisabled;
+  (document.getElementById('text-twitch-id') as HTMLInputElement).disabled = isDisabled;
+  document.getElementsByName('dispSort').forEach((v, i) => {
+    (v as HTMLInputElement).disabled = isDisabled;
+    (v.parentNode as HTMLElement).style.backgroundColor = isDisabled ? 'lightgray' : '';
+  });
+  (document.getElementById('checkbox-wordBreak') as any).disabled = isDisabled;
+  (document.getElementById('checkbox-wordBreak') as any).parentNode.style.backgroundColor = isDisabled ? 'lightgray' : '';
+};
+
+/**
+ * 設定RenderのHTMLから、Configを取得する
+ */
 const buildConfigJson = () => {
   //画面から各種項目を取得する
   const url = (document.getElementById('text-url') as HTMLInputElement).value;
@@ -148,7 +177,7 @@ const buildConfigJson = () => {
 /**
  * 設定をローカルストレージへ保存する
  * サーバー起動時に呼び出される
- **/
+ */
 const saveConfigToLocalStrage = (config: typeof globalThis['config']) => {
   localStorage.setItem('config', JSON.stringify(config));
   console.debug('[renderer.js]config saved');
@@ -257,7 +286,7 @@ const loadConfigToLocalStrage = () => {
   console.debug('[renderer.js]config loaded');
 };
 
-//サーバー起動返信
+// サーバー起動返信
 ipcRenderer.on(electronEvent['start-server-reply'], (event: any, arg: any) => {
   console.debug(arg);
 });
@@ -284,6 +313,7 @@ ipcRenderer.on(electronEvent['wait-yomiko-time'], async (event: any, arg: string
   await yomikoTime(arg);
   ipcRenderer.send(electronEvent['speaking-end']);
 });
+
 /** 音声合成が終わってそうな頃にreturn返す */
 const yomikoTime = async (msg: string) => {
   return new Promise((resolve) => {
@@ -295,3 +325,8 @@ const yomikoTime = async (msg: string) => {
     speechSynthesis.speak(uttr);
   });
 };
+
+// 何かしら通知したいことがあったら表示する
+ipcRenderer.on(electronEvent['show-alert'], async (event: any, args: string) => {
+  alert(args);
+});

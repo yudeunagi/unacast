@@ -9,6 +9,14 @@
   margin-bottom: 5px;
 }
 
+input:disabled {
+  background-color: lightgray;
+}
+
+.disabled {
+  background-color: lightgray;
+}
+
 h5 {
   margin: 0px;
   font-weight: bold;
@@ -17,6 +25,10 @@ h5 {
 .subtitle {
   margin: 0px;
   font-weight: bold;
+}
+
+.caption {
+  font-size: 11px;
 }
 
 .mdl-textfield {

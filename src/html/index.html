@@ -16,8 +16,12 @@
       <form id="form-main">
         <ul id="comments"></ul>
 
-        <div>※設定はサーバー起動時に反映されます</div>
+        <div>サーバー起動、適用ボタンクリックで設定が反映されます。</div>
         <div>
+          <button type="button" id="button-config-apply" class="mdl-button mdl-js-button mdl-button--raised">
+            適用
+          </button>
+
           <button type="button" id="button-server-start" class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored">
             サーバー起動
           </button>
@@ -25,6 +29,7 @@
           <button type="button" disabled="true" id="button-server-stop" class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored">
             停止
           </button>
+
         </div>
 
         <!-- ダイアログウィンドウ -->
@@ -41,7 +46,7 @@
         </dialog>
         <!-- /ダイアログウィンドウ -->
 
-        <div class="mdl-textfield mdl-js-textfield">
+        <div class="mdl-textfield mdl-js-textfield" style="width: 100%">
           <div class="subtitle">ポート番号</div>
           <input id="text-port-number" class="mdl-textfield__input" type="text" required="true" pattern="[0-9]{0,4}?" value="3000" />
           <span class="mdl-textfield__error">0-9999 までの数値を入れてください</span>
@@ -51,6 +56,7 @@
           <h5>レス・コメント取得先</h5>
           <div class="mdl-textfield mdl-js-textfield" style="width: 100%">
             <div class="subtitle">掲示板URL</div>
+            <div class="caption">サーバ起動中に変更した場合は、最新の1レスがコメント欄に表示されます。</div>
             <input id="text-url" class="mdl-textfield__input" type="text" required="true" pattern="http.?://.+" value="http://jbbs.shitaraba.net/bbs/read.cgi/radio/31003/1564068767/" />
             <span id="text-url-error" class="mdl-textfield__error">URLを入力してください</span>
           </div>
@@ -74,13 +80,14 @@
 
         <div class="block">
           <h5>掲示板取得設定</h5>
-          <div class="mdl-textfield mdl-js-textfield">
+          <div class="mdl-textfield mdl-js-textfield" style="width: 100%;">
             <div class="subtitle">開始レス番号</div>
+            <div class="caption">サーバ起動後、ブラウザからの初回アクセス時に表示するレスの開始番号です。省略した場合は表示しません。</div>
             <input id="text-res-number" class="mdl-textfield__input" type="text" pattern="[0-9]{0,3}?" value="575" />
             <span class="mdl-textfield__error">0-999 までの数値を入れてください</span>
           </div>
 
-          <p>更新間隔 <span id="spanDisp">10</span></p>
+          <p>更新間隔 <span id="spanDisp">10</span>秒</p>
           <p style="width: 80%;">
             <input id="rangeSpan" class="mdl-slider mdl-js-slider" type="range" min="5" max="30" value="10" tabindex="0" oninput="showVal('spanDisp', this.value)" />
           </p>
@@ -88,7 +95,7 @@
 
         <div class="block">
           <h5>表示設定</h5>
-          <div class="mdl-textfield mdl-js-textfield">
+          <div class="mdl-textfield mdl-js-textfield" style="width: 100%;">
             <div class="subtitle">初期表示テキスト</div>
             <input id="text-init-message" class="mdl-textfield__input" type="text" value="" />
           </div>
@@ -110,7 +117,7 @@
 
           <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="checkbox-wordBreak">
             <input type="checkbox" id="checkbox-wordBreak" class="mdl-checkbox__input" value="1" checked />
-            <span class="mdl-checkbox__label">自動改行する</span>
+            <span class="mdl-checkbox__label">横幅超過時に自動改行する</span>
           </label>
 
           <div class="mdl-textfield mdl-js-textfield">
@@ -143,11 +150,12 @@
           <h5>レス・コメント着信音設定</h5>
           <div class="mdl-textfield mdl-js-textfield" style="width: 600px;">
             <div class="subtitle">着信音のフォルダパス</div>
-            <input class="mdl-textfield__input" type="text" id="text-se-path" />
+            <div class="caption">.wavファイルが含まれたフォルダを入力してください。</div>
+            <input class="mdl-textfield__input" type="text" id="text-se-path" placeholder="C:\hogehoge\fugafuga" />
 
             <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="checkbox-playSe">
               <input type="checkbox" id="checkbox-playSe" class="mdl-checkbox__input" value="1" checked />
-              <span class="mdl-checkbox__label">着信音再生</span>
+              <span class="mdl-checkbox__label">着信音再生を有効にする</span>
             </label>
           </div>
         </div>
@@ -175,7 +183,7 @@
 
           <div class="mdl-textfield mdl-js-textfield" style="width: 600px;">
             <div class="subtitle">民安☆Talkのファイルパス</div>
-            <input class="mdl-textfield__input" type="text" id="text-tamiyasu-path" />
+            <input class="mdl-textfield__input" type="text" id="text-tamiyasu-path"  placeholder="C:\hogehoge\fugafuga\vrx.exe" />
           </div>
 
           <h5>棒読みちゃん設定</h5>

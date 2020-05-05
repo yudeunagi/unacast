@@ -3,6 +3,12 @@ export const electronEvent = {
   'start-server': 'start-server',
   /** サーバー停止 */
   'stop-server': 'stop-server',
+  /** Config適用 */
+  'apply-config': 'apply-config',
+
+  /** アラート表示 */
+  'show-alert': 'show-alert',
+
   /** 棒読み再生 */
   'play-tamiyasu': 'play-tamiyasu',
   /** レス着信音再生 */

@@ -31,6 +31,39 @@ let isExecuteQue = false;
 /**
  * サーバー起動
  */
+ipcMain.on(electronEvent['apply-config'], async (event: any, config: typeof globalThis['config']) => {
+  log.info('[apply-config] start');
+  log.info(config);
+
+  // Configの変更内容に応じて何かする
+  const isChangedUrl = globalThis.config.url !== config.url;
+  const isChangeSePath = globalThis.config.sePath !== config.sePath;
+  globalThis.config = config;
+
+  // 着信音のパス
+  if (isChangeSePath) {
+    await findSeList();
+  }
+
+  // スレのURL
+  if (isChangedUrl) {
+    // 新スレを取得
+    const ret = await getBbsResponse(globalThis.config.url, NaN);
+    console.log(ret);
+    if (ret.length === 0) {
+      globalThis.electron.mainWindow.webContents.send(electronEvent['show-alert'], '掲示板URLがおかしそうです');
+      return;
+    }
+    globalThis.electron.threadNumber = Number(ret[ret.length - 1].number);
+    log.info(`[apply-config] new res num is ${globalThis.electron.threadNumber}`);
+    // チャットウィンドウとブラウザに、末尾のスレだけ反映する
+    sendDom([ret[ret.length - 1]]);
+  }
+});
+
+/**
+ * サーバー起動
+ */
 ipcMain.on(electronEvent['start-server'], async (event: any, config: typeof globalThis['config']) => {
   globalThis.electron.chatWindow.webContents.send(electronEvent['clear-comment']);
   globalThis.electron.threadNumber = 0;
@@ -66,10 +99,8 @@ ipcMain.on(electronEvent['start-server'], async (event: any, config: typeof glob
   app.use('/getRes', getRes);
 
   // SEを取得する
-  if (globalThis.config.playSe) {
-    const list = await readWavFiles(globalThis.config.sePath);
-    globalThis.electron.seList = list.map((file) => `${globalThis.config.sePath}/${file}`);
-    console.log(`SE files = ${globalThis.electron.seList.length}`);
+  if (globalThis.config.sePath) {
+    findSeList();
   }
 
   // Twitchに接続
@@ -119,6 +150,20 @@ ipcMain.on(electronEvent['start-server'], async (event: any, config: typeof glob
   // 成功メッセージ返却
   event.returnValue = 'success';
 });
+
+export const findSeList = async () => {
+  try {
+    if (globalThis.config.sePath) {
+      const list = await readWavFiles(globalThis.config.sePath);
+      globalThis.electron.seList = list.map((file) => `${globalThis.config.sePath}/${file}`);
+      console.log(`SE files = ${globalThis.electron.seList.length}`);
+    } else {
+      globalThis.electron.seList = [];
+    }
+  } catch (e) {
+    globalThis.electron.mainWindow.webContents.send(electronEvent['show-alert'], '着信音のパスがおかしそうです');
+  }
+};
 
 /**
  * Twitchチャットに接続

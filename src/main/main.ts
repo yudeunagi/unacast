@@ -47,6 +47,8 @@ if (!app.requestSingleInstanceLock()) {
     commentQueueList: [],
   };
 
+  globalThis.config = {} as any;
+
   // 全てのウィンドウが閉じたら終了
   // app.on('window-all-closed', () => {
   //   if (process.platform != 'darwin') {
