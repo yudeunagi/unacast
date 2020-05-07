@@ -29,14 +29,6 @@ router.get('/', async (req, res, next) => {
 
   const result = await getRes(threadUrl, resNum);
 
-  // 末尾のレス番号を保存
-  if (result.length > 0 && result[result.length - 1].number) {
-    globalThis.electron.threadNumber = Number(result[result.length - 1].number);
-  } else {
-    // 読み込み失敗時はとりあえず指定されたレス番か1にする
-    globalThis.electron.threadNumber = resNum ? resNum : 1;
-  }
-
   result.shift();
   const doms = result.map((item) => createDom(item));
   res.send(JSON.stringify(doms));
@@ -45,7 +37,7 @@ router.get('/', async (req, res, next) => {
 /**
  * 掲示板のレスを取得する
  * @param threadUrl スレのURL
- * @param resNum この番号以降を取得する
+ * @param resNum この番号以降を取得する。指定しない場合は最新1件を取得。
  */
 export const getRes = async (threadUrl: string, resNum: number): Promise<UserComment[]> => {
   try {

@@ -266,12 +266,27 @@ ipcMain.on(electronEvent['stop-server'], (event) => {
 });
 
 const getResInterval = async (exeId: number) => {
-  if (globalThis.electron.threadNumber > 0) {
-    const result = await getBbsResponse(globalThis.config.url, globalThis.electron.threadNumber);
-    // 指定したレス番は除外対象
-    result.shift();
-    if (result.length > 0 && result[result.length - 1].number) {
-      globalThis.electron.threadNumber = Number(result[result.length - 1].number);
+  let resNum: number;
+  let isfirst = false;
+  if (!globalThis.electron.threadNumber) {
+    // 初回
+    isfirst = true;
+    resNum = globalThis.config.resNumber ? Number(globalThis.config.resNumber) : NaN;
+  } else {
+    // 2回目以降
+    resNum = globalThis.electron.threadNumber;
+  }
+
+  const result = await getBbsResponse(globalThis.config.url, resNum);
+  // 指定したレス番は除外対象
+  if (!isfirst) result.shift();
+  if (result.length > 0 && result[result.length - 1].number) {
+    globalThis.electron.threadNumber = Number(result[result.length - 1].number);
+
+    if (isfirst) {
+      // 初回取得の時はチャットウィンドウにだけ表示
+      sendDomForChatWindow(result);
+    } else {
       for (const item of result) {
         // リストに同じレス番があったら追加しない
         if (!globalThis.electron.commentQueueList.find((comment) => comment.number === item.number)) {
@@ -279,8 +294,8 @@ const getResInterval = async (exeId: number) => {
         }
       }
     }
-    await notifyThreadResLimit();
   }
+  await notifyThreadResLimit();
 
   if (threadIntervalEvent && exeId === serverId) {
     await sleep(globalThis.config.interval * 1000);
@@ -433,17 +448,7 @@ const sendDom = async (messageList: UserComment[]) => {
     });
 
     // レンダラーのコメント一覧にも表示
-    const domStr2 = messageList
-      .map((message) => {
-        const imgUrl = message.imgUrl && message.imgUrl.match(/^\./) ? '../../public/' + message.imgUrl : message.imgUrl;
-        return {
-          ...message,
-          imgUrl,
-        };
-      })
-      .map((message) => createDom(message))
-      .join('\n');
-    globalThis.electron.chatWindow.webContents.send(electronEvent['show-comment'], { config: globalThis.config, dom: domStr2 });
+    sendDomForChatWindow(messageList);
 
     // レス着信音
     if (config.playSe && globalThis.electron.seList.length > 0) {
@@ -466,6 +471,20 @@ const sendDom = async (messageList: UserComment[]) => {
   } catch (e) {
     log.error(e);
   }
+};
+
+const sendDomForChatWindow = (messageList: UserComment[]) => {
+  const domStr2 = messageList
+    .map((message) => {
+      const imgUrl = message.imgUrl && message.imgUrl.match(/^\./) ? '../../public/' + message.imgUrl : message.imgUrl;
+      return {
+        ...message,
+        imgUrl,
+      };
+    })
+    .map((message) => createDom(message))
+    .join('\n');
+  globalThis.electron.chatWindow.webContents.send(electronEvent['show-comment'], { config: globalThis.config, dom: domStr2 });
 };
 
 const resetInitMessage = () => {

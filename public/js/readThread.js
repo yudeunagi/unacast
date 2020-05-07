@@ -55,35 +55,46 @@ let pingWsIntervalTimer;
 /** WebSocketの接続 */
 const checkWsConnect = () => {
   if (socket) return;
-  const url = `ws://localhost:${port}/ws`;
-  console.log(`WS 接続開始: ${url}`);
+  try {
+    const url = `ws://localhost:${port}/ws`;
+    console.log(`WS 接続開始: ${url}`);
 
-  socket = new this.WebSocket(url);
-  socket.addEventListener('open', function (e) {
-    console.log('Socket 接続成功');
-    // 定期的にpingを打つ
-    pingWsIntervalTimer = setInterval(pingWs, 2 * 1000);
-  });
-  socket.addEventListener('message', (e) => {
-    console.debug('[message received]');
-    if (e.data === 'pong') {
-      console.debug(e.data);
-      pingReturn = true;
-    } else {
-      console.debug(e);
-      const json = JSON.parse(e.data);
-      switch (json.type) {
-        case 'add': {
-          addCommentItems(json.message);
-          break;
-        }
-        case 'reset': {
-          resetCommentView(json.message);
-          break;
+    socket = new WebSocket(url);
+    socket.addEventListener('open', (e) => {
+      console.log('Socket 接続成功');
+      // 定期的にpingを打つ
+      pingWsIntervalTimer = setInterval(pingWs, 2 * 1000);
+    });
+    socket.addEventListener('message', (e) => {
+      console.debug('[message received]');
+      if (e.data === 'pong') {
+        console.debug(e.data);
+        pingReturn = true;
+      } else {
+        console.debug(e);
+        const json = JSON.parse(e.data);
+        switch (json.type) {
+          case 'add': {
+            addCommentItems(json.message);
+            break;
+          }
+          case 'reset': {
+            resetCommentView(json.message);
+            break;
+          }
         }
       }
-    }
-  });
+    });
+    socket.addEventListener('error', (e) => {
+      console.error(`[checkWsConnect] WebSocket接続エラー`);
+      console.error(e);
+      socket = null;
+    });
+  } catch (e) {
+    console.error(`[checkWsConnect] その他エラー`);
+    console.error(e);
+    socket = null;
+  }
 };
 
 /**

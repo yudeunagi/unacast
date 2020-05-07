@@ -395,14 +395,6 @@ router.get('/', function (req, res, next) { return __awaiter(void 0, void 0, voi
                 return [4 /*yield*/, exports.getRes(threadUrl, resNum)];
             case 1:
                 result = _a.sent();
-                // 末尾のレス番号を保存
-                if (result.length > 0 && result[result.length - 1].number) {
-                    globalThis.electron.threadNumber = Number(result[result.length - 1].number);
-                }
-                else {
-                    // 読み込み失敗時はとりあえず指定されたレス番か1にする
-                    globalThis.electron.threadNumber = resNum ? resNum : 1;
-                }
                 result.shift();
                 doms = result.map(function (item) { return startServer_1.createDom(item); });
                 res.send(JSON.stringify(doms));
@@ -413,7 +405,7 @@ router.get('/', function (req, res, next) { return __awaiter(void 0, void 0, voi
 /**
  * 掲示板のレスを取得する
  * @param threadUrl スレのURL
- * @param resNum この番号以降を取得する
+ * @param resNum この番号以降を取得する。指定しない場合は最新1件を取得。
  */
 exports.getRes = function (threadUrl, resNum) { return __awaiter(void 0, void 0, void 0, function () {
     var response, e_1;
@@ -1456,41 +1448,55 @@ electron_1.ipcMain.on(const_1.electronEvent['stop-server'], function (event) {
     }
 });
 var getResInterval = function (exeId) { return __awaiter(void 0, void 0, void 0, function () {
-    var result, _loop_1, _i, result_1, item;
+    var resNum, isfirst, result, _loop_1, _i, result_1, item;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
-                if (!(globalThis.electron.threadNumber > 0)) return [3 /*break*/, 3];
-                return [4 /*yield*/, getRes_1.getRes(globalThis.config.url, globalThis.electron.threadNumber)];
+                isfirst = false;
+                if (!globalThis.electron.threadNumber) {
+                    // 初回
+                    isfirst = true;
+                    resNum = globalThis.config.resNumber ? Number(globalThis.config.resNumber) : NaN;
+                }
+                else {
+                    // 2回目以降
+                    resNum = globalThis.electron.threadNumber;
+                }
+                return [4 /*yield*/, getRes_1.getRes(globalThis.config.url, resNum)];
             case 1:
                 result = _a.sent();
                 // 指定したレス番は除外対象
-                result.shift();
+                if (!isfirst)
+                    result.shift();
                 if (result.length > 0 && result[result.length - 1].number) {
                     globalThis.electron.threadNumber = Number(result[result.length - 1].number);
-                    _loop_1 = function (item) {
-                        // リストに同じレス番があったら追加しない
-                        if (!globalThis.electron.commentQueueList.find(function (comment) { return comment.number === item.number; })) {
-                            globalThis.electron.commentQueueList.push(item);
+                    if (isfirst) {
+                        // 初回取得の時はチャットウィンドウにだけ表示
+                        sendDomForChatWindow(result);
+                    }
+                    else {
+                        _loop_1 = function (item) {
+                            // リストに同じレス番があったら追加しない
+                            if (!globalThis.electron.commentQueueList.find(function (comment) { return comment.number === item.number; })) {
+                                globalThis.electron.commentQueueList.push(item);
+                            }
+                        };
+                        for (_i = 0, result_1 = result; _i < result_1.length; _i++) {
+                            item = result_1[_i];
+                            _loop_1(item);
                         }
-                    };
-                    for (_i = 0, result_1 = result; _i < result_1.length; _i++) {
-                        item = result_1[_i];
-                        _loop_1(item);
                     }
                 }
                 return [4 /*yield*/, notifyThreadResLimit()];
             case 2:
                 _a.sent();
-                _a.label = 3;
-            case 3:
-                if (!(threadIntervalEvent && exeId === serverId)) return [3 /*break*/, 5];
+                if (!(threadIntervalEvent && exeId === serverId)) return [3 /*break*/, 4];
                 return [4 /*yield*/, util_1.sleep(globalThis.config.interval * 1000)];
-            case 4:
+            case 3:
                 _a.sent();
                 getResInterval(exeId);
-                _a.label = 5;
-            case 5: return [2 /*return*/];
+                _a.label = 4;
+            case 4: return [2 /*return*/];
         }
     });
 }); };
@@ -1641,7 +1647,7 @@ exports.createDom = function (message) {
  * @param message
  */
 var sendDom = function (messageList) { return __awaiter(void 0, void 0, void 0, function () {
-    var domStr, socketObject_1, domStr2, MIN_DISP_TIME, e_3;
+    var domStr, socketObject_1, MIN_DISP_TIME, e_3;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -1654,14 +1660,8 @@ var sendDom = function (messageList) { return __awaiter(void 0, void 0, void 0, 
                 aWss.clients.forEach(function (client) {
                     client.send(JSON.stringify(socketObject_1));
                 });
-                domStr2 = messageList
-                    .map(function (message) {
-                    var imgUrl = message.imgUrl && message.imgUrl.match(/^\./) ? '../../public/' + message.imgUrl : message.imgUrl;
-                    return __assign(__assign({}, message), { imgUrl: imgUrl });
-                })
-                    .map(function (message) { return exports.createDom(message); })
-                    .join('\n');
-                globalThis.electron.chatWindow.webContents.send(const_1.electronEvent['show-comment'], { config: globalThis.config, dom: domStr2 });
+                // レンダラーのコメント一覧にも表示
+                sendDomForChatWindow(messageList);
                 if (!(config.playSe && globalThis.electron.seList.length > 0)) return [3 /*break*/, 2];
                 return [4 /*yield*/, playSe()];
             case 1:
@@ -1692,6 +1692,16 @@ var sendDom = function (messageList) { return __awaiter(void 0, void 0, void 0, 
         }
     });
 }); };
+var sendDomForChatWindow = function (messageList) {
+    var domStr2 = messageList
+        .map(function (message) {
+        var imgUrl = message.imgUrl && message.imgUrl.match(/^\./) ? '../../public/' + message.imgUrl : message.imgUrl;
+        return __assign(__assign({}, message), { imgUrl: imgUrl });
+    })
+        .map(function (message) { return exports.createDom(message); })
+        .join('\n');
+    globalThis.electron.chatWindow.webContents.send(const_1.electronEvent['show-comment'], { config: globalThis.config, dom: domStr2 });
+};
 var resetInitMessage = function () {
     if (globalThis.config.dispType === 1) {
         var resetObj_1 = {
