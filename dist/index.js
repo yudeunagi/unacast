@@ -403,9 +403,6 @@ router.get('/', function (req, res, next) { return __awaiter(void 0, void 0, voi
                     // 読み込み失敗時はとりあえず指定されたレス番か1にする
                     globalThis.electron.threadNumber = resNum ? resNum : 1;
                 }
-                // 初回なのでキューを初期化
-                // サーバー立てるとこで初期化してる
-                // globalThis.electron.commentQueueList = [];
                 result.shift();
                 doms = result.map(function (item) { return startServer_1.createDom(item); });
                 res.send(JSON.stringify(doms));
@@ -568,7 +565,6 @@ else {
         seList: [],
         twitchChat: null,
         youtubeChat: null,
-        socket: null,
         threadConnectionError: 0,
         threadNumber: 0,
         commentQueueList: [],
@@ -1212,6 +1208,9 @@ var bouyomi;
 var threadIntervalEvent = false;
 /** キュー処理実行するか */
 var isExecuteQue = false;
+/** 接続中の全WebSocket */
+var aWss;
+var serverId = 0;
 /**
  * 設定の適用
  */
@@ -1255,13 +1254,15 @@ electron_1.ipcMain.on(const_1.electronEvent['apply-config'], function (event, co
  * サーバー起動
  */
 electron_1.ipcMain.on(const_1.electronEvent['start-server'], function (event, config) { return __awaiter(void 0, void 0, void 0, function () {
-    var id;
+    var expressInstance;
     return __generator(this, function (_a) {
         globalThis.electron.chatWindow.webContents.send(const_1.electronEvent['clear-comment']);
         globalThis.electron.threadNumber = 0;
         globalThis.electron.commentQueueList = [];
         globalThis.electron.threadConnectionError = 0;
-        app = express_ws_1.default(express_1.default()).app;
+        expressInstance = express_ws_1.default(express_1.default());
+        app = expressInstance.app;
+        aWss = expressInstance.getWss();
         app.set('view engine', 'ejs');
         // viewディレクトリの指定
         app.set('views', path_1.default.resolve(__dirname, '../views'));
@@ -1273,9 +1274,10 @@ electron_1.ipcMain.on(const_1.electronEvent['start-server'], function (event, co
             res.render('server', config);
             req.connection.end();
         });
-        id = new Date().getTime();
+        // サーバーIDのIF
+        serverId = new Date().getTime();
         app.get('/id', function (req, res, next) {
-            res.send("" + id);
+            res.send("" + serverId);
         });
         // 静的コンテンツはpublicディレクトリの中身を使用するという宣言
         app.use(express_1.default.static(path_1.default.resolve(__dirname, '../public')));
@@ -1301,13 +1303,12 @@ electron_1.ipcMain.on(const_1.electronEvent['start-server'], function (event, co
         }
         // レス取得定期実行
         threadIntervalEvent = true;
-        getResInterval();
+        getResInterval(serverId);
         // キュー処理の開始
         isExecuteQue = true;
-        taskScheduler();
+        taskScheduler(serverId);
         // WebSocketを立てる
         app.ws('/ws', function (ws, req) {
-            globalThis.electron.socket = ws;
             ws.on('message', function (message) {
                 console.trace('Received: ' + message);
                 if (message === 'ping') {
@@ -1435,6 +1436,7 @@ var startYoutubeChat = function () { return __awaiter(void 0, void 0, void 0, fu
 electron_1.ipcMain.on(const_1.electronEvent['stop-server'], function (event) {
     console.log('[startServer]server stop');
     server.close();
+    aWss.close();
     app = null;
     event.returnValue = 'stop';
     // キュー処理停止
@@ -1453,33 +1455,42 @@ electron_1.ipcMain.on(const_1.electronEvent['stop-server'], function (event) {
         globalThis.electron.youtubeChat.removeAllListeners();
     }
 });
-var getResInterval = function () { return __awaiter(void 0, void 0, void 0, function () {
-    var result;
-    var _a;
-    return __generator(this, function (_b) {
-        switch (_b.label) {
+var getResInterval = function (exeId) { return __awaiter(void 0, void 0, void 0, function () {
+    var result, _loop_1, _i, result_1, item;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
             case 0:
                 if (!(globalThis.electron.threadNumber > 0)) return [3 /*break*/, 3];
                 return [4 /*yield*/, getRes_1.getRes(globalThis.config.url, globalThis.electron.threadNumber)];
             case 1:
-                result = _b.sent();
+                result = _a.sent();
                 // 指定したレス番は除外対象
                 result.shift();
                 if (result.length > 0 && result[result.length - 1].number) {
                     globalThis.electron.threadNumber = Number(result[result.length - 1].number);
-                    (_a = globalThis.electron.commentQueueList).push.apply(_a, result);
+                    _loop_1 = function (item) {
+                        // リストに同じレス番があったら追加しない
+                        if (!globalThis.electron.commentQueueList.find(function (comment) { return comment.number === item.number; })) {
+                            globalThis.electron.commentQueueList.push(item);
+                        }
+                    };
+                    for (_i = 0, result_1 = result; _i < result_1.length; _i++) {
+                        item = result_1[_i];
+                        _loop_1(item);
+                    }
                 }
                 return [4 /*yield*/, notifyThreadResLimit()];
             case 2:
-                _b.sent();
-                _b.label = 3;
+                _a.sent();
+                _a.label = 3;
             case 3:
-                if (!threadIntervalEvent) return [3 /*break*/, 5];
+                console.log(exeId + "  " + serverId);
+                if (!(threadIntervalEvent && exeId === serverId)) return [3 /*break*/, 5];
                 return [4 /*yield*/, util_1.sleep(globalThis.config.interval * 1000)];
             case 4:
-                _b.sent();
-                getResInterval();
-                _b.label = 5;
+                _a.sent();
+                getResInterval(exeId);
+                _a.label = 5;
             case 5: return [2 /*return*/];
         }
     });
@@ -1510,7 +1521,7 @@ var notifyThreadResLimit = function () { return __awaiter(void 0, void 0, void 0
 /**
  * キューに溜まったコメントを処理する
  */
-var taskScheduler = function () { return __awaiter(void 0, void 0, void 0, function () {
+var taskScheduler = function (exeId) { return __awaiter(void 0, void 0, void 0, function () {
     var temp, comment;
     var _a, _b;
     return __generator(this, function (_c) {
@@ -1533,11 +1544,11 @@ var taskScheduler = function () { return __awaiter(void 0, void 0, void 0, funct
                 _c.sent();
                 _c.label = 3;
             case 3:
-                if (!isExecuteQue) return [3 /*break*/, 5];
+                if (!(isExecuteQue && exeId === serverId)) return [3 /*break*/, 5];
                 return [4 /*yield*/, util_1.sleep(100)];
             case 4:
                 _c.sent();
-                taskScheduler();
+                taskScheduler(exeId);
                 _c.label = 5;
             case 5: return [2 /*return*/];
         }
@@ -1631,18 +1642,19 @@ exports.createDom = function (message) {
  * @param message
  */
 var sendDom = function (messageList) { return __awaiter(void 0, void 0, void 0, function () {
-    var domStr, socketObject, domStr2, MIN_DISP_TIME, e_3;
+    var domStr, socketObject_1, domStr2, MIN_DISP_TIME, e_3;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
                 _a.trys.push([0, 7, , 8]);
                 domStr = messageList.map(function (message) { return exports.createDom(message); }).join('\n');
-                socketObject = {
+                socketObject_1 = {
                     type: 'add',
                     message: domStr,
                 };
-                if (globalThis.electron.socket)
-                    globalThis.electron.socket.send(JSON.stringify(socketObject));
+                aWss.clients.forEach(function (client) {
+                    client.send(JSON.stringify(socketObject_1));
+                });
                 domStr2 = messageList
                     .map(function (message) {
                     var imgUrl = message.imgUrl && message.imgUrl.match(/^\./) ? '../../public/' + message.imgUrl : message.imgUrl;
@@ -1682,12 +1694,14 @@ var sendDom = function (messageList) { return __awaiter(void 0, void 0, void 0, 
     });
 }); };
 var resetInitMessage = function () {
-    if (globalThis.electron.socket && globalThis.config.dispType === 1) {
-        var resetObj = {
+    if (globalThis.config.dispType === 1) {
+        var resetObj_1 = {
             type: 'reset',
             message: globalThis.config.initMessage,
         };
-        globalThis.electron.socket.send(JSON.stringify(resetObj));
+        aWss.clients.forEach(function (client) {
+            client.send(JSON.stringify(resetObj_1));
+        });
     }
 };
 exports.default = {};

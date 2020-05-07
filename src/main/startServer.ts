@@ -28,6 +28,11 @@ let threadIntervalEvent = false;
 /** キュー処理実行するか */
 let isExecuteQue = false;
 
+/** 接続中の全WebSocket */
+let aWss: ReturnType<expressWs.Instance['getWss']>;
+
+let serverId = 0;
+
 /**
  * 設定の適用
  */
@@ -73,7 +78,10 @@ ipcMain.on(electronEvent['start-server'], async (event: any, config: typeof glob
   globalThis.electron.commentQueueList = [];
   globalThis.electron.threadConnectionError = 0;
 
-  app = expressWs(express()).app;
+  const expressInstance = expressWs(express());
+  app = expressInstance.app;
+  aWss = expressInstance.getWss();
+
   app.set('view engine', 'ejs');
   // viewディレクトリの指定
   app.set('views', path.resolve(__dirname, '../views'));
@@ -90,9 +98,9 @@ ipcMain.on(electronEvent['start-server'], async (event: any, config: typeof glob
   });
 
   // サーバーIDのIF
-  const id = new Date().getTime();
+  serverId = new Date().getTime();
   app.get('/id', (req: Request, res: Response, next) => {
-    res.send(`${id}`);
+    res.send(`${serverId}`);
   });
 
   // 静的コンテンツはpublicディレクトリの中身を使用するという宣言
@@ -125,15 +133,14 @@ ipcMain.on(electronEvent['start-server'], async (event: any, config: typeof glob
 
   // レス取得定期実行
   threadIntervalEvent = true;
-  getResInterval();
+  getResInterval(serverId);
 
   // キュー処理の開始
   isExecuteQue = true;
-  taskScheduler();
+  taskScheduler(serverId);
 
   // WebSocketを立てる
   app.ws('/ws', (ws, req) => {
-    globalThis.electron.socket = ws as any;
     ws.on('message', (message) => {
       console.trace('Received: ' + message);
       if (message === 'ping') {
@@ -235,6 +242,7 @@ const startYoutubeChat = async () => {
 ipcMain.on(electronEvent['stop-server'], (event) => {
   console.log('[startServer]server stop');
   server.close();
+  aWss.close();
   app = null as any;
   event.returnValue = 'stop';
 
@@ -257,20 +265,26 @@ ipcMain.on(electronEvent['stop-server'], (event) => {
   }
 });
 
-const getResInterval = async () => {
+const getResInterval = async (exeId: number) => {
   if (globalThis.electron.threadNumber > 0) {
     const result = await getBbsResponse(globalThis.config.url, globalThis.electron.threadNumber);
     // 指定したレス番は除外対象
     result.shift();
     if (result.length > 0 && result[result.length - 1].number) {
       globalThis.electron.threadNumber = Number(result[result.length - 1].number);
-      globalThis.electron.commentQueueList.push(...result);
+      for (const item of result) {
+        // リストに同じレス番があったら追加しない
+        if (!globalThis.electron.commentQueueList.find((comment) => comment.number === item.number)) {
+          globalThis.electron.commentQueueList.push(item);
+        }
+      }
     }
     await notifyThreadResLimit();
   }
-  if (threadIntervalEvent) {
+  console.log(`${exeId}  ${serverId}`);
+  if (threadIntervalEvent && exeId === serverId) {
     await sleep(globalThis.config.interval * 1000);
-    getResInterval();
+    getResInterval(exeId);
   }
 };
 
@@ -292,8 +306,7 @@ const notifyThreadResLimit = async () => {
 /**
  * キューに溜まったコメントを処理する
  */
-const taskScheduler = async () => {
-  // log.info('taskScheduler');
+const taskScheduler = async (exeId: number) => {
   if (globalThis.electron?.commentQueueList?.length > 0) {
     if (globalThis.config.commentProcessType === 0) {
       // 一括
@@ -311,9 +324,9 @@ const taskScheduler = async () => {
     }
   }
 
-  if (isExecuteQue) {
+  if (isExecuteQue && exeId === serverId) {
     await sleep(100);
-    taskScheduler();
+    taskScheduler(exeId);
   }
 };
 
@@ -415,7 +428,9 @@ const sendDom = async (messageList: UserComment[]) => {
       type: 'add',
       message: domStr,
     };
-    if (globalThis.electron.socket) globalThis.electron.socket.send(JSON.stringify(socketObject));
+    aWss.clients.forEach((client) => {
+      client.send(JSON.stringify(socketObject));
+    });
 
     // レンダラーのコメント一覧にも表示
     const domStr2 = messageList
@@ -454,12 +469,14 @@ const sendDom = async (messageList: UserComment[]) => {
 };
 
 const resetInitMessage = () => {
-  if (globalThis.electron.socket && globalThis.config.dispType === 1) {
+  if (globalThis.config.dispType === 1) {
     const resetObj: CommentSocketMessage = {
       type: 'reset',
       message: globalThis.config.initMessage,
     };
-    globalThis.electron.socket.send(JSON.stringify(resetObj));
+    aWss.clients.forEach((client) => {
+      client.send(JSON.stringify(resetObj));
+    });
   }
 };
 

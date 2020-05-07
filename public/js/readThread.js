@@ -55,7 +55,7 @@ const checkWsConnect = () => {
   socket.addEventListener('open', function (e) {
     console.log('Socket 接続成功');
     // 定期的にpingを打つ
-    setInterval(pingWs, 10 * 1000);
+    setInterval(pingWs, 5 * 1000);
   });
   socket.addEventListener('message', (e) => {
     console.debug('[message received]');
@@ -90,7 +90,7 @@ const pingWs = async () => {
   console.debug('[ws] ping打ち');
   pingReturn = false;
   socket.send('ping');
-  await sleep(5000);
+  await sleep(3000);
   if (!pingReturn) {
     console.log('[ws] 通信が返ってこないので打ち切り');
     socket.close();
@@ -200,7 +200,7 @@ const addCommentItems = async (html) => {
  * @param {string} message
  */
 const resetCommentView = (message) => {
-  $('#res-list > li:nth-child(2)').remove();
+  $('.list-item').remove();
   $('#initMessage > .name').text(message);
   $('#initMessage').show();
 };

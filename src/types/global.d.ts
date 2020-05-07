@@ -12,8 +12,6 @@ declare global {
     let twitchChat: ChatClient;
     /** Youtubeチャットインスタンス */
     let youtubeChat: LiveChat;
-    /** ブラウザとのWebSocket情報 */
-    let socket: WebSocket;
     /** 掲示板の読み込み済みのレス番号 */
     let threadNumber: number;
     /** 掲示板との連続通信エラー回数 */
