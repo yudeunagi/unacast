@@ -77,6 +77,7 @@ ipcMain.on(electronEvent['start-server'], async (event: any, config: typeof glob
   globalThis.electron.threadNumber = 0;
   globalThis.electron.commentQueueList = [];
   globalThis.electron.threadConnectionError = 0;
+  serverId = new Date().getTime();
 
   const expressInstance = expressWs(express());
   app = expressInstance.app;
@@ -97,10 +98,9 @@ ipcMain.on(electronEvent['start-server'], async (event: any, config: typeof glob
     req.connection.end();
   });
 
-  // サーバーIDのIF
-  serverId = new Date().getTime();
-  app.get('/id', (req: Request, res: Response, next) => {
-    res.send(`${serverId}`);
+  // サーバー設定のIF
+  app.get('/config', (req: Request, res: Response, next) => {
+    res.send(JSON.stringify(globalThis.config));
   });
 
   // 静的コンテンツはpublicディレクトリの中身を使用するという宣言
@@ -281,7 +281,7 @@ const getResInterval = async (exeId: number) => {
     }
     await notifyThreadResLimit();
   }
-  console.log(`${exeId}  ${serverId}`);
+
   if (threadIntervalEvent && exeId === serverId) {
     await sleep(globalThis.config.interval * 1000);
     getResInterval(exeId);

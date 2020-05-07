@@ -1,6 +1,3 @@
-/** サーバーID */
-let id = null;
-
 /** 表示順。trueなら新着が下 */
 let dispSort = false;
 /** 横幅超過時の折返し */
@@ -12,14 +9,20 @@ let wordBreak = false;
  */
 let dispType = 0;
 /** ポート番号 */
-let port = 3000;
-
-window.onload = () => {
-  // 埋め込みパラメータの取得
-  port = $('#port').val();
-  dispSort = $('#dispSort').val() === 'true';
-  wordBreak = $('#wordBreak').val() === 'true';
-  dispType = Number($('#dispType').val());
+const port = window.location.port;
+const hostname = window.location.origin;
+let initMessage = '';
+window.onload = async () => {
+  const config = await fetchServerConfig();
+  if (!config) {
+    await sleep(500);
+    window.location.reload();
+  }
+  dispSort = config.dispSort;
+  wordBreak = config.wordBreak;
+  dispType = config.dispType;
+  initMessage = config.initMessage;
+  resetCommentView(initMessage);
 
   // クラスの付与
   // 新着下表示オプションがONの場合、ul要素に.bottomを付与する
@@ -33,17 +36,21 @@ window.onload = () => {
     $('#res-list').addClass('brakeOff');
   }
 
+  checkServerConfig();
   readThread();
+  checkWsConnect();
 
   // WebSocket接続
-  setInterval(checkWsConnect, 3 * 1000);
+  setInterval(checkWsConnect, 5 * 1000);
 
   // サーバー再起動されてたらリロードする
-  setInterval(checkServerId, 5 * 1000);
+  setInterval(checkServerConfig, 3 * 1000);
 };
 
 /** @type WebSocket */
 let socket;
+/** @type number */
+let pingWsIntervalTimer;
 
 /** WebSocketの接続 */
 const checkWsConnect = () => {
@@ -55,7 +62,7 @@ const checkWsConnect = () => {
   socket.addEventListener('open', function (e) {
     console.log('Socket 接続成功');
     // 定期的にpingを打つ
-    setInterval(pingWs, 5 * 1000);
+    pingWsIntervalTimer = setInterval(pingWs, 2 * 1000);
   });
   socket.addEventListener('message', (e) => {
     console.debug('[message received]');
@@ -89,12 +96,17 @@ let pingReturn = false;
 const pingWs = async () => {
   console.debug('[ws] ping打ち');
   pingReturn = false;
-  socket.send('ping');
-  await sleep(3000);
-  if (!pingReturn) {
+  try {
+    socket.send('ping');
+    await sleep(3000);
+    if (!pingReturn) {
+      throw new Error('ping timeout');
+    }
+  } catch (e) {
     console.log('[ws] 通信が返ってこないので打ち切り');
-    socket.close();
+    if (socket) socket.close();
     socket = null;
+    clearInterval(pingWsIntervalTimer);
   }
 };
 
@@ -105,7 +117,7 @@ const sleep = (msec) => new Promise((resolve) => setTimeout(resolve, msec));
  */
 const readThread = () => {
   // 内部で作成したレス取得APIを呼び出す
-  const requestUrl = `http://localhost:${port}/getRes`;
+  const requestUrl = `${hostname}/getRes`;
   //fetchでレスを取得する
   fetch(requestUrl, {
     method: 'GET',
@@ -143,10 +155,16 @@ const readThread = () => {
 };
 
 /**
- * サーバーのバージョンをチェックする
+ * サーバーの設定をチェックする
  */
-const checkServerId = async () => {
-  const requestUrl = `http://localhost:${port}/id`;
+const checkServerConfig = async () => {
+  const config = await fetchServerConfig();
+  if (!config) return;
+  if (config.dispSort !== dispSort || config.wordBreak !== wordBreak || config.dispType !== dispType) window.location.reload();
+};
+
+const fetchServerConfig = async () => {
+  const requestUrl = `${hostname}/config`;
   try {
     const res = await fetch(requestUrl, {
       method: 'GET',
@@ -157,15 +175,10 @@ const checkServerId = async () => {
     });
 
     if (!res.ok || res.status !== 200) throw new Error(`[readThread] 通信エラー url = ${requestUrl}`);
-    const resText = await res.text();
-    if (id) {
-      // 再起動を検知したらリロード
-      if (id !== resText) window.location.reload();
-    } else {
-      id = resText;
-    }
+    return await res.json();
   } catch (error) {
     console.log(error);
+    return null;
   }
 };
 

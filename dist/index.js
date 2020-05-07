@@ -1260,6 +1260,7 @@ electron_1.ipcMain.on(const_1.electronEvent['start-server'], function (event, co
         globalThis.electron.threadNumber = 0;
         globalThis.electron.commentQueueList = [];
         globalThis.electron.threadConnectionError = 0;
+        serverId = new Date().getTime();
         expressInstance = express_ws_1.default(express_1.default());
         app = expressInstance.app;
         aWss = expressInstance.getWss();
@@ -1274,10 +1275,9 @@ electron_1.ipcMain.on(const_1.electronEvent['start-server'], function (event, co
             res.render('server', config);
             req.connection.end();
         });
-        // サーバーIDのIF
-        serverId = new Date().getTime();
-        app.get('/id', function (req, res, next) {
-            res.send("" + serverId);
+        // サーバー設定のIF
+        app.get('/config', function (req, res, next) {
+            res.send(JSON.stringify(globalThis.config));
         });
         // 静的コンテンツはpublicディレクトリの中身を使用するという宣言
         app.use(express_1.default.static(path_1.default.resolve(__dirname, '../public')));
@@ -1484,7 +1484,6 @@ var getResInterval = function (exeId) { return __awaiter(void 0, void 0, void 0,
                 _a.sent();
                 _a.label = 3;
             case 3:
-                console.log(exeId + "  " + serverId);
                 if (!(threadIntervalEvent && exeId === serverId)) return [3 /*break*/, 5];
                 return [4 /*yield*/, util_1.sleep(globalThis.config.interval * 1000)];
             case 4:
