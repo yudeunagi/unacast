@@ -1358,9 +1358,14 @@ var startTwitchChat = function () { return __awaiter(void 0, void 0, void 0, fun
             twitchChat.join(globalThis.config.twitchId);
             // チャット受信
             twitchChat.on('PRIVMSG', function (msg) {
+                electron_log_1.default.info(JSON.stringify(msg, null, '  '));
                 var imgUrl = './img/twitch.png';
-                var name = msg.displayName;
-                var text = msg.messageText;
+                var name = util_1.escapeHtml(msg.displayName);
+                var text = util_1.escapeHtml(msg.messageText);
+                // エモートを画像タグにする
+                msg.emotes.map(function (emote) {
+                    text = text.replace(emote.code, "<img src=\"https://static-cdn.jtvnw.net/emoticons/v1/" + emote.id + "/1.0\" />");
+                });
                 globalThis.electron.commentQueueList.push({ imgUrl: imgUrl, name: name, text: text });
             });
             globalThis.electron.twitchChat = twitchChat;
@@ -1378,23 +1383,24 @@ var startYoutubeChat = function () { return __awaiter(void 0, void 0, void 0, fu
         switch (_a.label) {
             case 0:
                 _a.trys.push([0, 4, , 5]);
-                console.log('[Youtube Chat] connect started');
+                electron_log_1.default.info('[Youtube Chat] connect started');
                 globalThis.electron.youtubeChat = new youtube_chat_1.LiveChat({ channelId: globalThis.config.youtubeId });
                 // 接続開始イベント
                 globalThis.electron.youtubeChat.on('start', function (liveId) {
-                    console.log("[Youtube Chat] connected liveId = " + liveId);
+                    electron_log_1.default.info("[Youtube Chat] connected liveId = " + liveId);
                 });
                 // 接続終了イベント
                 globalThis.electron.youtubeChat.on('end', function (reason) {
-                    console.log('[Youtube Chat] disconnect');
+                    electron_log_1.default.info('[Youtube Chat] disconnect');
                 });
                 // チャット受信
                 globalThis.electron.youtubeChat.on('comment', function (comment) {
                     var _a, _b;
                     electron_log_1.default.info('[Youtube] received');
+                    electron_log_1.default.info(JSON.stringify(comment, null, '  '));
                     var imgUrl = (_b = (_a = comment.author.thumbnail) === null || _a === void 0 ? void 0 : _a.url) !== null && _b !== void 0 ? _b : '';
-                    var name = comment.author.name;
-                    var text = comment.message[0].text;
+                    var name = util_1.escapeHtml(comment.author.name);
+                    var text = util_1.escapeHtml(comment.message[0].text);
                     globalThis.electron.commentQueueList.push({ imgUrl: imgUrl, name: name, text: text });
                 });
                 // 何かエラーがあった
@@ -1511,11 +1517,11 @@ var notifyThreadResLimit = function () { return __awaiter(void 0, void 0, void 0
                     imgUrl: './img/unacast.png',
                     text: "\u30EC\u30B9\u304C" + globalThis.config.notifyThreadResLimit + "\u3092\u8D85\u3048\u307E\u3057\u305F\u3002\u6B21\u30B9\u30EC\u3092\u7ACB\u3066\u3066\u304F\u3060\u3055\u3044\u3002",
                 });
-                // 次スレ検索ポーリング処理を走らせる
+                // TODO: 次スレ検索ポーリング処理を走らせる
                 // スレ立て中だと思うのでちょっと待つ
                 return [4 /*yield*/, util_1.sleep(10 * 1000)];
             case 1:
-                // 次スレ検索ポーリング処理を走らせる
+                // TODO: 次スレ検索ポーリング処理を走らせる
                 // スレ立て中だと思うのでちょっと待つ
                 _a.sent();
                 _a.label = 2;
@@ -1755,6 +1761,21 @@ var isExistFile = function (file) {
     }
 };
 exports.sleep = function (msec) { return new Promise(function (resolve) { return setTimeout(resolve, msec); }); };
+exports.escapeHtml = function (string) {
+    if (typeof string !== 'string') {
+        return string;
+    }
+    return string.replace(/[&'`"<>]/g, function (match) {
+        return {
+            '&': '&amp;',
+            "'": '&#x27;',
+            '`': '&#x60;',
+            '"': '&quot;',
+            '<': '&lt;',
+            '>': '&gt;',
+        }[match];
+    });
+};
 
 
 /***/ }),

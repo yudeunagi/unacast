@@ -6,7 +6,7 @@ import { ChatClient } from 'dank-twitch-irc';
 import { LiveChat } from './youtube-chat';
 import { ipcMain } from 'electron';
 import expressWs from 'express-ws';
-import { readWavFiles, sleep } from './util';
+import { readWavFiles, sleep, escapeHtml } from './util';
 // レス取得APIをセット
 import getRes, { getRes as getBbsResponse } from './getRes';
 import { CommentItem } from './youtube-chat/parser';
@@ -186,9 +186,15 @@ const startTwitchChat = async () => {
     twitchChat.join(globalThis.config.twitchId);
     // チャット受信
     twitchChat.on('PRIVMSG', (msg) => {
+      log.info(JSON.stringify(msg, null, '  '));
       const imgUrl = './img/twitch.png';
-      const name = msg.displayName;
-      const text = msg.messageText;
+      const name = escapeHtml(msg.displayName);
+      let text = escapeHtml(msg.messageText);
+      // エモートを画像タグにする
+      msg.emotes.map((emote) => {
+        text = text.replace(emote.code, `<img src="https://static-cdn.jtvnw.net/emoticons/v1/${emote.id}/1.0" />`);
+      });
+
       globalThis.electron.commentQueueList.push({ imgUrl, name, text });
     });
     globalThis.electron.twitchChat = twitchChat;
@@ -200,22 +206,23 @@ const startTwitchChat = async () => {
 /** Youtubeチャットに接続 */
 const startYoutubeChat = async () => {
   try {
-    console.log('[Youtube Chat] connect started');
+    log.info('[Youtube Chat] connect started');
     globalThis.electron.youtubeChat = new LiveChat({ channelId: globalThis.config.youtubeId });
     // 接続開始イベント
     globalThis.electron.youtubeChat.on('start', (liveId: string) => {
-      console.log(`[Youtube Chat] connected liveId = ${liveId}`);
+      log.info(`[Youtube Chat] connected liveId = ${liveId}`);
     });
     // 接続終了イベント
     globalThis.electron.youtubeChat.on('end', (reason?: string) => {
-      console.log('[Youtube Chat] disconnect');
+      log.info('[Youtube Chat] disconnect');
     });
     // チャット受信
     globalThis.electron.youtubeChat.on('comment', (comment: CommentItem) => {
       log.info('[Youtube] received');
+      log.info(JSON.stringify(comment, null, '  '));
       const imgUrl = comment.author.thumbnail?.url ?? '';
-      const name = comment.author.name;
-      const text = (comment.message[0] as any).text;
+      const name = escapeHtml(comment.author.name);
+      const text = escapeHtml((comment.message[0] as any).text);
       globalThis.electron.commentQueueList.push({ imgUrl, name, text });
     });
     // 何かエラーがあった
@@ -311,7 +318,7 @@ const notifyThreadResLimit = async () => {
       imgUrl: './img/unacast.png',
       text: `レスが${globalThis.config.notifyThreadResLimit}を超えました。次スレを立ててください。`,
     });
-    // 次スレ検索ポーリング処理を走らせる
+    // TODO: 次スレ検索ポーリング処理を走らせる
 
     // スレ立て中だと思うのでちょっと待つ
     await sleep(10 * 1000);

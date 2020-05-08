@@ -21,3 +21,19 @@ const isExistFile = (file: string) => {
 };
 
 export const sleep = (msec: number) => new Promise((resolve) => setTimeout(resolve, msec));
+
+export const escapeHtml = (string: string): string => {
+  if (typeof string !== 'string') {
+    return string;
+  }
+  return string.replace(/[&'`"<>]/g, (match) => {
+    return ({
+      '&': '&amp;',
+      "'": '&#x27;',
+      '`': '&#x60;',
+      '"': '&quot;',
+      '<': '&lt;',
+      '>': '&gt;',
+    } as any)[match];
+  });
+};
