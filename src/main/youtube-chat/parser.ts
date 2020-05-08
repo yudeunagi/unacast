@@ -1,4 +1,4 @@
-interface ImageItem {
+export interface ImageItem {
   url: string;
   alt: string;
   width: number;

@@ -9,7 +9,7 @@ import expressWs from 'express-ws';
 import { readWavFiles, sleep, escapeHtml } from './util';
 // レス取得APIをセット
 import getRes, { getRes as getBbsResponse } from './getRes';
-import { CommentItem } from './youtube-chat/parser';
+import { CommentItem, ImageItem } from './youtube-chat/parser';
 import bouyomiChan from './bouyomi-chan';
 import { exec } from 'child_process';
 import { electronEvent } from './const';
@@ -186,7 +186,8 @@ const startTwitchChat = async () => {
     twitchChat.join(globalThis.config.twitchId);
     // チャット受信
     twitchChat.on('PRIVMSG', (msg) => {
-      log.info(JSON.stringify(msg, null, '  '));
+      log.info('[Twitch] comment received');
+      // log.info(JSON.stringify(msg, null, '  '));
       const imgUrl = './img/twitch.png';
       const name = escapeHtml(msg.displayName);
       let text = escapeHtml(msg.messageText);
@@ -218,11 +219,22 @@ const startYoutubeChat = async () => {
     });
     // チャット受信
     globalThis.electron.youtubeChat.on('comment', (comment: CommentItem) => {
-      log.info('[Youtube] received');
-      log.info(JSON.stringify(comment, null, '  '));
+      log.info('[Youtube] comment received');
+      // log.info(JSON.stringify(comment, null, '  '));
       const imgUrl = comment.author.thumbnail?.url ?? '';
       const name = escapeHtml(comment.author.name);
-      const text = escapeHtml((comment.message[0] as any).text);
+      // 絵文字と結合する
+      let text = '';
+      for (const message of comment.message) {
+        const txtItem = (message as { text: string }).text;
+        if (txtItem) {
+          text += escapeHtml(txtItem);
+        } else {
+          const imageItem = message as ImageItem;
+          text += `<img src="${imageItem.url}" width="${24}" height="${24}" />`;
+        }
+      }
+      // const text = escapeHtml((comment.message[0] as any).text);
       globalThis.electron.commentQueueList.push({ imgUrl, name, text });
     });
     // 何かエラーがあった

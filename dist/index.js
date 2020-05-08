@@ -1358,7 +1358,8 @@ var startTwitchChat = function () { return __awaiter(void 0, void 0, void 0, fun
             twitchChat.join(globalThis.config.twitchId);
             // チャット受信
             twitchChat.on('PRIVMSG', function (msg) {
-                electron_log_1.default.info(JSON.stringify(msg, null, '  '));
+                electron_log_1.default.info('[Twitch] comment received');
+                // log.info(JSON.stringify(msg, null, '  '));
                 var imgUrl = './img/twitch.png';
                 var name = util_1.escapeHtml(msg.displayName);
                 var text = util_1.escapeHtml(msg.messageText);
@@ -1396,11 +1397,24 @@ var startYoutubeChat = function () { return __awaiter(void 0, void 0, void 0, fu
                 // チャット受信
                 globalThis.electron.youtubeChat.on('comment', function (comment) {
                     var _a, _b;
-                    electron_log_1.default.info('[Youtube] received');
-                    electron_log_1.default.info(JSON.stringify(comment, null, '  '));
+                    electron_log_1.default.info('[Youtube] comment received');
+                    // log.info(JSON.stringify(comment, null, '  '));
                     var imgUrl = (_b = (_a = comment.author.thumbnail) === null || _a === void 0 ? void 0 : _a.url) !== null && _b !== void 0 ? _b : '';
                     var name = util_1.escapeHtml(comment.author.name);
-                    var text = util_1.escapeHtml(comment.message[0].text);
+                    // 絵文字と結合する
+                    var text = '';
+                    for (var _i = 0, _c = comment.message; _i < _c.length; _i++) {
+                        var message = _c[_i];
+                        var txtItem = message.text;
+                        if (txtItem) {
+                            text += util_1.escapeHtml(txtItem);
+                        }
+                        else {
+                            var imageItem = message;
+                            text += "<img src=\"" + imageItem.url + "\" width=\"" + 24 + "\" height=\"" + 24 + "\" />";
+                        }
+                    }
+                    // const text = escapeHtml((comment.message[0] as any).text);
                     globalThis.electron.commentQueueList.push({ imgUrl: imgUrl, name: name, text: text });
                 });
                 // 何かエラーがあった
