@@ -1591,7 +1591,8 @@ var playYomiko = function (msg) { return __awaiter(void 0, void 0, void 0, funct
                 // 読み子呼び出し
                 switch (config.typeYomiko) {
                     case 'tamiyasu': {
-                        child_process_1.exec(config.tamiyasuPath + " " + msg);
+                        console.log(config.tamiyasuPath + " \"" + msg + "\"");
+                        child_process_1.spawn(config.tamiyasuPath, [msg]);
                         break;
                     }
                     case 'bouyomi': {
@@ -1667,7 +1668,7 @@ exports.createDom = function (message) {
  * @param message
  */
 var sendDom = function (messageList) { return __awaiter(void 0, void 0, void 0, function () {
-    var domStr, socketObject_1, MIN_DISP_TIME, e_3;
+    var domStr, socketObject_1, text, MIN_DISP_TIME, e_3;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -1689,7 +1690,10 @@ var sendDom = function (messageList) { return __awaiter(void 0, void 0, void 0, 
                 _a.label = 2;
             case 2:
                 if (!(globalThis.config.typeYomiko !== 'none')) return [3 /*break*/, 4];
-                return [4 /*yield*/, playYomiko(messageList[messageList.length - 1].text)];
+                text = messageList[messageList.length - 1].text.replace(/<br> /g, '\n');
+                text = text.replace(/<img.*?\/>/g, '');
+                text = util_1.unescapeHtml(text);
+                return [4 /*yield*/, playYomiko(text)];
             case 3:
                 _a.sent();
                 _a.label = 4;
@@ -1789,6 +1793,15 @@ exports.escapeHtml = function (string) {
             '>': '&gt;',
         }[match];
     });
+};
+exports.unescapeHtml = function (str) {
+    return str
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#039;/g, "'")
+        .replace(/&#044;/g, ',')
+        .replace(/&amp;/g, '&');
 };
 
 

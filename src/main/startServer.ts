@@ -6,12 +6,12 @@ import { ChatClient } from 'dank-twitch-irc';
 import { LiveChat } from './youtube-chat';
 import { ipcMain } from 'electron';
 import expressWs from 'express-ws';
-import { readWavFiles, sleep, escapeHtml } from './util';
+import { readWavFiles, sleep, escapeHtml, unescapeHtml } from './util';
 // レス取得APIをセット
 import getRes, { getRes as getBbsResponse } from './getRes';
 import { CommentItem, ImageItem } from './youtube-chat/parser';
 import bouyomiChan from './bouyomi-chan';
-import { exec } from 'child_process';
+import { spawn } from 'child_process';
 import { electronEvent } from './const';
 
 let app: expressWs.Instance['app'];
@@ -374,7 +374,8 @@ const playYomiko = async (msg: string) => {
   // 読み子呼び出し
   switch (config.typeYomiko) {
     case 'tamiyasu': {
-      exec(`${config.tamiyasuPath} ${msg}`);
+      console.log(`${config.tamiyasuPath} "${msg}"`);
+      spawn(config.tamiyasuPath, [msg]);
       break;
     }
     case 'bouyomi': {
@@ -476,7 +477,11 @@ const sendDom = async (messageList: UserComment[]) => {
 
     // 読み子
     if (globalThis.config.typeYomiko !== 'none') {
-      await playYomiko(messageList[messageList.length - 1].text);
+      // タグを除去する
+      let text = messageList[messageList.length - 1].text.replace(/<br> /g, '\n');
+      text = text.replace(/<img.*?\/>/g, '');
+      text = unescapeHtml(text);
+      await playYomiko(text);
     }
 
     // 追加で表示を維持する時間

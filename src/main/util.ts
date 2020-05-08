@@ -37,3 +37,13 @@ export const escapeHtml = (string: string): string => {
     } as any)[match];
   });
 };
+
+export const unescapeHtml = (str: string) => {
+  return str
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&#044;/g, ',')
+    .replace(/&amp;/g, '&');
+};
