@@ -133,6 +133,8 @@ const buildConfigJson = () => {
   const notifyThreadConnectionErrorLimit = parseInt((document.getElementById('text-notify-threadConnectionErrorLimit') as HTMLInputElement).value);
   const notifyThreadResLimit = parseInt((document.getElementById('text-notify-threadResLimit') as HTMLInputElement).value);
 
+  //アイコン表示設定
+  const showIcon = (document.getElementById('checkbox-showIcon') as HTMLInputElement).checked === true;
   //レス番表示設定
   const showNumber = (document.getElementById('checkbox-showNumber') as HTMLInputElement).checked === true;
   //名前表示設定
@@ -178,6 +180,7 @@ const buildConfigJson = () => {
     twitchId: twitchUrl,
     dispSort,
     newLine,
+    showIcon,
     showNumber,
     showName,
     showTime,
@@ -221,6 +224,7 @@ const loadConfigToLocalStrage = () => {
     twitchId: '',
     dispSort: false,
     newLine: true,
+    showIcon: true,
     showNumber: true,
     showName: false,
     showTime: false,
@@ -246,7 +250,8 @@ const loadConfigToLocalStrage = () => {
   };
 
   // 表示に反映する
-
+  // アイコン表示初期化
+  (document.getElementById('checkbox-showIcon') as any).checked = config.showIcon;
   // レス番表示初期化
   (document.getElementById('checkbox-showNumber') as any).checked = config.showNumber;
   // 名前表示初期化

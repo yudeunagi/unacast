@@ -48,6 +48,8 @@ declare global {
      * - false: 分けない
      */
     let newLine: boolean;
+    /** アイコン表示 */
+    let showIcon: boolean;
     /** レス番表示 */
     let showNumber: boolean;
     /** 名前表示 */

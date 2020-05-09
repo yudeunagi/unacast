@@ -407,14 +407,22 @@ const playSe = async () => {
 ipcMain.on(electronEvent['play-sound-end'], (event) => (isPlayingSe = false));
 
 export const createDom = (message: UserComment) => {
-  let domStr = `
-  <li class="list-item">
+  let domStr = `<li class="list-item">`;
+
+  /** レス番とかの行が何かしら表示対象になっているか */
+  let isResNameShowed = false;
+
+  // アイコン表示
+  if (globalThis.config.showIcon) {
+    domStr += `
     <span class="icon-block">
       <img class="icon" src="${message.imgUrl}">
     </span>
-  <div class="content">`;
+    `;
+    isResNameShowed = true;
+  }
 
-  let isResNameShowed = false;
+  domStr += `<div class="content">`;
 
   // レス番表示
   if (globalThis.config.showNumber && message.number) {

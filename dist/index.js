@@ -1641,8 +1641,15 @@ var playSe = function () { return __awaiter(void 0, void 0, void 0, function () 
 }); };
 electron_1.ipcMain.on(const_1.electronEvent['play-sound-end'], function (event) { return (isPlayingSe = false); });
 exports.createDom = function (message) {
-    var domStr = "\n  <li class=\"list-item\">\n    <span class=\"icon-block\">\n      <img class=\"icon\" src=\"" + message.imgUrl + "\">\n    </span>\n  <div class=\"content\">";
+    var domStr = "<li class=\"list-item\">";
+    /** レス番とかの行が何かしら表示対象になっているか */
     var isResNameShowed = false;
+    // アイコン表示
+    if (globalThis.config.showIcon) {
+        domStr += "\n    <span class=\"icon-block\">\n      <img class=\"icon\" src=\"" + message.imgUrl + "\">\n    </span>\n    ";
+        isResNameShowed = true;
+    }
+    domStr += "<div class=\"content\">";
     // レス番表示
     if (globalThis.config.showNumber && message.number) {
         domStr += "\n      <span class=\"resNumber\">" + message.number + "</span>\n    ";
