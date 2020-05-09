@@ -1043,7 +1043,7 @@ var ReadSitaraba = /** @class */ (function () {
                         return [4 /*yield*/, axios_1.default(options)];
                     case 1:
                         response = _a.sent();
-                        str = iconv_lite_1.default.decode(Buffer.from(response.data), 'EUC-JP');
+                        str = decodeUnicodeStr(iconv_lite_1.default.decode(Buffer.from(response.data), 'EUC-JP'));
                         responseJson = purseNewResponse(str);
                         return [2 /*return*/, responseJson];
                 }
@@ -1098,6 +1098,10 @@ var purseResponse = function (res) {
     };
     // オブジェクトを返却
     return resJson;
+};
+/** したらばだけは全角ダッシュがUnicode文字列として格納されるので変換する */
+var decodeUnicodeStr = function (str) {
+    return str.replace(/&#65374;/g, '～');
 };
 exports.default = ReadSitaraba;
 

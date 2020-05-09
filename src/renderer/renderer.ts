@@ -7,14 +7,8 @@ const ipcRenderer = electron.ipcRenderer;
 
 document.addEventListener('DOMContentLoaded', () => {
   console.debug('[renderer.js]DOM Content Loaded');
-  //設定のロード
+  // 設定のロード
   loadConfigToLocalStrage();
-  //停止確認ダイアログ
-  const dialog = document.getElementById('close-dialog') as HTMLElement;
-
-  // ダイアログのボタン
-  const closeOkButton = document.getElementById('button-close-dialog-ok') as HTMLInputElement;
-  const closeCancelButton = document.getElementById('button-close-dialog-cancel') as HTMLInputElement;
 
   // 設定適用ボタン
   const applyButton = document.getElementById('button-config-apply') as HTMLInputElement;
@@ -61,6 +55,12 @@ document.addEventListener('DOMContentLoaded', () => {
     (dialog as any).showModal();
   };
 
+  // 確認ダイアログのボタン
+  const closeOkButton = document.getElementById('button-close-dialog-ok') as HTMLInputElement;
+  const closeCancelButton = document.getElementById('button-close-dialog-cancel') as HTMLInputElement;
+  // 停止確認ダイアログ
+  const dialog = document.getElementById('close-dialog') as HTMLElement;
+
   // サーバー停止確認ダイアログ
   closeOkButton.onclick = () => {
     const result = ipcRenderer.sendSync('stop-server');
@@ -77,6 +77,16 @@ document.addEventListener('DOMContentLoaded', () => {
   closeCancelButton.onclick = () => {
     //ダイアログクローズ
     (dialog as any).close();
+    return;
+  };
+
+  // アラートダイアログのボタン
+  const alertOkButton = document.getElementById('button-alert-dialog-ok') as HTMLInputElement;
+  // 停止確認ダイアログ
+  const alertDialog = document.getElementById('alert-dialog') as HTMLElement;
+  alertOkButton.onclick = () => {
+    //ダイアログクローズ
+    (alertDialog as any).close();
     return;
   };
 });
@@ -357,5 +367,9 @@ const yomikoTime = async (msg: string) => {
 
 // 何かしら通知したいことがあったら表示する
 ipcRenderer.on(electronEvent['show-alert'], async (event: any, args: string) => {
-  alert(args);
+  // 停止確認ダイアログ
+  ((document.getElementById('alert-dialog') as HTMLElement).getElementsByClassName('mdl-dialog__content')[0] as HTMLElement).innerText = args;
+
+  const alertDialog = document.getElementById('alert-dialog') as HTMLElement;
+  (alertDialog as any).showModal();
 });

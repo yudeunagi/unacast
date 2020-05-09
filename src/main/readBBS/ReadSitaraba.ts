@@ -43,7 +43,9 @@ class ReadSitaraba {
       timeout: 3 * 1000,
     };
     const response = await axios(options);
-    const str = iconv.decode(Buffer.from(response.data), 'EUC-JP');
+    // UTF-8に変換
+    const str = decodeUnicodeStr(iconv.decode(Buffer.from(response.data), 'EUC-JP'));
+
     const responseJson = purseNewResponse(str);
 
     return responseJson;
@@ -98,6 +100,11 @@ const purseResponse = (res: string) => {
   };
   // オブジェクトを返却
   return resJson;
+};
+
+/** したらばだけは全角ダッシュがUnicode文字列として格納されるので変換する */
+const decodeUnicodeStr = (str: string) => {
+  return str.replace(/&#65374;/g, '～');
 };
 
 export default ReadSitaraba;
