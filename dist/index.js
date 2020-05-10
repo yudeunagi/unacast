@@ -1701,7 +1701,7 @@ var sendDom = function (messageList) { return __awaiter(void 0, void 0, void 0, 
                 _a.label = 2;
             case 2:
                 if (!(globalThis.config.typeYomiko !== 'none')) return [3 /*break*/, 4];
-                text = messageList[messageList.length - 1].text.replace(/<br> /g, '\n');
+                text = messageList[messageList.length - 1].text.replace(/<br> /g, '\n').replace(/<br>/g, '\n');
                 text = text.replace(/<img.*?\/>/g, '');
                 text = util_1.unescapeHtml(text);
                 return [4 /*yield*/, playYomiko(text)];
