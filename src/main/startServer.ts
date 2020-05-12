@@ -450,7 +450,9 @@ export const createDom = (message: UserComment) => {
 
   domStr += `
     <span class="res">
-      ${message.text}
+      ${message.text
+        .replace(/<a .*?>/g, '') // したらばはアンカーをaタグ化している
+        .replace(/<\\a>/g, '')}
     </span>
     </div>
   </li>`;
@@ -486,8 +488,9 @@ const sendDom = async (messageList: UserComment[]) => {
     // 読み子
     if (globalThis.config.typeYomiko !== 'none') {
       // タグを除去する
-      let text = messageList[messageList.length - 1].text.replace(/<br> /g, '\n').replace(/<br>/g, '\n');
+      let text = messageList[messageList.length - 1].text.replace(/<br> /g, '\n ').replace(/<br>/g, '\n ');
       text = text.replace(/<img.*?\/>/g, '');
+      text = text.replace(/<a .*?>/g, '').replace(/<\/a>/g, '');
       text = unescapeHtml(text);
       await playYomiko(text);
     }
