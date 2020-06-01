@@ -2,6 +2,7 @@
  * したらば読み込み用モジュール
  */
 import axios, { AxiosRequestConfig } from 'axios';
+import https from 'https';
 import iconv from 'iconv-lite'; // 文字コード変換用パッケージ
 import log from 'electron-log';
 export type ShitarabaResponse = ReturnType<typeof purseResponse>;
@@ -41,8 +42,16 @@ class ReadSitaraba {
       method: 'GET',
       responseType: 'arraybuffer',
       timeout: 3 * 1000,
+      headers: {
+        Accept: '*/*',
+      },
     };
-    const response = await axios(options);
+    const instance = axios.create({
+      httpsAgent: new https.Agent({
+        rejectUnauthorized: false,
+      }),
+    });
+    const response = await instance(options);
     // UTF-8に変換
     const str = decodeUnicodeStr(iconv.decode(Buffer.from(response.data), 'EUC-JP'));
 

@@ -313,6 +313,9 @@ const getResInterval = async (exeId: number) => {
         }
       }
     }
+  } else if (result.length > 0) {
+    // 番号が無くて結果が入ってるのは通信エラーメッセージ
+    sendDomForChatWindow(result);
   }
   await notifyThreadResLimit();
 
@@ -342,6 +345,7 @@ const notifyThreadResLimit = async () => {
  */
 const taskScheduler = async (exeId: number) => {
   if (globalThis.electron?.commentQueueList?.length > 0) {
+    log.info(`[taskScheduler] ${globalThis.electron?.commentQueueList?.length}`);
     if (globalThis.config.commentProcessType === 0) {
       // 一括
       let temp = [...globalThis.electron.commentQueueList];

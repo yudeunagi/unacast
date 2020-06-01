@@ -2,6 +2,7 @@
  * 5ch互換BBS読み込み用モジュール
  */
 import axios, { AxiosRequestConfig } from 'axios';
+import https from 'https';
 import iconv from 'iconv-lite'; // 文字コード変換用パッケージ
 import log from 'electron-log';
 
@@ -71,11 +72,16 @@ class Read5ch {
         range: 'bytes=' + range + '-',
       },
     };
+    const instance = axios.create({
+      httpsAgent: new https.Agent({
+        rejectUnauthorized: false,
+      }),
+    });
 
     let responseJson;
     //掲示板へのリクエスト実行
     try {
-      const response = await axios(options);
+      const response = await instance(options);
 
       // レスポンスヘッダ表示
       const headers: { [key: string]: string } = response.headers;

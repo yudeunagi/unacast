@@ -430,6 +430,7 @@ exports.getRes = function (threadUrl, resNum) { return __awaiter(void 0, void 0,
                 if (globalThis.config.notifyThreadConnectionErrorLimit > 0) {
                     globalThis.electron.threadConnectionError += 1;
                     if (globalThis.electron.threadConnectionError >= globalThis.config.notifyThreadConnectionErrorLimit) {
+                        electron_log_1.default.info('[getRes] エラー回数超過');
                         globalThis.electron.threadConnectionError = 0;
                         return [2 /*return*/, [
                                 {
@@ -738,6 +739,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * 5ch互換BBS読み込み用モジュール
  */
 var axios_1 = __importDefault(__webpack_require__(/*! axios */ "axios"));
+var https_1 = __importDefault(__webpack_require__(/*! https */ "https"));
 var iconv_lite_1 = __importDefault(__webpack_require__(/*! iconv-lite */ "iconv-lite")); // 文字コード変換用パッケージ
 var electron_log_1 = __importDefault(__webpack_require__(/*! electron-log */ "electron-log"));
 // ステータスコード304 _NotModified
@@ -767,7 +769,7 @@ var Read5ch = /** @class */ (function () {
          * @param resNum レス番号
          */
         this.read = function (threadUrl, resNum) { return __awaiter(_this, void 0, void 0, function () {
-            var rep, requestUrl, range, options, responseJson, response, headers, str, error_1;
+            var rep, requestUrl, range, options, instance, responseJson, response, headers, str, error_1;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -795,10 +797,15 @@ var Read5ch = /** @class */ (function () {
                                 range: 'bytes=' + range + '-',
                             },
                         };
+                        instance = axios_1.default.create({
+                            httpsAgent: new https_1.default.Agent({
+                                rejectUnauthorized: false,
+                            }),
+                        });
                         _a.label = 1;
                     case 1:
                         _a.trys.push([1, 3, , 4]);
-                        return [4 /*yield*/, axios_1.default(options)];
+                        return [4 /*yield*/, instance(options)];
                     case 2:
                         response = _a.sent();
                         headers = response.headers;
@@ -1005,6 +1012,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * したらば読み込み用モジュール
  */
 var axios_1 = __importDefault(__webpack_require__(/*! axios */ "axios"));
+var https_1 = __importDefault(__webpack_require__(/*! https */ "https"));
 var iconv_lite_1 = __importDefault(__webpack_require__(/*! iconv-lite */ "iconv-lite")); // 文字コード変換用パッケージ
 /**
  * コンストラクタ
@@ -1021,7 +1029,7 @@ var ReadSitaraba = /** @class */ (function () {
          * @param resNum レス番号
          */
         this.read = function (threadUrl, resNum) { return __awaiter(_this, void 0, void 0, function () {
-            var requestUrl, options, response, str, responseJson;
+            var requestUrl, options, instance, response, str, responseJson;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -1039,8 +1047,16 @@ var ReadSitaraba = /** @class */ (function () {
                             method: 'GET',
                             responseType: 'arraybuffer',
                             timeout: 3 * 1000,
+                            headers: {
+                                Accept: '*/*',
+                            },
                         };
-                        return [4 /*yield*/, axios_1.default(options)];
+                        instance = axios_1.default.create({
+                            httpsAgent: new https_1.default.Agent({
+                                rejectUnauthorized: false,
+                            }),
+                        });
+                        return [4 /*yield*/, instance(options)];
                     case 1:
                         response = _a.sent();
                         str = decodeUnicodeStr(iconv_lite_1.default.decode(Buffer.from(response.data), 'EUC-JP'));
@@ -1511,6 +1527,10 @@ var getResInterval = function (exeId) { return __awaiter(void 0, void 0, void 0,
                         }
                     }
                 }
+                else if (result.length > 0) {
+                    // 番号が無くて結果が入ってるのは通信エラーメッセージ
+                    sendDomForChatWindow(result);
+                }
                 return [4 /*yield*/, notifyThreadResLimit()];
             case 2:
                 _a.sent();
@@ -1552,11 +1572,12 @@ var notifyThreadResLimit = function () { return __awaiter(void 0, void 0, void 0
  */
 var taskScheduler = function (exeId) { return __awaiter(void 0, void 0, void 0, function () {
     var temp, comment;
-    var _a, _b;
-    return __generator(this, function (_c) {
-        switch (_c.label) {
+    var _a, _b, _c, _d;
+    return __generator(this, function (_e) {
+        switch (_e.label) {
             case 0:
                 if (!(((_b = (_a = globalThis.electron) === null || _a === void 0 ? void 0 : _a.commentQueueList) === null || _b === void 0 ? void 0 : _b.length) > 0)) return [3 /*break*/, 3];
+                electron_log_1.default.info("[taskScheduler] " + ((_d = (_c = globalThis.electron) === null || _c === void 0 ? void 0 : _c.commentQueueList) === null || _d === void 0 ? void 0 : _d.length));
                 if (!(globalThis.config.commentProcessType === 0)) return [3 /*break*/, 1];
                 temp = __spreadArrays(globalThis.electron.commentQueueList);
                 globalThis.electron.commentQueueList = [];
@@ -1570,15 +1591,15 @@ var taskScheduler = function (exeId) { return __awaiter(void 0, void 0, void 0, 
                 comment = globalThis.electron.commentQueueList.shift();
                 return [4 /*yield*/, sendDom([comment])];
             case 2:
-                _c.sent();
-                _c.label = 3;
+                _e.sent();
+                _e.label = 3;
             case 3:
                 if (!(isExecuteQue && exeId === serverId)) return [3 /*break*/, 5];
                 return [4 /*yield*/, util_1.sleep(100)];
             case 4:
-                _c.sent();
+                _e.sent();
                 taskScheduler(exeId);
-                _c.label = 5;
+                _e.label = 5;
             case 5: return [2 /*return*/];
         }
     });
@@ -2243,6 +2264,17 @@ module.exports = require("express-ws");
 /***/ (function(module, exports) {
 
 module.exports = require("fs");
+
+/***/ }),
+
+/***/ "https":
+/*!************************!*\
+  !*** external "https" ***!
+  \************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = require("https");
 
 /***/ }),
 

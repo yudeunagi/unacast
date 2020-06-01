@@ -61,6 +61,8 @@ export const getRes = async (threadUrl: string, resNum: number): Promise<UserCom
     if (globalThis.config.notifyThreadConnectionErrorLimit > 0) {
       globalThis.electron.threadConnectionError += 1;
       if (globalThis.electron.threadConnectionError >= globalThis.config.notifyThreadConnectionErrorLimit) {
+        log.info('[getRes] エラー回数超過');
+
         globalThis.electron.threadConnectionError = 0;
         return [
           {
