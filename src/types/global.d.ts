@@ -62,6 +62,8 @@ declare global {
     let sePath: string;
     /** レス着信音再生 */
     let playSe: boolean;
+    /** レス着信音音量 */
+    let playSeVolume: number;
     /** 読み子の種類 */
     let typeYomiko: 'none' | 'tamiyasu' | 'bouyomi';
     /** 民安Talkのファイルパス */

@@ -1,6 +1,6 @@
 {
   "name": "unacast",
-  "version": "0.4.8",
+  "version": "0.5.0",
   "description": "掲示板のレスをYoutubeコメント風に表示したいという思想の元に開発されるツール",
   "main": "dist/index.js",
   "scripts": {
@@ -28,6 +28,7 @@
     "dank-twitch-irc": "^3.0.7",
     "ejs": "^2.7.1",
     "electron-log": "^4.1.1",
+    "electron-window-state": "^5.0.3",
     "express": "^4.17.1",
     "express-ws": "^4.0.0",
     "iconv-lite": "^0.5.0",

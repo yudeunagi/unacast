@@ -133,22 +133,23 @@ const buildConfigJson = () => {
   const notifyThreadConnectionErrorLimit = parseInt((document.getElementById('text-notify-threadConnectionErrorLimit') as HTMLInputElement).value);
   const notifyThreadResLimit = parseInt((document.getElementById('text-notify-threadResLimit') as HTMLInputElement).value);
 
-  //アイコン表示設定
+  // アイコン表示設定
   const showIcon = (document.getElementById('checkbox-showIcon') as HTMLInputElement).checked === true;
-  //レス番表示設定
+  // レス番表示設定
   const showNumber = (document.getElementById('checkbox-showNumber') as HTMLInputElement).checked === true;
-  //名前表示設定
+  // 名前表示設定
   const showName = (document.getElementById('checkbox-showName') as any).checked === true;
-  //時刻表示設定
+  // 時刻表示設定
   const showTime = (document.getElementById('checkbox-showTime') as any).checked === true;
-  //自動改行設定
+  // 自動改行設定
   const wordBreak = (document.getElementById('checkbox-wordBreak') as any).checked === true;
-  //表示順序設定
+  // 表示順序設定
   const dispSort = (document.getElementById('newResUp') as any).checked === false;
-  //本文改行設定
+  // 本文改行設定
   const newLine = (document.getElementById('enableNewLine') as any).checked === true;
-  //本文改行設定
+  // SEパス
   const playSe = (document.getElementById('checkbox-playSe') as any).checked === true;
+  const playSeVolume = parseInt((document.getElementById('playSe-volume') as HTMLInputElement).value);
 
   let typeYomiko: typeof globalThis['config']['typeYomiko'] = 'none';
   document.getElementsByName('typeYomiko').forEach((v) => {
@@ -187,6 +188,7 @@ const buildConfigJson = () => {
     wordBreak,
     sePath,
     playSe,
+    playSeVolume,
     typeYomiko,
     tamiyasuPath,
     bouyomiPort,
@@ -230,6 +232,7 @@ const loadConfigToLocalStrage = () => {
     showTime: false,
     wordBreak: true,
     sePath: '',
+    playSeVolume: 100,
     playSe: false,
     typeYomiko: 'none',
     tamiyasuPath: '',
@@ -282,8 +285,11 @@ const loadConfigToLocalStrage = () => {
   (document.getElementById('text-res-number') as any).value = config.resNumber.toString();
   (document.getElementById('text-youtube-id') as any).value = config.youtubeId;
   (document.getElementById('text-twitch-id') as any).value = config.twitchId;
+  // レス着信音
   (document.getElementById('text-se-path') as any).value = config.sePath;
   (document.getElementById('checkbox-playSe') as any).checked = config.playSe;
+  (document.getElementById('disp-playSe-volume') as any).innerHTML = config.playSeVolume;
+  (document.getElementById('playSe-volume') as any).value = config.playSeVolume;
 
   // 読み子の種類
   switch (config.typeYomiko) {
@@ -329,9 +335,10 @@ ipcRenderer.on(electronEvent['start-server-reply'], (event: any, arg: any) => {
 
 // 着信音再生
 const audioElem = new Audio();
-ipcRenderer.on(electronEvent['play-sound-start'], (event: any, wavfilepath) => {
+ipcRenderer.on(electronEvent['play-sound-start'], (event: any, arg: { wavfilepath: string; volume: number }) => {
   try {
-    audioElem.src = wavfilepath;
+    audioElem.volume = arg.volume / 100;
+    audioElem.src = arg.wavfilepath;
     audioElem.play();
     audioElem.onended = () => {
       ipcRenderer.send(electronEvent['play-sound-end']);
@@ -377,4 +384,27 @@ ipcRenderer.on(electronEvent['show-alert'], async (event: any, args: string) => 
 
   const alertDialog = document.getElementById('alert-dialog') as HTMLElement;
   (alertDialog as any).showModal();
+});
+
+// 何かしら通知したいことがあったら表示する
+ipcRenderer.on(electronEvent.UPDATE_STATUS, async (event: any, args: { commentType: 'bbs' | 'youtube' | 'twitch'; category: string; message: string }) => {
+  console.log(`[UPDATE_STATUS]`);
+  switch (args.commentType) {
+    case 'bbs': {
+      (document.getElementById('bbs-connection-status') as HTMLElement).innerText = args.message;
+      break;
+    }
+    case 'youtube': {
+      if (args.category === 'status') {
+        (document.getElementById('youtube-connection-status') as HTMLElement).innerText = args.message;
+      } else {
+        (document.getElementById('youtube-live-id') as HTMLElement).innerText = args.message;
+      }
+      break;
+    }
+    case 'twitch': {
+      (document.getElementById('twitch-connection-status') as HTMLElement).innerText = args.message;
+      break;
+    }
+  }
 });

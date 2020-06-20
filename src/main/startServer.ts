@@ -184,9 +184,19 @@ const startTwitchChat = async () => {
     const twitchChat = new ChatClient();
     twitchChat.connect();
     twitchChat.join(globalThis.config.twitchId);
+    globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'twitch', category: 'status', message: 'wait live' });
+
+    // 接続完了
+    twitchChat.on('ready', () => {
+      console.log('[Twitch] Successfully connected to chat');
+      globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'twitch', category: 'status', message: 'ok' });
+    });
+
     // チャット受信
     twitchChat.on('PRIVMSG', (msg) => {
       log.info('[Twitch] comment received');
+      globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'twitch', category: 'status', message: 'ok' });
+
       // log.info(JSON.stringify(msg, null, '  '));
       const imgUrl = './img/twitch.png';
       const name = escapeHtml(msg.displayName);
@@ -199,8 +209,19 @@ const startTwitchChat = async () => {
       globalThis.electron.commentQueueList.push({ imgUrl, name, text });
     });
     globalThis.electron.twitchChat = twitchChat;
+
+    // なんかエラーがあった
+    twitchChat.on('error', (event) => {
+      log.error(`[Twitch] ${JSON.stringify(event)}`);
+      globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'twitch', category: 'status', message: 'error!' });
+    });
+
+    twitchChat.on('close', (event) => {
+      globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'twitch', category: 'status', message: 'connection end' });
+    });
   } catch (e) {
     log.error(e);
+    globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'twitch', category: 'status', message: 'error!' });
   }
 };
 
@@ -209,17 +230,24 @@ const startYoutubeChat = async () => {
   try {
     log.info('[Youtube Chat] connect started');
     globalThis.electron.youtubeChat = new LiveChat({ channelId: globalThis.config.youtubeId });
+    globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'status', message: 'wait live' });
+
     // 接続開始イベント
     globalThis.electron.youtubeChat.on('start', (liveId: string) => {
       log.info(`[Youtube Chat] connected liveId = ${liveId}`);
+      globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'liveid', message: liveId });
+      globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'status', message: 'ok' });
     });
     // 接続終了イベント
     globalThis.electron.youtubeChat.on('end', (reason?: string) => {
       log.info('[Youtube Chat] disconnect');
+      globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'status', message: 'connection end' });
     });
     // チャット受信
     globalThis.electron.youtubeChat.on('comment', (comment: CommentItem) => {
       log.info('[Youtube] comment received');
+      globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'status', message: 'ok' });
+
       // log.info(JSON.stringify(comment, null, '  '));
       const imgUrl = comment.author.thumbnail?.url ?? '';
       const name = escapeHtml(comment.author.name);
@@ -240,8 +268,7 @@ const startYoutubeChat = async () => {
     // 何かエラーがあった
     globalThis.electron.youtubeChat.on('error', (err: Error) => {
       log.error(`[Youtube Chat] error ${err.message}`);
-      // log.error(err);
-      // globalThis.electron.youtubeChat.stop();
+      globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'status', message: 'error!' });
     });
 
     const tubeResult = await globalThis.electron.youtubeChat.start();
@@ -271,6 +298,8 @@ ipcMain.on(electronEvent['stop-server'], (event) => {
 
   // レス取得の停止
   threadIntervalEvent = false;
+  globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'bbs', category: 'status', message: `connection end` });
+
   // Twitchチャットの停止
   if (globalThis.electron.twitchChat) {
     globalThis.electron.twitchChat.close();
@@ -313,7 +342,9 @@ const getResInterval = async (exeId: number) => {
         }
       }
     }
+    globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'bbs', category: 'status', message: `ok res=${globalThis.electron.threadNumber}` });
   } else if (result.length > 0) {
+    globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'bbs', category: 'status', message: 'error!' });
     // 番号が無くて結果が入ってるのは通信エラーメッセージ
     sendDomForChatWindow(result);
   }
@@ -401,7 +432,7 @@ const playSe = async () => {
   // log.info('[playSe] start');
   const wavfilepath = globalThis.electron.seList[Math.floor(Math.random() * globalThis.electron.seList.length)];
   isPlayingSe = true;
-  globalThis.electron.mainWindow.webContents.send(electronEvent['play-sound-start'], wavfilepath);
+  globalThis.electron.mainWindow.webContents.send(electronEvent['play-sound-start'], { wavfilepath, volume: globalThis.config.playSeVolume });
 
   while (isPlayingSe) {
     await sleep(50);

@@ -58,7 +58,7 @@
         <div class="mdl-textfield mdl-js-textfield" style="width: 100%">
           <div class="subtitle">ポート番号</div>
           <div class="labeledInputArea">
-            <span>https://localhost:</span>
+            <span>http://localhost:</span>
             <input id="text-port-number" class="mdl-textfield__input" type="text" required="true" pattern="[0-9]{0,4}?" value="3000" />
           </div>
           <span class="mdl-textfield__error">0-9999 までの数値を入れてください</span>
@@ -66,18 +66,28 @@
 
         <div class="block">
           <h5>レス・コメント取得先</h5>
-          <div class="mdl-textfield mdl-js-textfield" style="width: 100%">
-            <div class="subtitle">掲示板URL</div>
-            <div class="caption">サーバ起動中に変更した場合は、最新の1レスがコメント欄に表示されます。</div>
-            <input id="text-url" class="mdl-textfield__input" type="text" required="true" pattern="http.?://.+/$" value="" />
-            <span id="text-url-error" class="mdl-textfield__error">URLを入力してください</span>
+          <div>
+            <div class="mdl-textfield mdl-js-textfield" style="width: 100%">
+              <div class="subtitle">掲示板URL</div>
+              <div class="caption">サーバ起動中に変更した場合は、最新の1レスがコメント欄に表示されます。</div>
+              <input id="text-url" class="mdl-textfield__input" type="text" required="true" pattern="http.?://.+/$" value="" />
+              <span id="text-url-error" class="mdl-textfield__error">URLを入力してください</span>
+            </div>
+            <div class="bbsStatusArea">
+              <span class="status"><span class="status-label">status:</span><span id="bbs-connection-status">none</span></span>
+            </div>
           </div>
 
           <div class="mdl-textfield mdl-js-textfield" style="width: 100%">
             <div class="subtitle">Youtube チャンネルID</div>
             <div class="labeledInputArea">
               <span>https://www.youtube.com/channel/</span>
-              <input class="mdl-textfield__input" type="text" id="text-youtube-id" pattern="^(?!.*http.?:).*$" />
+              <input class="mdl-textfield__input" type="text" id="text-youtube-id" pattern="^(?!.*http.?:)(?!.*/.*).*$" />
+              /
+            </div>
+            <div class="youtubeStatusArea">
+              <span class="status"><span class="status-label">status:</span><span id="youtube-connection-status">none</span></span>
+              <span class="status"><span class="status-label">liveId:</span><span id="youtube-live-id">none</span></span>
             </div>
           </div>
 
@@ -85,8 +95,12 @@
             <div class="subtitle">Twitch ユーザID</div>
             <div class="labeledInputArea">
               <span>https://www.twitch.tv/</span>
-              <input class="mdl-textfield__input" type="text" id="text-twitch-id" pattern="^(?!.*http.?:).*$" />
+              <input class="mdl-textfield__input" type="text" id="text-twitch-id" pattern="^(?!.*http.?:)(?!.*/.*).*$" />
+              /
             </div>
+          </div>
+          <div class="twitchStatusArea">
+            <span class="status"><span class="status-label">status:</span><span id="twitch-connection-status">none</span></span>
           </div>
         </div>
 
@@ -188,6 +202,13 @@
               <input type="checkbox" id="checkbox-playSe" class="mdl-checkbox__input" value="1" checked />
               <span class="mdl-checkbox__label">着信音再生を有効にする</span>
             </label>
+
+            <div>
+              <span class="subtitle">音量</span> <span id="disp-playSe-volume">100</span></p>
+              <p style="width: 80%;">
+                <input id="playSe-volume" class="mdl-slider mdl-js-slider" type="range" min="0" max="100" value="100" tabindex="0" oninput="showVal('disp-playSe-volume', this.value)" />
+              </p>
+            </div>
           </div>
         </div>
 

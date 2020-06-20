@@ -300,6 +300,8 @@ exports.electronEvent = {
     'clear-comment': 'clear-comment',
     /** サーバー起動の返信 */
     'start-server-reply': 'start-server-reply',
+    /** ステータス更新 */
+    UPDATE_STATUS: 'UPDATE_STATUS',
 };
 
 
@@ -528,6 +530,7 @@ var path_1 = __importDefault(__webpack_require__(/*! path */ "path"));
 var electron_1 = __importStar(__webpack_require__(/*! electron */ "electron"));
 var electron_log_1 = __importDefault(__webpack_require__(/*! electron-log */ "electron-log"));
 var util_1 = __webpack_require__(/*! ./util */ "./src/main/util.ts");
+var electron_window_state_1 = __importDefault(__webpack_require__(/*! electron-window-state */ "electron-window-state"));
 console.trace = function () {
     //
 };
@@ -571,10 +574,18 @@ else {
     // });
     // Electronの初期化完了後に実行
     app.on('ready', function () {
+        var windowState = electron_window_state_1.default({
+            defaultWidth: 700,
+            defaultHeight: 720,
+            file: 'mainWindow.json',
+        });
         // ウィンドウサイズを（フレームサイズを含まない）設定
-        globalThis.electron.mainWindow = new BrowserWindow_1({
-            width: 700,
-            height: 720,
+        var mainWin = new BrowserWindow_1({
+            // 前回起動時のを復元
+            x: windowState.x,
+            y: windowState.y,
+            width: windowState.width,
+            height: windowState.height,
             useContentSize: true,
             icon: iconPath_1,
             webPreferences: {
@@ -582,16 +593,18 @@ else {
             },
             skipTaskbar: true,
         });
-        globalThis.electron.mainWindow.setTitle('unacast');
-        globalThis.electron.mainWindow.setMenu(null);
+        globalThis.electron.mainWindow = mainWin;
+        windowState.manage(mainWin);
+        mainWin.setTitle('unacast');
+        mainWin.setMenu(null);
         // レンダラーで使用するhtmlファイルを指定する
-        globalThis.electron.mainWindow.loadURL(path_1.default.resolve(__dirname, '../src/html/index.html'));
+        mainWin.loadURL(path_1.default.resolve(__dirname, '../src/html/index.html'));
         // ウィンドウが閉じられたらアプリも終了
-        globalThis.electron.mainWindow.on('close', function (event) {
+        mainWin.on('close', function (event) {
             // 確認ダイアログではいをクリックしたら閉じる
             event.preventDefault();
             electron_1.dialog
-                .showMessageBox(globalThis.electron.mainWindow, {
+                .showMessageBox(mainWin, {
                 type: 'question',
                 buttons: ['Yes', 'No'],
                 // title: '',
@@ -603,12 +616,12 @@ else {
                 }
             });
         });
-        globalThis.electron.mainWindow.on('closed', function () {
+        mainWin.on('closed', function () {
             electron_log_1.default.info('[app] close');
             app.exit();
         });
         // 開発者ツールを開く
-        // globalThis.electron.mainWindow.webContents.openDevTools();
+        // mainWin.webContents.openDevTools();
         // タスクトレイの設定
         var tray = null;
         app.whenReady().then(function () {
@@ -660,8 +673,16 @@ else {
         createChatWindow_1();
     });
     var createChatWindow_1 = function () {
+        var windowState = electron_window_state_1.default({
+            defaultWidth: 400,
+            defaultHeight: 720,
+            file: 'chatWindow.json',
+        });
         var chatWindow = new BrowserWindow_1({
-            width: 400,
+            x: windowState.x,
+            y: windowState.y,
+            width: windowState.width,
+            height: windowState.height,
             useContentSize: true,
             icon: iconPath_1,
             webPreferences: {
@@ -672,6 +693,7 @@ else {
             // 閉じれなくする
             closable: false,
         });
+        windowState.manage(chatWindow);
         chatWindow.setTitle('unacast');
         chatWindow.setMenu(null);
         // レンダラーで使用するhtmlファイルを指定する
@@ -1376,9 +1398,16 @@ var startTwitchChat = function () { return __awaiter(void 0, void 0, void 0, fun
             twitchChat = new dank_twitch_irc_1.ChatClient();
             twitchChat.connect();
             twitchChat.join(globalThis.config.twitchId);
+            globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'twitch', category: 'status', message: 'wait live' });
+            // 接続完了
+            twitchChat.on('ready', function () {
+                console.log('[Twitch] Successfully connected to chat');
+                globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'twitch', category: 'status', message: 'ok' });
+            });
             // チャット受信
             twitchChat.on('PRIVMSG', function (msg) {
                 electron_log_1.default.info('[Twitch] comment received');
+                globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'twitch', category: 'status', message: 'ok' });
                 // log.info(JSON.stringify(msg, null, '  '));
                 var imgUrl = './img/twitch.png';
                 var name = util_1.escapeHtml(msg.displayName);
@@ -1390,9 +1419,18 @@ var startTwitchChat = function () { return __awaiter(void 0, void 0, void 0, fun
                 globalThis.electron.commentQueueList.push({ imgUrl: imgUrl, name: name, text: text });
             });
             globalThis.electron.twitchChat = twitchChat;
+            // なんかエラーがあった
+            twitchChat.on('error', function (event) {
+                electron_log_1.default.error("[Twitch] " + JSON.stringify(event));
+                globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'twitch', category: 'status', message: 'error!' });
+            });
+            twitchChat.on('close', function (event) {
+                globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'twitch', category: 'status', message: 'connection end' });
+            });
         }
         catch (e) {
             electron_log_1.default.error(e);
+            globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'twitch', category: 'status', message: 'error!' });
         }
         return [2 /*return*/];
     });
@@ -1406,18 +1444,23 @@ var startYoutubeChat = function () { return __awaiter(void 0, void 0, void 0, fu
                 _a.trys.push([0, 4, , 5]);
                 electron_log_1.default.info('[Youtube Chat] connect started');
                 globalThis.electron.youtubeChat = new youtube_chat_1.LiveChat({ channelId: globalThis.config.youtubeId });
+                globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'status', message: 'wait live' });
                 // 接続開始イベント
                 globalThis.electron.youtubeChat.on('start', function (liveId) {
                     electron_log_1.default.info("[Youtube Chat] connected liveId = " + liveId);
+                    globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'liveid', message: liveId });
+                    globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'status', message: 'ok' });
                 });
                 // 接続終了イベント
                 globalThis.electron.youtubeChat.on('end', function (reason) {
                     electron_log_1.default.info('[Youtube Chat] disconnect');
+                    globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'status', message: 'connection end' });
                 });
                 // チャット受信
                 globalThis.electron.youtubeChat.on('comment', function (comment) {
                     var _a, _b;
                     electron_log_1.default.info('[Youtube] comment received');
+                    globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'status', message: 'ok' });
                     // log.info(JSON.stringify(comment, null, '  '));
                     var imgUrl = (_b = (_a = comment.author.thumbnail) === null || _a === void 0 ? void 0 : _a.url) !== null && _b !== void 0 ? _b : '';
                     var name = util_1.escapeHtml(comment.author.name);
@@ -1440,8 +1483,7 @@ var startYoutubeChat = function () { return __awaiter(void 0, void 0, void 0, fu
                 // 何かエラーがあった
                 globalThis.electron.youtubeChat.on('error', function (err) {
                     electron_log_1.default.error("[Youtube Chat] error " + err.message);
-                    // log.error(err);
-                    // globalThis.electron.youtubeChat.stop();
+                    globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'status', message: 'error!' });
                 });
                 return [4 /*yield*/, globalThis.electron.youtubeChat.start()];
             case 1:
@@ -1476,6 +1518,7 @@ electron_1.ipcMain.on(const_1.electronEvent['stop-server'], function (event) {
     globalThis.electron.commentQueueList = [];
     // レス取得の停止
     threadIntervalEvent = false;
+    globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'bbs', category: 'status', message: "connection end" });
     // Twitchチャットの停止
     if (globalThis.electron.twitchChat) {
         globalThis.electron.twitchChat.close();
@@ -1526,8 +1569,10 @@ var getResInterval = function (exeId) { return __awaiter(void 0, void 0, void 0,
                             _loop_1(item);
                         }
                     }
+                    globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'bbs', category: 'status', message: "ok res=" + globalThis.electron.threadNumber });
                 }
                 else if (result.length > 0) {
+                    globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'bbs', category: 'status', message: 'error!' });
                     // 番号が無くて結果が入ってるのは通信エラーメッセージ
                     sendDomForChatWindow(result);
                 }
@@ -1648,7 +1693,7 @@ var playSe = function () { return __awaiter(void 0, void 0, void 0, function () 
             case 0:
                 wavfilepath = globalThis.electron.seList[Math.floor(Math.random() * globalThis.electron.seList.length)];
                 isPlayingSe = true;
-                globalThis.electron.mainWindow.webContents.send(const_1.electronEvent['play-sound-start'], wavfilepath);
+                globalThis.electron.mainWindow.webContents.send(const_1.electronEvent['play-sound-start'], { wavfilepath: wavfilepath, volume: globalThis.config.playSeVolume });
                 _a.label = 1;
             case 1:
                 if (!isPlayingSe) return [3 /*break*/, 3];
@@ -2220,6 +2265,17 @@ module.exports = require("electron");
 /***/ (function(module, exports) {
 
 module.exports = require("electron-log");
+
+/***/ }),
+
+/***/ "electron-window-state":
+/*!****************************************!*\
+  !*** external "electron-window-state" ***!
+  \****************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = require("electron-window-state");
 
 /***/ }),
 

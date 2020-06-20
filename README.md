@@ -41,7 +41,7 @@ OBSのソースで「ブラウザソース」を追加し、設定画面を開�
 
 あとmac版はmacなうて動作確認できないので作れないですごめんなさい。
 
-## レスの表示背景色や文字色を変更したい
+## レスの表示背景色や文字色を変更したい (OBS側)
 ![OBS設定画面](https://raw.githubusercontent.com/yudeunagi/unacast/develop/documents/help/img/help03.jpg)  
 例として背景の透明度を変更したい場合は、OBSのブラウザソース設定画面のカスタムCSSに以下のように追加してください
 
@@ -49,11 +49,15 @@ OBSのソースで「ブラウザソース」を追加し、設定画面を開�
     background-color: rgba(0, 0, 0, 0.5); /*0.5の部分が透明度指定、0~1の少数で設定でき、0で透明、1で不透明になる*/  
   }  
 
-「unacast-win32-x64\resources\app\public\css\style-server.css」にデフォルトの設定を記載しているので
+unpack版の場合は、「unacast-win32-x64\resources\app\public\css\style-server.css」にデフォルトの設定を記載しているので
 変更したい箇所をOBSのカスタムCSSにコピペして適当にいじってみてください。ぶっこわれたら全部消せばデフォルトに戻ります。
 
 というか↓に使用しているCSSのリンク載せておくのでここからOBSのカスタムCSSにコピペして適当にいじってみてください。
 (https://github.com/yudeunagi/unacast/blob/master/public/css/style-server.css) 
+
+## レスの表示背景色や文字色を変更したい (本アプリ側)
+`resources`フォルダに、`style-server.css`ファイルを置いて、その中にCSSを記載してください。
+unpack版の場合はOBS側と同じファイルを編集してもOKです。
 
 --- 
 

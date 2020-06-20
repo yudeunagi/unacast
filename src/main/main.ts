@@ -3,6 +3,7 @@ import path from 'path';
 import electron, { Tray, Menu, dialog } from 'electron';
 import log from 'electron-log';
 import { sleep } from './util';
+import windowStateKeeper from 'electron-window-state';
 
 console.trace = () => {
   //
@@ -57,10 +58,20 @@ if (!app.requestSingleInstanceLock()) {
 
   // Electronの初期化完了後に実行
   app.on('ready', () => {
+    const windowState = windowStateKeeper({
+      defaultWidth: 700,
+      defaultHeight: 720,
+      file: 'mainWindow.json',
+    });
+
     // ウィンドウサイズを（フレームサイズを含まない）設定
-    globalThis.electron.mainWindow = new BrowserWindow({
-      width: 700,
-      height: 720,
+    const mainWin = new BrowserWindow({
+      // 前回起動時のを復元
+      x: windowState.x,
+      y: windowState.y,
+      width: windowState.width,
+      height: windowState.height,
+
       useContentSize: true,
       icon: iconPath,
       webPreferences: {
@@ -68,18 +79,21 @@ if (!app.requestSingleInstanceLock()) {
       },
       skipTaskbar: true,
     });
-    globalThis.electron.mainWindow.setTitle('unacast');
-    globalThis.electron.mainWindow.setMenu(null);
+    globalThis.electron.mainWindow = mainWin;
+    windowState.manage(mainWin);
+
+    mainWin.setTitle('unacast');
+    mainWin.setMenu(null);
 
     // レンダラーで使用するhtmlファイルを指定する
-    globalThis.electron.mainWindow.loadURL(path.resolve(__dirname, '../src/html/index.html'));
+    mainWin.loadURL(path.resolve(__dirname, '../src/html/index.html'));
 
     // ウィンドウが閉じられたらアプリも終了
-    globalThis.electron.mainWindow.on('close', (event) => {
+    mainWin.on('close', (event) => {
       // 確認ダイアログではいをクリックしたら閉じる
       event.preventDefault();
       dialog
-        .showMessageBox(globalThis.electron.mainWindow, {
+        .showMessageBox(mainWin, {
           type: 'question',
           buttons: ['Yes', 'No'],
           // title: '',
@@ -91,13 +105,13 @@ if (!app.requestSingleInstanceLock()) {
           }
         });
     });
-    globalThis.electron.mainWindow.on('closed', () => {
+    mainWin.on('closed', () => {
       log.info('[app] close');
       app.exit();
     });
 
     // 開発者ツールを開く
-    // globalThis.electron.mainWindow.webContents.openDevTools();
+    // mainWin.webContents.openDevTools();
 
     // タスクトレイの設定
     let tray = null;
@@ -143,8 +157,18 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   const createChatWindow = () => {
+    const windowState = windowStateKeeper({
+      defaultWidth: 400,
+      defaultHeight: 720,
+      file: 'chatWindow.json',
+    });
+
     const chatWindow = new BrowserWindow({
-      width: 400,
+      x: windowState.x,
+      y: windowState.y,
+      width: windowState.width,
+      height: windowState.height,
+
       useContentSize: true,
       icon: iconPath,
       webPreferences: {
@@ -155,6 +179,8 @@ if (!app.requestSingleInstanceLock()) {
       // 閉じれなくする
       closable: false,
     });
+    windowState.manage(chatWindow);
+
     chatWindow.setTitle('unacast');
     chatWindow.setMenu(null);
 
