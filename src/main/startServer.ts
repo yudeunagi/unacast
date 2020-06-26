@@ -13,6 +13,7 @@ import { CommentItem, ImageItem } from './youtube-chat/parser';
 import bouyomiChan from './bouyomi-chan';
 import { spawn } from 'child_process';
 import { electronEvent } from './const';
+import NiconamaComment from './niconama';
 
 let app: expressWs.Instance['app'];
 
@@ -122,6 +123,39 @@ ipcMain.on(electronEvent['start-server'], async (event: any, config: typeof glob
   // Youtubeチャット
   if (globalThis.config.youtubeId) {
     startYoutubeChat();
+  }
+
+  // ニコ生
+  if (globalThis.config.niconicoId) {
+    const nico = new NiconamaComment({ communityId: globalThis.config.niconicoId });
+    globalThis.electron.niconicoChat = nico;
+    nico.on('start', (liveid) => {
+      globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'niconico', category: 'status', message: `connection waiting` });
+    });
+    nico.on('open', (event) => {
+      globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, {
+        commentType: 'niconico',
+        category: 'status',
+        message: `ok No=${event.number}`,
+      });
+      globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, {
+        commentType: 'niconico',
+        category: 'liveId',
+        message: `${event.liveId}`,
+      });
+    });
+    nico.on('comment', (event) => {
+      globalThis.electron.commentQueueList.push({ imgUrl: './img/niconico.png', number: event.number, name: event.name, text: event.comment });
+      globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, {
+        commentType: 'niconico',
+        category: 'status',
+        message: `ok No=${event.number}`,
+      });
+    });
+    nico.on('error', () => {
+      globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'niconico', category: 'status', message: `error` });
+    });
+    nico.start();
   }
 
   // 棒読みちゃん接続
@@ -304,12 +338,23 @@ ipcMain.on(electronEvent['stop-server'], (event) => {
   if (globalThis.electron.twitchChat) {
     globalThis.electron.twitchChat.close();
     globalThis.electron.twitchChat.removeAllListeners();
+    globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'twitch', category: 'status', message: `connection end` });
   }
 
   // Youtubeチャットの停止
   if (globalThis.electron.youtubeChat) {
     globalThis.electron.youtubeChat.stop();
     globalThis.electron.youtubeChat.removeAllListeners();
+    globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'status', message: `connection end` });
+    globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'liveId', message: `none` });
+  }
+
+  // ニコ生チャットの停止
+  if (globalThis.electron.niconicoChat) {
+    globalThis.electron.niconicoChat.stop();
+    globalThis.electron.niconicoChat.removeAllListeners();
+    globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'niconico', category: 'status', message: `connection end` });
+    globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'niconico', category: 'liveId', message: `none` });
   }
 });
 

@@ -552,8 +552,6 @@ else {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     var ss = __webpack_require__(/*! ./startServer */ "./src/main/startServer.ts");
     console.trace(ss);
-    // ウィンドウを作成するモジュール
-    var BrowserWindow_1 = electron_1.default.BrowserWindow;
     // メインウィンドウはGCされないようにグローバル宣言
     globalThis.electron = {
         mainWindow: null,
@@ -561,6 +559,7 @@ else {
         seList: [],
         twitchChat: null,
         youtubeChat: null,
+        niconicoChat: null,
         threadConnectionError: 0,
         threadNumber: 0,
         commentQueueList: [],
@@ -580,7 +579,7 @@ else {
             file: 'mainWindow.json',
         });
         // ウィンドウサイズを（フレームサイズを含まない）設定
-        var mainWin = new BrowserWindow_1({
+        var mainWin = new electron_1.default.BrowserWindow({
             // 前回起動時のを復元
             x: windowState.x,
             y: windowState.y,
@@ -670,40 +669,344 @@ else {
                 globalThis.electron.mainWindow.focus();
             });
         });
-        createChatWindow_1();
+        createChatWindow();
     });
-    var createChatWindow_1 = function () {
-        var windowState = electron_window_state_1.default({
-            defaultWidth: 400,
-            defaultHeight: 720,
-            file: 'chatWindow.json',
-        });
-        var chatWindow = new BrowserWindow_1({
-            x: windowState.x,
-            y: windowState.y,
-            width: windowState.width,
-            height: windowState.height,
-            useContentSize: true,
-            icon: iconPath_1,
-            webPreferences: {
-                nodeIntegration: true,
-            },
-            // タスクバーに表示しない
-            skipTaskbar: true,
-            // 閉じれなくする
-            closable: false,
-        });
-        windowState.manage(chatWindow);
-        chatWindow.setTitle('unacast');
-        chatWindow.setMenu(null);
-        // レンダラーで使用するhtmlファイルを指定する
-        chatWindow.loadURL(path_1.default.resolve(__dirname, '../src/html/chat.html'));
-        globalThis.electron.chatWindow = chatWindow;
-        // chatWindow.webContents.openDevTools();
-    };
     // 音声再生できるようにする
     app.commandLine.appendSwitch('--autoplay-policy', 'no-user-gesture-required');
 }
+var createChatWindow = function () {
+    var windowState = electron_window_state_1.default({
+        defaultWidth: 400,
+        defaultHeight: 720,
+        file: 'chatWindow.json',
+    });
+    var iconPath = path_1.default.resolve(__dirname, '../icon.png');
+    var chatWindow = new electron_1.default.BrowserWindow({
+        x: windowState.x,
+        y: windowState.y,
+        width: windowState.width,
+        height: windowState.height,
+        useContentSize: true,
+        icon: iconPath,
+        webPreferences: {
+            nodeIntegration: true,
+        },
+        // タスクバーに表示しない
+        skipTaskbar: true,
+        // 閉じれなくする
+        closable: false,
+    });
+    windowState.manage(chatWindow);
+    chatWindow.setTitle('unacast');
+    chatWindow.setMenu(null);
+    // レンダラーで使用するhtmlファイルを指定する
+    chatWindow.loadURL(path_1.default.resolve(__dirname, '../src/html/chat.html'));
+    globalThis.electron.chatWindow = chatWindow;
+    // chatWindow.webContents.openDevTools();
+};
+
+
+/***/ }),
+
+/***/ "./src/main/niconama/index.ts":
+/*!************************************!*\
+  !*** ./src/main/niconama/index.ts ***!
+  \************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __generator = (this && this.__generator) || function (thisArg, body) {
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
+    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    function verb(n) { return function (v) { return step([n, v]); }; }
+    function step(op) {
+        if (f) throw new TypeError("Generator is already executing.");
+        while (_) try {
+            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
+            if (y = 0, t) op = [op[0] & 2, t.value];
+            switch (op[0]) {
+                case 0: case 1: t = op; break;
+                case 4: _.label++; return { value: op[1], done: false };
+                case 5: _.label++; y = op[1]; op = [0]; continue;
+                case 7: op = _.ops.pop(); _.trys.pop(); continue;
+                default:
+                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
+                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
+                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
+                    if (t[2]) _.ops.pop();
+                    _.trys.pop(); continue;
+            }
+            op = body.call(thisArg, _);
+        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
+        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
+    }
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+/**
+ * ニコ生コメント
+ */
+var events_1 = __webpack_require__(/*! events */ "events");
+var axios_1 = __importDefault(__webpack_require__(/*! axios */ "axios"));
+var cheerio_1 = __importDefault(__webpack_require__(/*! cheerio */ "cheerio"));
+var electron_log_1 = __importDefault(__webpack_require__(/*! electron-log */ "electron-log"));
+var util_1 = __webpack_require__(/*! ../util */ "./src/main/util.ts");
+var ws_1 = __importDefault(__webpack_require__(/*! ws */ "ws"));
+var NiconamaComment = /** @class */ (function (_super) {
+    __extends(NiconamaComment, _super);
+    function NiconamaComment(options) {
+        var _this = _super.call(this) || this;
+        /** 配信開始待ちのインターバル(ms) */
+        _this.liveIdPollingInterval = 5000;
+        /** 初期処理のコメントを受信し終わった */
+        _this.isFirstCommentReceived = false;
+        /** 最新のコメント番号 */
+        _this.latestNo = NaN;
+        /** コメント取得のWebSocket */
+        _this.commentSocket = null;
+        /** コミュニティIDを元にLiveIDを取得 */
+        _this.pollingFetchLiveId = function () { return __awaiter(_this, void 0, void 0, function () {
+            var url, liveRes, livetemp, e_1;
+            var _a, _b;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
+                    case 0:
+                        electron_log_1.default.info('pollingFetchLiveId');
+                        if (this.liveId)
+                            return [2 /*return*/];
+                        url = "https://com.nicovideo.jp/community/" + this.communityId;
+                        _c.label = 1;
+                    case 1:
+                        _c.trys.push([1, 6, , 7]);
+                        return [4 /*yield*/, axios_1.default.get(url)];
+                    case 2:
+                        liveRes = _c.sent();
+                        livetemp = (_b = (_a = liveRes.data.match(/now_live_inner.*/)[0]) === null || _a === void 0 ? void 0 : _a.match(/lv\d+/)[0]) !== null && _b !== void 0 ? _b : '';
+                        if (!livetemp) return [3 /*break*/, 3];
+                        this.liveId = livetemp;
+                        this.fetchCommentServerThread();
+                        this.emit('start', this.liveId);
+                        return [3 /*break*/, 5];
+                    case 3: 
+                    // 次のポーリング
+                    return [4 /*yield*/, util_1.sleep(this.liveIdPollingInterval)];
+                    case 4:
+                        // 次のポーリング
+                        _c.sent();
+                        this.pollingFetchLiveId();
+                        _c.label = 5;
+                    case 5: return [3 /*break*/, 7];
+                    case 6:
+                        e_1 = _c.sent();
+                        this.emit('error', new Error("connection error url = " + url));
+                        return [2 /*return*/, false];
+                    case 7: return [2 /*return*/];
+                }
+            });
+        }); };
+        /** ニコ生のコメントを取得 */
+        _this.fetchCommentServerThread = function () { return __awaiter(_this, void 0, void 0, function () {
+            var url, res, $, embeddedData, broadcastId, audienceToken, frontendId, threadWssUrl, tWs;
+            var _this = this;
+            var _a;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0:
+                        electron_log_1.default.info("[fetchCommentServerThread] liveId = " + this.liveId);
+                        url = "https://live2.nicovideo.jp/watch/" + this.liveId;
+                        return [4 /*yield*/, axios_1.default.get(url)];
+                    case 1:
+                        res = _b.sent();
+                        $ = cheerio_1.default.load(res.data);
+                        embeddedData = JSON.parse((_a = $('#embedded-data').attr('data-props')) !== null && _a !== void 0 ? _a : '');
+                        broadcastId = embeddedData.program.broadcastId || embeddedData.program.reliveProgramId;
+                        audienceToken = embeddedData.player.audienceToken;
+                        frontendId = embeddedData.site.frontendId;
+                        threadWssUrl = "wss://a.live2.nicovideo.jp/unama/wsapi/v2/watch/" + broadcastId + "?audience_token=" + audienceToken + "&frontend_id=" + frontendId;
+                        electron_log_1.default.info(threadWssUrl);
+                        tWs = new ws_1.default(threadWssUrl);
+                        tWs.onmessage = function (event) {
+                            var obj = JSON.parse(event.data.toString());
+                            // log.info(JSON.stringify(obj, null, '  '));
+                            electron_log_1.default.info("[fetchCommentServerThread]WS - type: " + obj.type);
+                            switch (obj.type) {
+                                case 'serverTime': {
+                                    // currentMs
+                                    break;
+                                }
+                                case 'seat': {
+                                    // keepIntervalSec
+                                    break;
+                                }
+                                case 'stream': {
+                                    // hlsのURLとか
+                                    break;
+                                }
+                                case 'room': {
+                                    var data = obj.data;
+                                    _this.fetchComment(data.messageServer.uri, data.threadId);
+                                    break;
+                                }
+                                case 'statistics': {
+                                    // 視聴者数とか
+                                    break;
+                                }
+                                case 'schedule': {
+                                    // 開始、終了時刻
+                                    break;
+                                }
+                                case 'akashic': {
+                                    var data = obj.data;
+                                    break;
+                                }
+                                case 'ping': {
+                                    break;
+                                }
+                            }
+                        };
+                        tWs.on('open', function () {
+                            tWs.send(JSON.stringify({
+                                type: 'startWatching',
+                                data: { stream: { quality: 'high', protocol: 'hls', latency: 'low', chasePlay: false }, room: { protocol: 'webSocket', commentable: true }, reconnect: false },
+                            }));
+                            tWs.send(JSON.stringify({ type: 'getAkashic', data: { chasePlay: false } }));
+                        });
+                        return [2 /*return*/];
+                }
+            });
+        }); };
+        /**
+         *
+         * @param wsUrl コメントサーバのWebSocket URL
+         * @param threadId threadID
+         */
+        _this.fetchComment = function (wsUrl, threadId) { return __awaiter(_this, void 0, void 0, function () {
+            var ws;
+            var _this = this;
+            return __generator(this, function (_a) {
+                electron_log_1.default.info("[fetchComment] threadId = " + threadId);
+                ws = new ws_1.default(wsUrl, 'niconama', {
+                    headers: {
+                        'Sec-WebSocket-Extensions': 'permessage-deflate; client_max_window_bits',
+                        'Sec-WebSocket-Protocol': 'msg.nicovideo.jp#json',
+                    },
+                });
+                ws.on('message', function (event) {
+                    var _a, _b, _c;
+                    var obj = JSON.parse(event.toString());
+                    // 初回取得時は ping, ping, thread, chat, chat..., ping, pingの順で受け取る
+                    // log.info(JSON.stringify(obj, null, '  '));
+                    // コメント番号更新
+                    if ((_a = obj === null || obj === void 0 ? void 0 : obj.chat) === null || _a === void 0 ? void 0 : _a.no) {
+                        _this.latestNo = obj.chat.no;
+                    }
+                    if (((_b = obj === null || obj === void 0 ? void 0 : obj.ping) === null || _b === void 0 ? void 0 : _b.content) === 'rf:0') {
+                        _this.isFirstCommentReceived = true;
+                        _this.emit('open', { liveId: _this.liveId, number: _this.latestNo });
+                    }
+                    if (!_this.isFirstCommentReceived)
+                        return;
+                    var chat = obj;
+                    var comment = (_c = chat.chat) === null || _c === void 0 ? void 0 : _c.content;
+                    if (!comment)
+                        return;
+                    // /で始まるのはなんかコマンドなので除外する
+                    if (comment.match(/^\/[a-z]+ /))
+                        return;
+                    electron_log_1.default.info("[fetchComment]WS - content: " + comment);
+                    var item = {
+                        number: chat.chat.no.toString(),
+                        name: '',
+                        comment: comment,
+                    };
+                    _this.emit('comment', item);
+                });
+                ws.on('error', function (event) {
+                    electron_log_1.default.info('[fetchComment]なんかエラーだ');
+                    electron_log_1.default.info(event);
+                });
+                ws.on('open', function () {
+                    electron_log_1.default.info('[fetchComment] connected');
+                    ws.send(JSON.stringify([
+                        { ping: { content: 'rs:0' } },
+                        { ping: { content: 'ps:0' } },
+                        // eslint-disable-next-line @typescript-eslint/camelcase
+                        { thread: { thread: threadId, version: '20061206', user_id: 'guest', res_from: -150, with_global: 1, scores: 1, nicoru: 0 } },
+                        { ping: { content: 'pf:0' } },
+                        { ping: { content: 'rf:0' } },
+                    ]));
+                });
+                this.commentSocket = ws;
+                return [2 /*return*/];
+            });
+        }); };
+        /** コメント取得の停止 */
+        _this.stop = function () {
+            if (_this.communityId) {
+                _this.liveId = '';
+            }
+            _this.isFirstCommentReceived = false;
+            _this.latestNo = NaN;
+            _this.commentSocket.close();
+        };
+        if ('communityId' in options) {
+            _this.communityId = options.communityId;
+        }
+        else if ('liveId' in options) {
+            _this.liveId = options.liveId;
+        }
+        else {
+            throw TypeError('Required channelId or liveId.');
+        }
+        return _this;
+    }
+    NiconamaComment.prototype.start = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                if (this.communityId) {
+                    this.pollingFetchLiveId();
+                }
+                else {
+                    this.fetchCommentServerThread();
+                    this.emit('start', this.liveId);
+                }
+                return [2 /*return*/];
+            });
+        });
+    };
+    NiconamaComment.prototype.on = function (event, listener) {
+        return _super.prototype.on.call(this, event, listener);
+    };
+    return NiconamaComment;
+}(events_1.EventEmitter));
+exports.default = NiconamaComment;
 
 
 /***/ }),
@@ -1233,6 +1536,7 @@ var getRes_1 = __importStar(__webpack_require__(/*! ./getRes */ "./src/main/getR
 var bouyomi_chan_1 = __importDefault(__webpack_require__(/*! ./bouyomi-chan */ "./src/main/bouyomi-chan/index.ts"));
 var child_process_1 = __webpack_require__(/*! child_process */ "child_process");
 var const_1 = __webpack_require__(/*! ./const */ "./src/main/const.ts");
+var niconama_1 = __importDefault(__webpack_require__(/*! ./niconama */ "./src/main/niconama/index.ts"));
 var app;
 // サーバーをグローバル変数にセットできるようにする（サーバー停止処理のため）
 var server;
@@ -1288,7 +1592,7 @@ electron_1.ipcMain.on(const_1.electronEvent['apply-config'], function (event, co
  * サーバー起動
  */
 electron_1.ipcMain.on(const_1.electronEvent['start-server'], function (event, config) { return __awaiter(void 0, void 0, void 0, function () {
-    var expressInstance;
+    var expressInstance, nico;
     return __generator(this, function (_a) {
         globalThis.electron.chatWindow.webContents.send(const_1.electronEvent['clear-comment']);
         globalThis.electron.threadNumber = 0;
@@ -1328,6 +1632,38 @@ electron_1.ipcMain.on(const_1.electronEvent['start-server'], function (event, co
         // Youtubeチャット
         if (globalThis.config.youtubeId) {
             startYoutubeChat();
+        }
+        // ニコ生
+        if (globalThis.config.niconicoId) {
+            nico = new niconama_1.default({ communityId: globalThis.config.niconicoId });
+            globalThis.electron.niconicoChat = nico;
+            nico.on('start', function (liveid) {
+                globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'niconico', category: 'status', message: "connection waiting" });
+            });
+            nico.on('open', function (event) {
+                globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, {
+                    commentType: 'niconico',
+                    category: 'status',
+                    message: "ok No=" + event.number,
+                });
+                globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, {
+                    commentType: 'niconico',
+                    category: 'liveId',
+                    message: "" + event.liveId,
+                });
+            });
+            nico.on('comment', function (event) {
+                globalThis.electron.commentQueueList.push({ imgUrl: './img/niconico.png', number: event.number, name: event.name, text: event.comment });
+                globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, {
+                    commentType: 'niconico',
+                    category: 'status',
+                    message: "ok No=" + event.number,
+                });
+            });
+            nico.on('error', function () {
+                globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'niconico', category: 'status', message: "error" });
+            });
+            nico.start();
         }
         // 棒読みちゃん接続
         if (config.typeYomiko === 'bouyomi') {
@@ -1523,11 +1859,21 @@ electron_1.ipcMain.on(const_1.electronEvent['stop-server'], function (event) {
     if (globalThis.electron.twitchChat) {
         globalThis.electron.twitchChat.close();
         globalThis.electron.twitchChat.removeAllListeners();
+        globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'twitch', category: 'status', message: "connection end" });
     }
     // Youtubeチャットの停止
     if (globalThis.electron.youtubeChat) {
         globalThis.electron.youtubeChat.stop();
         globalThis.electron.youtubeChat.removeAllListeners();
+        globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'status', message: "connection end" });
+        globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'liveId', message: "none" });
+    }
+    // ニコ生チャットの停止
+    if (globalThis.electron.niconicoChat) {
+        globalThis.electron.niconicoChat.stop();
+        globalThis.electron.niconicoChat.removeAllListeners();
+        globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'niconico', category: 'status', message: "connection end" });
+        globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'niconico', category: 'liveId', message: "none" });
     }
 });
 var getResInterval = function (exeId) { return __awaiter(void 0, void 0, void 0, function () {
@@ -2224,6 +2570,17 @@ module.exports = require("body-parser");
 
 /***/ }),
 
+/***/ "cheerio":
+/*!**************************!*\
+  !*** external "cheerio" ***!
+  \**************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = require("cheerio");
+
+/***/ }),
+
 /***/ "child_process":
 /*!********************************!*\
   !*** external "child_process" ***!
@@ -2364,6 +2721,17 @@ module.exports = require("net");
 /***/ (function(module, exports) {
 
 module.exports = require("path");
+
+/***/ }),
+
+/***/ "ws":
+/*!*********************!*\
+  !*** external "ws" ***!
+  \*********************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = require("ws");
 
 /***/ })
 

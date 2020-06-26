@@ -32,9 +32,6 @@ if (!app.requestSingleInstanceLock()) {
   const ss = require('./startServer');
   console.trace(ss);
 
-  // ウィンドウを作成するモジュール
-  const BrowserWindow = electron.BrowserWindow;
-
   // メインウィンドウはGCされないようにグローバル宣言
   globalThis.electron = {
     mainWindow: null as any,
@@ -42,6 +39,7 @@ if (!app.requestSingleInstanceLock()) {
     seList: [],
     twitchChat: null as any,
     youtubeChat: null as any,
+    niconicoChat: null as any,
     threadConnectionError: 0,
     threadNumber: 0,
     commentQueueList: [],
@@ -65,7 +63,7 @@ if (!app.requestSingleInstanceLock()) {
     });
 
     // ウィンドウサイズを（フレームサイズを含まない）設定
-    const mainWin = new BrowserWindow({
+    const mainWin = new electron.BrowserWindow({
       // 前回起動時のを復元
       x: windowState.x,
       y: windowState.y,
@@ -156,41 +154,42 @@ if (!app.requestSingleInstanceLock()) {
     createChatWindow();
   });
 
-  const createChatWindow = () => {
-    const windowState = windowStateKeeper({
-      defaultWidth: 400,
-      defaultHeight: 720,
-      file: 'chatWindow.json',
-    });
-
-    const chatWindow = new BrowserWindow({
-      x: windowState.x,
-      y: windowState.y,
-      width: windowState.width,
-      height: windowState.height,
-
-      useContentSize: true,
-      icon: iconPath,
-      webPreferences: {
-        nodeIntegration: true,
-      },
-      // タスクバーに表示しない
-      skipTaskbar: true,
-      // 閉じれなくする
-      closable: false,
-    });
-    windowState.manage(chatWindow);
-
-    chatWindow.setTitle('unacast');
-    chatWindow.setMenu(null);
-
-    // レンダラーで使用するhtmlファイルを指定する
-    chatWindow.loadURL(path.resolve(__dirname, '../src/html/chat.html'));
-
-    globalThis.electron.chatWindow = chatWindow;
-    // chatWindow.webContents.openDevTools();
-  };
-
   // 音声再生できるようにする
   app.commandLine.appendSwitch('--autoplay-policy', 'no-user-gesture-required');
 }
+
+const createChatWindow = () => {
+  const windowState = windowStateKeeper({
+    defaultWidth: 400,
+    defaultHeight: 720,
+    file: 'chatWindow.json',
+  });
+  const iconPath = path.resolve(__dirname, '../icon.png');
+
+  const chatWindow = new electron.BrowserWindow({
+    x: windowState.x,
+    y: windowState.y,
+    width: windowState.width,
+    height: windowState.height,
+
+    useContentSize: true,
+    icon: iconPath,
+    webPreferences: {
+      nodeIntegration: true,
+    },
+    // タスクバーに表示しない
+    skipTaskbar: true,
+    // 閉じれなくする
+    closable: false,
+  });
+  windowState.manage(chatWindow);
+
+  chatWindow.setTitle('unacast');
+  chatWindow.setMenu(null);
+
+  // レンダラーで使用するhtmlファイルを指定する
+  chatWindow.loadURL(path.resolve(__dirname, '../src/html/chat.html'));
+
+  globalThis.electron.chatWindow = chatWindow;
+  // chatWindow.webContents.openDevTools();
+};

@@ -1,6 +1,7 @@
 import { BrowserWindow } from 'electron';
 import { ChatClient } from 'dank-twitch-irc';
 import { LiveChat } from '../main/youtube-chat';
+import NiconamaComment from '../main/niconama';
 
 declare global {
   namespace electron {
@@ -12,6 +13,8 @@ declare global {
     let twitchChat: ChatClient;
     /** Youtubeチャットインスタンス */
     let youtubeChat: LiveChat;
+    /** ニコ生チャットインスタンス */
+    let niconicoChat: NiconamaComment;
     /** 掲示板の読み込み済みのレス番号 */
     let threadNumber: number;
     /** 掲示板との連続通信エラー回数 */
@@ -36,6 +39,8 @@ declare global {
     let youtubeId: string;
     /** Twitch ユーザID */
     let twitchId: string;
+    /** ニコニココミュニティID */
+    let niconicoId: string;
     /**
      * レス表示順序
      * - true: 新着が下

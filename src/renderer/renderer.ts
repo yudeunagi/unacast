@@ -99,6 +99,7 @@ const toggleInputFormDisable = (isDisabled: boolean) => {
   (document.getElementById('text-port-number') as HTMLInputElement).disabled = isDisabled;
   (document.getElementById('text-youtube-id') as HTMLInputElement).disabled = isDisabled;
   (document.getElementById('text-twitch-id') as HTMLInputElement).disabled = isDisabled;
+  (document.getElementById('text-niconico-id') as HTMLInputElement).disabled = isDisabled;
   document.getElementsByName('dispSort').forEach((v, i) => {
     (v as HTMLInputElement).disabled = isDisabled;
     (v.parentNode as HTMLElement).style.backgroundColor = isDisabled ? 'lightgray' : '';
@@ -126,6 +127,7 @@ const buildConfigJson = () => {
   const interval = parseInt((document.getElementById('rangeSpan') as HTMLInputElement).value);
   const youtubeUrl = (document.getElementById('text-youtube-id') as HTMLInputElement).value;
   const twitchUrl = (document.getElementById('text-twitch-id') as HTMLInputElement).value;
+  const niconicoUrl = (document.getElementById('text-niconico-id') as HTMLInputElement).value;
   const sePath = (document.getElementById('text-se-path') as HTMLInputElement).value;
   const tamiyasuPath = (document.getElementById('text-tamiyasu-path') as HTMLInputElement).value;
   const bouyomiPort = parseInt((document.getElementById('text-bouyomi-port') as HTMLInputElement).value);
@@ -179,6 +181,7 @@ const buildConfigJson = () => {
     interval,
     youtubeId: youtubeUrl,
     twitchId: twitchUrl,
+    niconicoId: niconicoUrl,
     dispSort,
     newLine,
     showIcon,
@@ -224,6 +227,7 @@ const loadConfigToLocalStrage = () => {
     dispNumber: NaN,
     youtubeId: '',
     twitchId: '',
+    niconicoId: '',
     dispSort: false,
     newLine: true,
     showIcon: true,
@@ -285,6 +289,7 @@ const loadConfigToLocalStrage = () => {
   (document.getElementById('text-res-number') as any).value = config.resNumber.toString();
   (document.getElementById('text-youtube-id') as any).value = config.youtubeId;
   (document.getElementById('text-twitch-id') as any).value = config.twitchId;
+  (document.getElementById('text-niconico-id') as any).value = config.niconicoId;
   // レス着信音
   (document.getElementById('text-se-path') as any).value = config.sePath;
   (document.getElementById('checkbox-playSe') as any).checked = config.playSe;
@@ -387,7 +392,7 @@ ipcRenderer.on(electronEvent['show-alert'], async (event: any, args: string) => 
 });
 
 // 何かしら通知したいことがあったら表示する
-ipcRenderer.on(electronEvent.UPDATE_STATUS, async (event: any, args: { commentType: 'bbs' | 'youtube' | 'twitch'; category: string; message: string }) => {
+ipcRenderer.on(electronEvent.UPDATE_STATUS, async (event: any, args: { commentType: 'bbs' | 'youtube' | 'twitch' | 'niconico'; category: string; message: string }) => {
   console.log(`[UPDATE_STATUS]`);
   switch (args.commentType) {
     case 'bbs': {
@@ -404,6 +409,14 @@ ipcRenderer.on(electronEvent.UPDATE_STATUS, async (event: any, args: { commentTy
     }
     case 'twitch': {
       (document.getElementById('twitch-connection-status') as HTMLElement).innerText = args.message;
+      break;
+    }
+    case 'niconico': {
+      if (args.category === 'status') {
+        (document.getElementById('niconico-connection-status') as HTMLElement).innerText = args.message;
+      } else {
+        (document.getElementById('niconico-live-id') as HTMLElement).innerText = args.message;
+      }
       break;
     }
   }
