@@ -57,7 +57,11 @@ type NiconamaCommentChat = {
     mail?: string;
     /** コメント番号 */
     no: number;
-    /** プレミアムなら1 */
+    /**
+     *  謎のフラグ
+     * - 1: プレミアム会員
+     * - 3: 配信者自身
+     */
     premium?: number;
     score?: number;
     thread: string;
@@ -69,10 +73,8 @@ type NiconamaCommentChat = {
 class NiconamaComment extends EventEmitter {
   /** ニコニココミュニティID */
   communityId?: string;
-  /** ライブID */
-  liveId?: string;
   /** 配信開始待ちのインターバル(ms) */
-  liveIdPollingInterval = 5000;
+  waitBroadcastPollingInterval = 5000;
   /** 初期処理のコメントを受信し終わった */
   isFirstCommentReceived = false;
   /** 最新のコメント番号 */
@@ -80,56 +82,56 @@ class NiconamaComment extends EventEmitter {
   /** コメント取得のWebSocket */
   commentSocket: WebSocket = null as any;
 
-  constructor(options: { communityId: string } | { liveId: string }) {
+  constructor(options: { communityId: string }) {
     super();
     if ('communityId' in options) {
       this.communityId = options.communityId;
-    } else if ('liveId' in options) {
-      this.liveId = options.liveId;
     } else {
-      throw TypeError('Required channelId or liveId.');
+      throw TypeError('Required channelId.');
     }
   }
 
   public async start() {
     if (this.communityId) {
-      this.pollingFetchLiveId();
-    } else {
-      this.fetchCommentServerThread();
-      this.emit('start', this.liveId);
+      this.emit('wait');
+      this.pollingStartBroadcast();
     }
   }
 
-  /** コミュニティIDを元にLiveIDを取得 */
-  private pollingFetchLiveId = async () => {
-    log.info('pollingFetchLiveId');
-    if (this.liveId) return;
+  /** ニコ生の配信開始待ち */
+  private pollingStartBroadcast = async () => {
+    const url = `https://live2.nicovideo.jp/watch/${this.communityId}`;
+    log.info(`[pollingStartBroadcast] ${url}`);
 
-    // ライブIDを取得する
-    const url = `https://com.nicovideo.jp/community/${this.communityId}`;
     try {
-      const liveRes = await axios.get(url);
-      const livetemp = liveRes.data.match(/now_live_inner.*/)[0]?.match(/lv\d+/)[0] ?? '';
-      if (livetemp) {
-        this.liveId = livetemp;
-        this.fetchCommentServerThread();
-        this.emit('start', this.liveId);
+      const res = await axios.get(url);
+      const $ = cheerio.load(res.data);
+
+      // 放送情報を取得
+      const embeddedData = JSON.parse($('#embedded-data').attr('data-props') ?? '');
+      // log.info(embeddedData);
+
+      // 終わってるステータスか終了日時が過去
+      if (embeddedData.program.status === 'ENDED' || embeddedData.program.endTime * 1000 < new Date().getTime()) {
+        await sleep(this.waitBroadcastPollingInterval);
+        this.pollingStartBroadcast();
       } else {
-        // 次のポーリング
-        await sleep(this.liveIdPollingInterval);
-        this.pollingFetchLiveId();
+        // 始まってる
+        this.emit('start');
+        this.fetchCommentServerThread();
       }
     } catch (e) {
-      this.emit('error', new Error(`connection error url = ${url}`));
-      return false;
+      this.emit('error', new Error(`connection error to ${url}`));
+      await sleep(this.waitBroadcastPollingInterval * 2);
+      this.pollingStartBroadcast();
     }
   };
 
   /** ニコ生のコメントを取得 */
   private fetchCommentServerThread = async () => {
-    log.info(`[fetchCommentServerThread] liveId = ${this.liveId}`);
+    log.info(`[fetchCommentServerThread]`);
     // ニコ生の配信ページにアクセス
-    const url = `https://live2.nicovideo.jp/watch/${this.liveId}`;
+    const url = `https://live2.nicovideo.jp/watch/${this.communityId}`;
     const res = await axios.get(url);
     const $ = cheerio.load(res.data);
 
@@ -182,6 +184,13 @@ class NiconamaComment extends EventEmitter {
         case 'ping': {
           break;
         }
+        // 切断。枠が終了した時もここ。
+        case 'disconnect': {
+          const data = obj.data;
+          this.stop();
+          this.start();
+          break;
+        }
       }
     };
     tWs.on('open', () => {
@@ -223,7 +232,7 @@ class NiconamaComment extends EventEmitter {
 
       if (obj?.ping?.content === 'rf:0') {
         this.isFirstCommentReceived = true;
-        this.emit('open', { liveId: this.liveId, number: this.latestNo });
+        this.emit('open', { liveId: '', number: this.latestNo });
       }
 
       if (!this.isFirstCommentReceived) return;
@@ -269,19 +278,23 @@ class NiconamaComment extends EventEmitter {
 
   /** コメント取得の停止 */
   public stop = () => {
-    if (this.communityId) {
-      this.liveId = '';
-    }
     this.isFirstCommentReceived = false;
     this.latestNo = NaN;
-    this.commentSocket.close();
+    if (this.commentSocket) this.commentSocket.close();
+    this.emit('end');
   };
 
   // イベント
   public on(event: 'comment', listener: (comment: CommentItem) => void): this;
-  public on(event: 'start', listener: (liveId: string) => void): this;
+  // コミュニティIDは正常だが配信が開始していない時
+  public on(event: 'wait', listener: () => void): this;
+  // liveIDが取得できた時
+  public on(event: 'start', listener: () => void): this;
+  // コメントサーバに接続できた時
   public on(event: 'open', listener: (obj: { liveId: string; number: number }) => void): this;
+  // 停止した時
   public on(event: 'end', listener: (reason?: string) => void): this;
+  // 何かエラーあった時
   public on(event: 'error', listener: (err: Error) => void): this;
   public on(event: string | symbol, listener: (...args: any[]) => void): this {
     return super.on(event, listener);

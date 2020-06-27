@@ -784,50 +784,51 @@ var NiconamaComment = /** @class */ (function (_super) {
     function NiconamaComment(options) {
         var _this = _super.call(this) || this;
         /** 配信開始待ちのインターバル(ms) */
-        _this.liveIdPollingInterval = 5000;
+        _this.waitBroadcastPollingInterval = 5000;
         /** 初期処理のコメントを受信し終わった */
         _this.isFirstCommentReceived = false;
         /** 最新のコメント番号 */
         _this.latestNo = NaN;
         /** コメント取得のWebSocket */
         _this.commentSocket = null;
-        /** コミュニティIDを元にLiveIDを取得 */
-        _this.pollingFetchLiveId = function () { return __awaiter(_this, void 0, void 0, function () {
-            var url, liveRes, livetemp, e_1;
-            var _a, _b;
-            return __generator(this, function (_c) {
-                switch (_c.label) {
+        /** ニコ生の配信開始待ち */
+        _this.pollingStartBroadcast = function () { return __awaiter(_this, void 0, void 0, function () {
+            var url, res, $, embeddedData, e_1;
+            var _a;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
                     case 0:
-                        electron_log_1.default.info('pollingFetchLiveId');
-                        if (this.liveId)
-                            return [2 /*return*/];
-                        url = "https://com.nicovideo.jp/community/" + this.communityId;
-                        _c.label = 1;
+                        url = "https://live2.nicovideo.jp/watch/" + this.communityId;
+                        electron_log_1.default.info("[pollingStartBroadcast] " + url);
+                        _b.label = 1;
                     case 1:
-                        _c.trys.push([1, 6, , 7]);
+                        _b.trys.push([1, 6, , 8]);
                         return [4 /*yield*/, axios_1.default.get(url)];
                     case 2:
-                        liveRes = _c.sent();
-                        livetemp = (_b = (_a = liveRes.data.match(/now_live_inner.*/)[0]) === null || _a === void 0 ? void 0 : _a.match(/lv\d+/)[0]) !== null && _b !== void 0 ? _b : '';
-                        if (!livetemp) return [3 /*break*/, 3];
-                        this.liveId = livetemp;
-                        this.fetchCommentServerThread();
-                        this.emit('start', this.liveId);
+                        res = _b.sent();
+                        $ = cheerio_1.default.load(res.data);
+                        embeddedData = JSON.parse((_a = $('#embedded-data').attr('data-props')) !== null && _a !== void 0 ? _a : '');
+                        if (!(embeddedData.program.status === 'ENDED' || embeddedData.program.endTime * 1000 < new Date().getTime())) return [3 /*break*/, 4];
+                        return [4 /*yield*/, util_1.sleep(this.waitBroadcastPollingInterval)];
+                    case 3:
+                        _b.sent();
+                        this.pollingStartBroadcast();
                         return [3 /*break*/, 5];
-                    case 3: 
-                    // 次のポーリング
-                    return [4 /*yield*/, util_1.sleep(this.liveIdPollingInterval)];
                     case 4:
-                        // 次のポーリング
-                        _c.sent();
-                        this.pollingFetchLiveId();
-                        _c.label = 5;
-                    case 5: return [3 /*break*/, 7];
+                        // 始まってる
+                        this.emit('start');
+                        this.fetchCommentServerThread();
+                        _b.label = 5;
+                    case 5: return [3 /*break*/, 8];
                     case 6:
-                        e_1 = _c.sent();
-                        this.emit('error', new Error("connection error url = " + url));
-                        return [2 /*return*/, false];
-                    case 7: return [2 /*return*/];
+                        e_1 = _b.sent();
+                        this.emit('error', new Error("connection error to " + url));
+                        return [4 /*yield*/, util_1.sleep(this.waitBroadcastPollingInterval * 2)];
+                    case 7:
+                        _b.sent();
+                        this.pollingStartBroadcast();
+                        return [3 /*break*/, 8];
+                    case 8: return [2 /*return*/];
                 }
             });
         }); };
@@ -839,8 +840,8 @@ var NiconamaComment = /** @class */ (function (_super) {
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
-                        electron_log_1.default.info("[fetchCommentServerThread] liveId = " + this.liveId);
-                        url = "https://live2.nicovideo.jp/watch/" + this.liveId;
+                        electron_log_1.default.info("[fetchCommentServerThread]");
+                        url = "https://live2.nicovideo.jp/watch/" + this.communityId;
                         return [4 /*yield*/, axios_1.default.get(url)];
                     case 1:
                         res = _b.sent();
@@ -889,6 +890,13 @@ var NiconamaComment = /** @class */ (function (_super) {
                                 case 'ping': {
                                     break;
                                 }
+                                // 切断。枠が終了した時もここ。
+                                case 'disconnect': {
+                                    var data = obj.data;
+                                    _this.stop();
+                                    _this.start();
+                                    break;
+                                }
                             }
                         };
                         tWs.on('open', function () {
@@ -929,7 +937,7 @@ var NiconamaComment = /** @class */ (function (_super) {
                     }
                     if (((_b = obj === null || obj === void 0 ? void 0 : obj.ping) === null || _b === void 0 ? void 0 : _b.content) === 'rf:0') {
                         _this.isFirstCommentReceived = true;
-                        _this.emit('open', { liveId: _this.liveId, number: _this.latestNo });
+                        _this.emit('open', { liveId: '', number: _this.latestNo });
                     }
                     if (!_this.isFirstCommentReceived)
                         return;
@@ -969,21 +977,17 @@ var NiconamaComment = /** @class */ (function (_super) {
         }); };
         /** コメント取得の停止 */
         _this.stop = function () {
-            if (_this.communityId) {
-                _this.liveId = '';
-            }
             _this.isFirstCommentReceived = false;
             _this.latestNo = NaN;
-            _this.commentSocket.close();
+            if (_this.commentSocket)
+                _this.commentSocket.close();
+            _this.emit('end');
         };
         if ('communityId' in options) {
             _this.communityId = options.communityId;
         }
-        else if ('liveId' in options) {
-            _this.liveId = options.liveId;
-        }
         else {
-            throw TypeError('Required channelId or liveId.');
+            throw TypeError('Required channelId.');
         }
         return _this;
     }
@@ -991,11 +995,8 @@ var NiconamaComment = /** @class */ (function (_super) {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
                 if (this.communityId) {
-                    this.pollingFetchLiveId();
-                }
-                else {
-                    this.fetchCommentServerThread();
-                    this.emit('start', this.liveId);
+                    this.emit('wait');
+                    this.pollingStartBroadcast();
                 }
                 return [2 /*return*/];
             });
@@ -1637,8 +1638,11 @@ electron_1.ipcMain.on(const_1.electronEvent['start-server'], function (event, co
         if (globalThis.config.niconicoId) {
             nico = new niconama_1.default({ communityId: globalThis.config.niconicoId });
             globalThis.electron.niconicoChat = nico;
-            nico.on('start', function (liveid) {
+            nico.on('start', function () {
                 globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'niconico', category: 'status', message: "connection waiting" });
+            });
+            nico.on('wait', function () {
+                globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'niconico', category: 'status', message: "wait for starting boradcast" });
             });
             nico.on('open', function (event) {
                 globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, {
@@ -1658,6 +1662,14 @@ electron_1.ipcMain.on(const_1.electronEvent['start-server'], function (event, co
                     commentType: 'niconico',
                     category: 'status',
                     message: "ok No=" + event.number,
+                });
+            });
+            // 切断とか枠終了とか
+            nico.on('end', function () {
+                globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, {
+                    commentType: 'niconico',
+                    category: 'status',
+                    message: "disconnect",
                 });
             });
             nico.on('error', function () {
@@ -1773,71 +1785,58 @@ var startTwitchChat = function () { return __awaiter(void 0, void 0, void 0, fun
 }); };
 /** Youtubeチャットに接続 */
 var startYoutubeChat = function () { return __awaiter(void 0, void 0, void 0, function () {
-    var tubeResult, e_2;
     return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0:
-                _a.trys.push([0, 4, , 5]);
-                electron_log_1.default.info('[Youtube Chat] connect started');
-                globalThis.electron.youtubeChat = new youtube_chat_1.LiveChat({ channelId: globalThis.config.youtubeId });
-                globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'status', message: 'wait live' });
-                // 接続開始イベント
-                globalThis.electron.youtubeChat.on('start', function (liveId) {
-                    electron_log_1.default.info("[Youtube Chat] connected liveId = " + liveId);
-                    globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'liveid', message: liveId });
-                    globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'status', message: 'ok' });
-                });
-                // 接続終了イベント
-                globalThis.electron.youtubeChat.on('end', function (reason) {
-                    electron_log_1.default.info('[Youtube Chat] disconnect');
-                    globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'status', message: 'connection end' });
-                });
-                // チャット受信
-                globalThis.electron.youtubeChat.on('comment', function (comment) {
-                    var _a, _b;
-                    electron_log_1.default.info('[Youtube] comment received');
-                    globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'status', message: 'ok' });
-                    // log.info(JSON.stringify(comment, null, '  '));
-                    var imgUrl = (_b = (_a = comment.author.thumbnail) === null || _a === void 0 ? void 0 : _a.url) !== null && _b !== void 0 ? _b : '';
-                    var name = util_1.escapeHtml(comment.author.name);
-                    // 絵文字と結合する
-                    var text = '';
-                    for (var _i = 0, _c = comment.message; _i < _c.length; _i++) {
-                        var message = _c[_i];
-                        var txtItem = message.text;
-                        if (txtItem) {
-                            text += util_1.escapeHtml(txtItem);
-                        }
-                        else {
-                            var imageItem = message;
-                            text += "<img src=\"" + imageItem.url + "\" width=\"" + 24 + "\" height=\"" + 24 + "\" />";
-                        }
+        try {
+            electron_log_1.default.info('[Youtube Chat] connect started');
+            globalThis.electron.youtubeChat = new youtube_chat_1.LiveChat({ channelId: globalThis.config.youtubeId });
+            globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'status', message: 'wait live' });
+            // 接続開始イベント
+            globalThis.electron.youtubeChat.on('start', function (liveId) {
+                electron_log_1.default.info("[Youtube Chat] connected liveId = " + liveId);
+                globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'liveid', message: liveId });
+                globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'status', message: 'ok' });
+            });
+            // 接続終了イベント
+            globalThis.electron.youtubeChat.on('end', function (reason) {
+                electron_log_1.default.info('[Youtube Chat] disconnect');
+                globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'status', message: 'connection end' });
+            });
+            // チャット受信
+            globalThis.electron.youtubeChat.on('comment', function (comment) {
+                var _a, _b;
+                electron_log_1.default.info('[Youtube] comment received');
+                globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'status', message: 'ok' });
+                // log.info(JSON.stringify(comment, null, '  '));
+                var imgUrl = (_b = (_a = comment.author.thumbnail) === null || _a === void 0 ? void 0 : _a.url) !== null && _b !== void 0 ? _b : '';
+                var name = util_1.escapeHtml(comment.author.name);
+                // 絵文字と結合する
+                var text = '';
+                for (var _i = 0, _c = comment.message; _i < _c.length; _i++) {
+                    var message = _c[_i];
+                    var txtItem = message.text;
+                    if (txtItem) {
+                        text += util_1.escapeHtml(txtItem);
                     }
-                    // const text = escapeHtml((comment.message[0] as any).text);
-                    globalThis.electron.commentQueueList.push({ imgUrl: imgUrl, name: name, text: text });
-                });
-                // 何かエラーがあった
-                globalThis.electron.youtubeChat.on('error', function (err) {
-                    electron_log_1.default.error("[Youtube Chat] error " + err.message);
-                    globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'status', message: 'error!' });
-                });
-                return [4 /*yield*/, globalThis.electron.youtubeChat.start()];
-            case 1:
-                tubeResult = _a.sent();
-                if (!!tubeResult) return [3 /*break*/, 3];
-                return [4 /*yield*/, util_1.sleep(5000)];
-            case 2:
-                _a.sent();
-                startYoutubeChat();
-                _a.label = 3;
-            case 3: return [3 /*break*/, 5];
-            case 4:
-                e_2 = _a.sent();
-                // たぶんここには来ない
-                electron_log_1.default.error(e_2);
-                return [3 /*break*/, 5];
-            case 5: return [2 /*return*/];
+                    else {
+                        var imageItem = message;
+                        text += "<img src=\"" + imageItem.url + "\" width=\"" + 24 + "\" height=\"" + 24 + "\" />";
+                    }
+                }
+                // const text = escapeHtml((comment.message[0] as any).text);
+                globalThis.electron.commentQueueList.push({ imgUrl: imgUrl, name: name, text: text });
+            });
+            // 何かエラーがあった
+            globalThis.electron.youtubeChat.on('error', function (err) {
+                electron_log_1.default.error("[Youtube Chat] error " + err.message);
+                globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'status', message: "error! " + err.message });
+            });
+            globalThis.electron.youtubeChat.start();
         }
+        catch (e) {
+            // たぶんここには来ない
+            electron_log_1.default.error(e);
+        }
+        return [2 /*return*/];
     });
 }); };
 /**
@@ -2093,7 +2092,7 @@ exports.createDom = function (message) {
  * @param message
  */
 var sendDom = function (messageList) { return __awaiter(void 0, void 0, void 0, function () {
-    var domStr, socketObject_1, text, MIN_DISP_TIME, e_3;
+    var domStr, socketObject_1, text, MIN_DISP_TIME, e_2;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -2135,8 +2134,8 @@ var sendDom = function (messageList) { return __awaiter(void 0, void 0, void 0, 
                 resetInitMessage();
                 return [3 /*break*/, 8];
             case 7:
-                e_3 = _a.sent();
-                electron_log_1.default.error(e_3);
+                e_2 = _a.sent();
+                electron_log_1.default.error(e_2);
                 return [3 /*break*/, 8];
             case 8: return [2 /*return*/];
         }
@@ -2314,6 +2313,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var events_1 = __webpack_require__(/*! events */ "events");
 var axios_1 = __importDefault(__webpack_require__(/*! axios */ "axios"));
 var parser_1 = __webpack_require__(/*! ./parser */ "./src/main/youtube-chat/parser.ts");
+var util_1 = __webpack_require__(/*! ../util */ "./src/main/util.ts");
 /**
  * YouTubeライブチャット取得イベント
  */
@@ -2324,6 +2324,7 @@ var LiveChat = /** @class */ (function (_super) {
         var _this = _super.call(this) || this;
         _this.interval = interval;
         _this.prevTime = Date.now();
+        _this.isStop = false;
         if ('channelId' in options) {
             _this.channelId = options.channelId;
         }
@@ -2336,12 +2337,18 @@ var LiveChat = /** @class */ (function (_super) {
         return _this;
     }
     LiveChat.prototype.start = function () {
+        this.isStop = false;
+        this.fetchLiveId();
+    };
+    LiveChat.prototype.fetchLiveId = function () {
         return __awaiter(this, void 0, void 0, function () {
             var url, liveRes, e_1;
             var _this = this;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
+                        if (this.isStop)
+                            return [2 /*return*/];
                         if (!this.channelId) return [3 /*break*/, 4];
                         url = "https://www.youtube.com/channel/" + this.channelId + "/live";
                         _a.label = 1;
@@ -2358,22 +2365,29 @@ var LiveChat = /** @class */ (function (_super) {
                         return [3 /*break*/, 4];
                     case 3:
                         e_1 = _a.sent();
+                        // チャンネルID自体が違うのはもうどうしようもないので止める
                         this.emit('error', new Error("connection error url = " + url));
-                        return [2 /*return*/, false];
+                        return [2 /*return*/];
                     case 4:
-                        if (!this.liveId) {
-                            this.emit('error', new Error('Live stream not found'));
-                            return [2 /*return*/, false];
-                        }
-                        // console.log(`liveId = ${this.liveId}`);
+                        if (!this.liveId) return [3 /*break*/, 5];
                         this.observer = setInterval(function () { return _this.fetchChat(); }, this.interval);
                         this.emit('start', this.liveId);
-                        return [2 /*return*/, true];
+                        return [3 /*break*/, 7];
+                    case 5:
+                        // 配信が開始してないパターンが考えられるのでリトライ
+                        this.emit('error', new Error('Live stream not found'));
+                        return [4 /*yield*/, util_1.sleep(2000)];
+                    case 6:
+                        _a.sent();
+                        this.fetchLiveId();
+                        _a.label = 7;
+                    case 7: return [2 /*return*/];
                 }
             });
         });
     };
     LiveChat.prototype.stop = function (reason) {
+        this.isStop = true;
         if (this.observer) {
             clearInterval(this.observer);
             this.emit('end', reason);

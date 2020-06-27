@@ -129,9 +129,14 @@ ipcMain.on(electronEvent['start-server'], async (event: any, config: typeof glob
   if (globalThis.config.niconicoId) {
     const nico = new NiconamaComment({ communityId: globalThis.config.niconicoId });
     globalThis.electron.niconicoChat = nico;
-    nico.on('start', (liveid) => {
+    nico.on('start', () => {
       globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'niconico', category: 'status', message: `connection waiting` });
     });
+
+    nico.on('wait', () => {
+      globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'niconico', category: 'status', message: `wait for starting boradcast` });
+    });
+
     nico.on('open', (event) => {
       globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, {
         commentType: 'niconico',
@@ -144,12 +149,21 @@ ipcMain.on(electronEvent['start-server'], async (event: any, config: typeof glob
         message: `${event.liveId}`,
       });
     });
+
     nico.on('comment', (event) => {
       globalThis.electron.commentQueueList.push({ imgUrl: './img/niconico.png', number: event.number, name: event.name, text: event.comment });
       globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, {
         commentType: 'niconico',
         category: 'status',
         message: `ok No=${event.number}`,
+      });
+    });
+    // 切断とか枠終了とか
+    nico.on('end', () => {
+      globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, {
+        commentType: 'niconico',
+        category: 'status',
+        message: `disconnect`,
       });
     });
     nico.on('error', () => {
@@ -302,14 +316,10 @@ const startYoutubeChat = async () => {
     // 何かエラーがあった
     globalThis.electron.youtubeChat.on('error', (err: Error) => {
       log.error(`[Youtube Chat] error ${err.message}`);
-      globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'status', message: 'error!' });
+      globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'status', message: `error! ${err.message}` });
     });
 
-    const tubeResult = await globalThis.electron.youtubeChat.start();
-    if (!tubeResult) {
-      await sleep(5000);
-      startYoutubeChat();
-    }
+    globalThis.electron.youtubeChat.start();
   } catch (e) {
     // たぶんここには来ない
     log.error(e);

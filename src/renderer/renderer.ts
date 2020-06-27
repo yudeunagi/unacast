@@ -414,8 +414,6 @@ ipcRenderer.on(electronEvent.UPDATE_STATUS, async (event: any, args: { commentTy
     case 'niconico': {
       if (args.category === 'status') {
         (document.getElementById('niconico-connection-status') as HTMLElement).innerText = args.message;
-      } else {
-        (document.getElementById('niconico-live-id') as HTMLElement).innerText = args.message;
       }
       break;
     }

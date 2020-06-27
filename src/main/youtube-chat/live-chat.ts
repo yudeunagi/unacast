@@ -1,6 +1,7 @@
 import { EventEmitter } from 'events';
 import axios from 'axios';
 import { actionToRenderer, CommentItem, parseData, usecToTime } from './parser';
+import { sleep } from '../util';
 
 type LiveChatResponse = [
   {
@@ -34,6 +35,7 @@ export class LiveChat extends EventEmitter {
   public liveId?: string;
   private prevTime = Date.now();
   private observer?: NodeJS.Timeout;
+  private isStop = false;
 
   constructor(options: { channelId: string } | { liveId: string }, private interval = 1000) {
     super();
@@ -46,7 +48,13 @@ export class LiveChat extends EventEmitter {
     }
   }
 
-  public async start(): Promise<boolean> {
+  public start() {
+    this.isStop = false;
+    this.fetchLiveId();
+  }
+
+  private async fetchLiveId() {
+    if (this.isStop) return;
     if (this.channelId) {
       const url = `https://www.youtube.com/channel/${this.channelId}/live`;
       try {
@@ -57,24 +65,25 @@ export class LiveChat extends EventEmitter {
         //   }
         this.liveId = liveRes.data.match(/videoId\\":\\"(.+?)\\/)[1] as string;
       } catch (e) {
+        // チャンネルID自体が違うのはもうどうしようもないので止める
         this.emit('error', new Error(`connection error url = ${url}`));
-        return false;
+        return;
       }
     }
 
-    if (!this.liveId) {
+    if (this.liveId) {
+      this.observer = setInterval(() => this.fetchChat(), this.interval);
+      this.emit('start', this.liveId);
+    } else {
+      // 配信が開始してないパターンが考えられるのでリトライ
       this.emit('error', new Error('Live stream not found'));
-      return false;
+      await sleep(2000);
+      this.fetchLiveId();
     }
-
-    // console.log(`liveId = ${this.liveId}`);
-    this.observer = setInterval(() => this.fetchChat(), this.interval);
-
-    this.emit('start', this.liveId);
-    return true;
   }
 
   public stop(reason?: string) {
+    this.isStop = true;
     if (this.observer) {
       clearInterval(this.observer);
       this.emit('end', reason);
