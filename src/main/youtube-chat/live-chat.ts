@@ -63,7 +63,7 @@ export class LiveChat extends EventEmitter {
         //     this.emit('error', new Error('Live stream offline'));
         //     return false;
         //   }
-        this.liveId = liveRes.data.match(/videoId\\":\\"(.+?)\\/)[1] as string;
+        this.liveId = liveRes.data.match(/videoId\\":\\"(.+?)\\/)?.[1] as string;
       } catch (e) {
         // チャンネルID自体が違うのはもうどうしようもないので止める
         this.emit('error', new Error(`connection error url = ${url}`));

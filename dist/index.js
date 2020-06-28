@@ -2341,30 +2341,31 @@ var LiveChat = /** @class */ (function (_super) {
         this.fetchLiveId();
     };
     LiveChat.prototype.fetchLiveId = function () {
+        var _a;
         return __awaiter(this, void 0, void 0, function () {
             var url, liveRes, e_1;
             var _this = this;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
+            return __generator(this, function (_b) {
+                switch (_b.label) {
                     case 0:
                         if (this.isStop)
                             return [2 /*return*/];
                         if (!this.channelId) return [3 /*break*/, 4];
                         url = "https://www.youtube.com/channel/" + this.channelId + "/live";
-                        _a.label = 1;
+                        _b.label = 1;
                     case 1:
-                        _a.trys.push([1, 3, , 4]);
+                        _b.trys.push([1, 3, , 4]);
                         return [4 /*yield*/, axios_1.default.get(url, { headers: LiveChat.headers })];
                     case 2:
-                        liveRes = _a.sent();
+                        liveRes = _b.sent();
                         //   if (liveRes.data.match(/LIVE_STREAM_OFFLINE/)) {
                         //     this.emit('error', new Error('Live stream offline'));
                         //     return false;
                         //   }
-                        this.liveId = liveRes.data.match(/videoId\\":\\"(.+?)\\/)[1];
+                        this.liveId = (_a = liveRes.data.match(/videoId\\":\\"(.+?)\\/)) === null || _a === void 0 ? void 0 : _a[1];
                         return [3 /*break*/, 4];
                     case 3:
-                        e_1 = _a.sent();
+                        e_1 = _b.sent();
                         // チャンネルID自体が違うのはもうどうしようもないので止める
                         this.emit('error', new Error("connection error url = " + url));
                         return [2 /*return*/];
@@ -2378,9 +2379,9 @@ var LiveChat = /** @class */ (function (_super) {
                         this.emit('error', new Error('Live stream not found'));
                         return [4 /*yield*/, util_1.sleep(2000)];
                     case 6:
-                        _a.sent();
+                        _b.sent();
                         this.fetchLiveId();
-                        _a.label = 7;
+                        _b.label = 7;
                     case 7: return [2 /*return*/];
                 }
             });
