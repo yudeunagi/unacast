@@ -30,7 +30,7 @@ router.get('/', async (req, res, next) => {
   const result = await getRes(threadUrl, resNum);
 
   result.shift();
-  const doms = result.map((item) => createDom(item));
+  const doms = result.map((item) => createDom(item, 'server'));
   res.send(JSON.stringify(doms));
 });
 

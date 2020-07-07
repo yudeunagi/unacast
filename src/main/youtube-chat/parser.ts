@@ -49,8 +49,19 @@ const parseEmojiToImageItem = (data: MessageEmoji): ImageItem | undefined => {
 const parseMessages = (runs: MessageRun[]): MessageItem[] => {
   return runs.map((run: MessageRun) => {
     if ('text' in run) {
-      return run;
+      if (run?.navigationEndpoint?.urlEndpoint.url) {
+        const tubeUrl = run.navigationEndpoint.urlEndpoint.url.replace(/^\/redirect\?/, '');
+        // console.log(tubeUrl);
+        const parsed = tubeUrl.split('&').filter((str) => str.match(/^q=/));
+        const orgUrl = decodeURIComponent(parsed[0].replace(/^q=/, ''));
+
+        // console.log(orgUrl);
+        return { text: orgUrl };
+      } else {
+        return run;
+      }
     } else {
+      // 絵文字を画像に置換
       return parseEmojiToImageItem(run)!;
     }
   });

@@ -6,6 +6,20 @@ interface Thumbnail {
 
 interface MessageText {
   text: string;
+  navigationEndpoint?: {
+    clickTrackingParams: string;
+    commandMetadata: {
+      webCommandMetadata: {
+        url: string;
+        rootVe: number;
+      };
+    };
+    urlEndpoint: {
+      url: string;
+      target: string;
+      nofollow: boolean;
+    };
+  };
 }
 
 interface MessageEmoji {

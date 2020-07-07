@@ -388,7 +388,11 @@ const getResInterval = async (exeId: number) => {
 
     if (isfirst) {
       // 初回取得の時はチャットウィンドウにだけ表示
-      sendDomForChatWindow(result);
+      let temp = result;
+      if (!globalThis.config.dispSort) {
+        temp = temp.reverse();
+      }
+      sendDomForChatWindow(temp);
     } else {
       for (const item of result) {
         // リストに同じレス番があったら追加しない
@@ -496,7 +500,7 @@ const playSe = async () => {
 };
 ipcMain.on(electronEvent['play-sound-end'], (event) => (isPlayingSe = false));
 
-export const createDom = (message: UserComment) => {
+export const createDom = (message: UserComment, type: 'chat' | 'server') => {
   let domStr = `<li class="list-item">`;
 
   /** レス番とかの行が何かしら表示対象になっているか */
@@ -538,13 +542,49 @@ export const createDom = (message: UserComment) => {
     domStr += '<br />';
   }
 
+  // リンクを整形する
+  const text = message.text
+    .replace(/<a .*?>/g, '') // したらばはアンカーをaタグ化している
+    .replace(/<\\a>/g, '');
+
+  const reg = new RegExp("(h?ttps?(://[-_.!~*'()a-zA-Z0-9;/?:@&=+$,%#]+))", 'g');
+  const commentText = text.replace(reg, '<span class="url" onClick=\'urlopen("$1")\'>$1</span>');
   domStr += `
     <span class="res">
-      ${message.text
-        .replace(/<a .*?>/g, '') // したらばはアンカーをaタグ化している
-        .replace(/<\\a>/g, '')}
+      ${commentText}
     </span>
-    </div>
+  `;
+
+  // サムネイル表示
+  const isThumbnailShow = (globalThis.config.thumbnail == 1 && type === 'chat') || globalThis.config.thumbnail == 2;
+  if (isThumbnailShow) {
+    const imgreg = new RegExp("(h?ttps?(://[-_.!~*'()a-zA-Z0-9;/?:@&=+$,%#]+)(.jpg|.png|.gif))", 'g');
+    const imgUrls: string[] = [];
+    const matched = text.match(imgreg);
+    if (matched) {
+      matched.map((value) => {
+        // log.info(value);
+        imgUrls.push(value);
+      });
+    }
+    if (imgUrls.length > 0) {
+      domStr += '<div class="thumbnail">';
+      domStr += imgUrls
+        .map((url) => {
+          let tmp = url;
+          if (tmp.match(/^ttp/)) {
+            tmp = `h${tmp}`;
+          }
+          return `<img class="img" src="${tmp}" />`;
+        })
+        .join('');
+
+      domStr += '</div>';
+    }
+  }
+
+  // 〆
+  domStr += `</div>
   </li>`;
 
   return domStr;
@@ -558,7 +598,7 @@ export const createDom = (message: UserComment) => {
 const sendDom = async (messageList: UserComment[]) => {
   try {
     // メッセージをブラウザに送信
-    const domStr = messageList.map((message) => createDom(message)).join('\n');
+    const domStr = messageList.map((message) => createDom(message, 'server')).join('\n');
     const socketObject: CommentSocketMessage = {
       type: 'add',
       message: domStr,
@@ -598,6 +638,7 @@ const sendDom = async (messageList: UserComment[]) => {
   }
 };
 
+/** チャットウィンドウへのコメント表示 */
 const sendDomForChatWindow = (messageList: UserComment[]) => {
   const domStr2 = messageList
     .map((message) => {
@@ -607,7 +648,7 @@ const sendDomForChatWindow = (messageList: UserComment[]) => {
         imgUrl,
       };
     })
-    .map((message) => createDom(message))
+    .map((message) => createDom(message, 'chat'))
     .join('\n');
   globalThis.electron.chatWindow.webContents.send(electronEvent['show-comment'], { config: globalThis.config, dom: domStr2 });
 };

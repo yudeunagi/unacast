@@ -153,6 +153,12 @@ const buildConfigJson = () => {
   const playSe = (document.getElementById('checkbox-playSe') as any).checked === true;
   const playSeVolume = parseInt((document.getElementById('playSe-volume') as HTMLInputElement).value);
 
+  let thumbnail: typeof globalThis['config']['thumbnail'] = 0;
+  document.getElementsByName('thumbnail').forEach((v) => {
+    const elem = v as HTMLInputElement;
+    if (elem.checked) thumbnail = Number(elem.value) as typeof globalThis['config']['thumbnail'];
+  });
+
   let typeYomiko: typeof globalThis['config']['typeYomiko'] = 'none';
   document.getElementsByName('typeYomiko').forEach((v) => {
     const elem = v as HTMLInputElement;
@@ -189,6 +195,7 @@ const buildConfigJson = () => {
     showName,
     showTime,
     wordBreak,
+    thumbnail,
     sePath,
     playSe,
     playSeVolume,
@@ -235,6 +242,7 @@ const loadConfigToLocalStrage = () => {
     showName: false,
     showTime: false,
     wordBreak: true,
+    thumbnail: 0,
     sePath: '',
     playSeVolume: 100,
     playSe: false,
@@ -295,6 +303,9 @@ const loadConfigToLocalStrage = () => {
   (document.getElementById('checkbox-playSe') as any).checked = config.playSe;
   (document.getElementById('disp-playSe-volume') as any).innerHTML = config.playSeVolume;
   (document.getElementById('playSe-volume') as any).value = config.playSeVolume;
+
+  // サムネイル表示
+  (document.getElementById(`thumbnail_${config.thumbnail}`) as any).checked = true;
 
   // 読み子の種類
   switch (config.typeYomiko) {

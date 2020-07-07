@@ -103,3 +103,14 @@ img.icon {
   width: 24px;
   height: 24px;
 }
+
+/** URL */
+.url {
+  color: skyblue;
+  cursor: pointer;
+}
+
+/** 画像サムネイル */
+.img {
+  height: 100px;
+}

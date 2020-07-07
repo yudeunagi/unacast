@@ -398,7 +398,7 @@ router.get('/', function (req, res, next) { return __awaiter(void 0, void 0, voi
             case 1:
                 result = _a.sent();
                 result.shift();
-                doms = result.map(function (item) { return startServer_1.createDom(item); });
+                doms = result.map(function (item) { return startServer_1.createDom(item, 'server'); });
                 res.send(JSON.stringify(doms));
                 return [2 /*return*/];
         }
@@ -1876,7 +1876,7 @@ electron_1.ipcMain.on(const_1.electronEvent['stop-server'], function (event) {
     }
 });
 var getResInterval = function (exeId) { return __awaiter(void 0, void 0, void 0, function () {
-    var resNum, isfirst, result, _loop_1, _i, result_1, item;
+    var resNum, isfirst, result, temp, _loop_1, _i, result_1, item;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -1899,8 +1899,11 @@ var getResInterval = function (exeId) { return __awaiter(void 0, void 0, void 0,
                 if (result.length > 0 && result[result.length - 1].number) {
                     globalThis.electron.threadNumber = Number(result[result.length - 1].number);
                     if (isfirst) {
-                        // 初回取得の時はチャットウィンドウにだけ表示
-                        sendDomForChatWindow(result);
+                        temp = result;
+                        if (!globalThis.config.dispSort) {
+                            temp = temp.reverse();
+                        }
+                        sendDomForChatWindow(temp);
                     }
                     else {
                         _loop_1 = function (item) {
@@ -2051,7 +2054,7 @@ var playSe = function () { return __awaiter(void 0, void 0, void 0, function () 
     });
 }); };
 electron_1.ipcMain.on(const_1.electronEvent['play-sound-end'], function (event) { return (isPlayingSe = false); });
-exports.createDom = function (message) {
+exports.createDom = function (message, type) {
     var domStr = "<li class=\"list-item\">";
     /** レス番とかの行が何かしら表示対象になっているか */
     var isResNameShowed = false;
@@ -2081,9 +2084,41 @@ exports.createDom = function (message) {
     if (globalThis.config.newLine && isResNameShowed) {
         domStr += '<br />';
     }
-    domStr += "\n    <span class=\"res\">\n      " + message.text
+    // リンクを整形する
+    var text = message.text
         .replace(/<a .*?>/g, '') // したらばはアンカーをaタグ化している
-        .replace(/<\\a>/g, '') + "\n    </span>\n    </div>\n  </li>";
+        .replace(/<\\a>/g, '');
+    var reg = new RegExp("(h?ttps?(://[-_.!~*'()a-zA-Z0-9;/?:@&=+$,%#]+))", 'g');
+    var commentText = text.replace(reg, '<span class="url" onClick=\'urlopen("$1")\'>$1</span>');
+    domStr += "\n    <span class=\"res\">\n      " + commentText + "\n    </span>\n  ";
+    // サムネイル表示
+    var isThumbnailShow = (globalThis.config.thumbnail == 1 && type === 'chat') || globalThis.config.thumbnail == 2;
+    if (isThumbnailShow) {
+        var imgreg = new RegExp("(h?ttps?(://[-_.!~*'()a-zA-Z0-9;/?:@&=+$,%#]+)(.jpg|.png|.gif))", 'g');
+        var imgUrls_1 = [];
+        var matched = text.match(imgreg);
+        if (matched) {
+            matched.map(function (value) {
+                // log.info(value);
+                imgUrls_1.push(value);
+            });
+        }
+        if (imgUrls_1.length > 0) {
+            domStr += '<div class="thumbnail">';
+            domStr += imgUrls_1
+                .map(function (url) {
+                var tmp = url;
+                if (tmp.match(/^ttp/)) {
+                    tmp = "h" + tmp;
+                }
+                return "<img class=\"img\" src=\"" + tmp + "\" />";
+            })
+                .join('');
+            domStr += '</div>';
+        }
+    }
+    // 〆
+    domStr += "</div>\n  </li>";
     return domStr;
 };
 /**
@@ -2097,7 +2132,7 @@ var sendDom = function (messageList) { return __awaiter(void 0, void 0, void 0, 
         switch (_a.label) {
             case 0:
                 _a.trys.push([0, 7, , 8]);
-                domStr = messageList.map(function (message) { return exports.createDom(message); }).join('\n');
+                domStr = messageList.map(function (message) { return exports.createDom(message, 'server'); }).join('\n');
                 socketObject_1 = {
                     type: 'add',
                     message: domStr,
@@ -2141,13 +2176,14 @@ var sendDom = function (messageList) { return __awaiter(void 0, void 0, void 0, 
         }
     });
 }); };
+/** チャットウィンドウへのコメント表示 */
 var sendDomForChatWindow = function (messageList) {
     var domStr2 = messageList
         .map(function (message) {
         var imgUrl = message.imgUrl && message.imgUrl.match(/^\./) ? '../../public/' + message.imgUrl : message.imgUrl;
         return __assign(__assign({}, message), { imgUrl: imgUrl });
     })
-        .map(function (message) { return exports.createDom(message); })
+        .map(function (message) { return exports.createDom(message, 'chat'); })
         .join('\n');
     globalThis.electron.chatWindow.webContents.send(const_1.electronEvent['show-comment'], { config: globalThis.config, dom: domStr2 });
 };
@@ -2479,10 +2515,22 @@ var parseEmojiToImageItem = function (data) {
 };
 var parseMessages = function (runs) {
     return runs.map(function (run) {
+        var _a;
         if ('text' in run) {
-            return run;
+            if ((_a = run === null || run === void 0 ? void 0 : run.navigationEndpoint) === null || _a === void 0 ? void 0 : _a.urlEndpoint.url) {
+                var tubeUrl = run.navigationEndpoint.urlEndpoint.url.replace(/^\/redirect\?/, '');
+                // console.log(tubeUrl);
+                var parsed = tubeUrl.split('&').filter(function (str) { return str.match(/^q=/); });
+                var orgUrl = decodeURIComponent(parsed[0].replace(/^q=/, ''));
+                // console.log(orgUrl);
+                return { text: orgUrl };
+            }
+            else {
+                return run;
+            }
         }
         else {
+            // 絵文字を画像に置換
             return parseEmojiToImageItem(run);
         }
     });

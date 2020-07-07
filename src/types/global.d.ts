@@ -63,6 +63,13 @@ declare global {
     let showTime: boolean;
     /** 自動改行 */
     let wordBreak: boolean;
+    /**
+     * サムネイル表示
+     * - 0: 表示しない
+     * - 1: チャットウィンドウのみ表示
+     * - 2: チャットウィンドウとサーバに表示
+     */
+    let thumbnail: 0 | 1 | 2;
     /** レス着信音のパス */
     let sePath: string;
     /** レス着信音再生 */
