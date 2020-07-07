@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // 起動・停止ボタン
   const startButton = document.getElementById('button-server-start') as HTMLInputElement;
   startButton.onclick = () => {
+    // いじっちゃいけない設定を非活性に
     toggleInputFormDisable(true);
 
     //設定情報取得
@@ -38,6 +39,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (config.url === null || config.url.length < 1 || config.port === null || (config.port as any).length < 1) {
       return;
     }
+
+    // URL表示
+    const serverUrl = `http://localhost:${config.port}`;
+    (document.getElementById('server-full-url') as HTMLInputElement).insertAdjacentHTML(
+      'afterbegin',
+      `<div style="cursor:pointer;color:blue;" onClick="urlopen('${serverUrl}')">${serverUrl}</div>`,
+    );
+    (document.getElementById('port-number-area') as HTMLInputElement).style.display = 'none';
 
     // サーバー開始メッセージを送信する
     const result = ipcRenderer.sendSync('start-server', config);
@@ -67,6 +76,9 @@ document.addEventListener('DOMContentLoaded', () => {
     console.debug('[renderer.js]' + result);
     //ダイアログクローズ
     (dialog as any).close();
+
+    (document.getElementById('server-full-url') as HTMLInputElement).innerHTML = '';
+    (document.getElementById('port-number-area') as HTMLInputElement).style.display = 'block';
 
     toggleInputFormDisable(false);
     // サーバー起動・停止ボタン状態変更

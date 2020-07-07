@@ -57,11 +57,16 @@
 
         <div class="mdl-textfield mdl-js-textfield" style="width: 100%">
           <div class="subtitle">ポート番号</div>
-          <div class="labeledInputArea">
-            <span>http://localhost:</span>
-            <input id="text-port-number" class="mdl-textfield__input" type="text" required="true" pattern="[0-9]{0,4}?" value="3000" />
+          <div id="port-number-area">
+            <div class="labeledInputArea">
+              <span>http://localhost:</span>
+              <input id="text-port-number" class="mdl-textfield__input" type="text" required="true" pattern="[0-9]{0,4}?" value="3000" />
+            </div>
+            <span class="mdl-textfield__error">0-9999 までの数値を入れてください</span>  
           </div>
-          <span class="mdl-textfield__error">0-9999 までの数値を入れてください</span>
+          <div>
+            <span id="server-full-url"></span>
+          </div>
         </div>
 
         <div class="block">
@@ -312,6 +317,16 @@
 
       <script>
         require('../../dist/scripts');
+        const { shell } = require('electron');
+
+        const urlopen = (url) => {
+          let tmp = url;
+          if (url.match(/^ttp/)) {
+            tmp = `h${url}`;
+          }
+          // console.log(tmp);
+          shell.openExternal(tmp);
+        };
 
         /* 変更中（ドラッグ中） */
         const showVal = (id, newVal) => {
