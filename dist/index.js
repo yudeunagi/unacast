@@ -571,6 +571,25 @@ else {
     //     app.quit();
     //   }
     // });
+    // 右クリックメニュー
+    var mainContextMenu_1 = new electron_1.Menu();
+    mainContextMenu_1.append(new electron_1.MenuItem({
+        label: '最前面表示',
+        type: 'checkbox',
+        checked: false,
+        click: function (e) {
+            globalThis.electron.mainWindow.setAlwaysOnTop(e.checked);
+        },
+    }));
+    var chatContextMenu_1 = new electron_1.Menu();
+    chatContextMenu_1.append(new electron_1.MenuItem({
+        label: '最前面表示',
+        type: 'checkbox',
+        checked: false,
+        click: function (e) {
+            globalThis.electron.chatWindow.setAlwaysOnTop(e.checked);
+        },
+    }));
     // Electronの初期化完了後に実行
     app.on('ready', function () {
         var windowState = electron_window_state_1.default({
@@ -670,6 +689,13 @@ else {
             });
         });
         createChatWindow();
+        // 右クリックメニュー開く
+        globalThis.electron.mainWindow.webContents.on('context-menu', function (e, params) {
+            mainContextMenu_1.popup({ window: globalThis.electron.mainWindow, x: params.x, y: params.y });
+        });
+        globalThis.electron.chatWindow.webContents.on('context-menu', function (e, params) {
+            chatContextMenu_1.popup({ window: globalThis.electron.chatWindow, x: params.x, y: params.y });
+        });
     });
     // 音声再生できるようにする
     app.commandLine.appendSwitch('--autoplay-policy', 'no-user-gesture-required');

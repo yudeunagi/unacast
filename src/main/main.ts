@@ -1,6 +1,6 @@
 // Electronのモジュール
 import path from 'path';
-import electron, { Tray, Menu, dialog } from 'electron';
+import electron, { Tray, Menu, dialog, MenuItem } from 'electron';
 import log from 'electron-log';
 import { sleep } from './util';
 import windowStateKeeper from 'electron-window-state';
@@ -53,6 +53,31 @@ if (!app.requestSingleInstanceLock()) {
   //     app.quit();
   //   }
   // });
+
+  // 右クリックメニュー
+  const mainContextMenu = new Menu();
+  mainContextMenu.append(
+    new MenuItem({
+      label: '最前面表示',
+      type: 'checkbox',
+      checked: false,
+      click: (e) => {
+        globalThis.electron.mainWindow.setAlwaysOnTop(e.checked);
+      },
+    }),
+  );
+
+  const chatContextMenu = new Menu();
+  chatContextMenu.append(
+    new MenuItem({
+      label: '最前面表示',
+      type: 'checkbox',
+      checked: false,
+      click: (e) => {
+        globalThis.electron.chatWindow.setAlwaysOnTop(e.checked);
+      },
+    }),
+  );
 
   // Electronの初期化完了後に実行
   app.on('ready', () => {
@@ -152,6 +177,14 @@ if (!app.requestSingleInstanceLock()) {
     });
 
     createChatWindow();
+
+    // 右クリックメニュー開く
+    globalThis.electron.mainWindow.webContents.on('context-menu', (e, params) => {
+      mainContextMenu.popup({ window: globalThis.electron.mainWindow, x: params.x, y: params.y });
+    });
+    globalThis.electron.chatWindow.webContents.on('context-menu', (e, params) => {
+      chatContextMenu.popup({ window: globalThis.electron.chatWindow, x: params.x, y: params.y });
+    });
   });
 
   // 音声再生できるようにする
