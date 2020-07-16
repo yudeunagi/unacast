@@ -547,8 +547,12 @@ export const createDom = (message: UserComment, type: 'chat' | 'server') => {
     .replace(/<a .*?>/g, '') // したらばはアンカーをaタグ化している
     .replace(/<\\a>/g, '');
 
+  // httpの直前に英数字記号が無い箇所を置換
   const reg = new RegExp("(h?ttps?(://[-_.!~*'()a-zA-Z0-9;/?:@&=+$,%#]+))", 'g');
-  const commentText = text.replace(reg, '<span class="url" onClick=\'urlopen("$1")\'>$1</span>');
+  // FIXME: imgタグへの誤爆を雑に回避
+  const tempText = text.replace(/"http/g, '★★★★http★★★★');
+  let commentText = tempText.replace(reg, '<span class="url" onClick=\'urlopen("$1")\'>$1</span>');
+  commentText = commentText.replace(/★★★★http★★★★/g, '"http');
   domStr += `
     <span class="res">
       ${commentText}

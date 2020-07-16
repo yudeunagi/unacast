@@ -817,6 +817,8 @@ var NiconamaComment = /** @class */ (function (_super) {
         _this.latestNo = NaN;
         /** コメント取得のWebSocket */
         _this.commentSocket = null;
+        /** ニコ生チャットWebSocketに対する定期ping */
+        _this.commentPingIntervalObj = null;
         /** ニコ生の配信開始待ち */
         _this.pollingStartBroadcast = function () { return __awaiter(_this, void 0, void 0, function () {
             var url, res, $, embeddedData, e_1;
@@ -882,7 +884,7 @@ var NiconamaComment = /** @class */ (function (_super) {
                         tWs.onmessage = function (event) {
                             var obj = JSON.parse(event.data.toString());
                             // log.info(JSON.stringify(obj, null, '  '));
-                            electron_log_1.default.info("[fetchCommentServerThread]WS - type: " + obj.type);
+                            electron_log_1.default.info("[fetchCommentServerThread] WS received - type: " + obj.type);
                             switch (obj.type) {
                                 case 'serverTime': {
                                     // currentMs
@@ -932,6 +934,14 @@ var NiconamaComment = /** @class */ (function (_super) {
                             }));
                             tWs.send(JSON.stringify({ type: 'getAkashic', data: { chasePlay: false } }));
                         });
+                        tWs.on('error', function (event) {
+                            electron_log_1.default.error('[fetchCommentServerThread] スレッドID取得のWebSocketでエラー。再接続を実施。');
+                            electron_log_1.default.error(JSON.stringify(event, null, '  '));
+                            _this.emit('error', new Error("\u30B9\u30EC\u30C3\u30C9ID\u53D6\u5F97\u306EWebSocket\u3067Error"));
+                            if (tWs.OPEN)
+                                tWs.close();
+                            _this.fetchCommentServerThread();
+                        });
                         return [2 /*return*/];
                 }
             });
@@ -956,7 +966,7 @@ var NiconamaComment = /** @class */ (function (_super) {
                     var _a, _b, _c;
                     var obj = JSON.parse(event.toString());
                     // 初回取得時は ping, ping, thread, chat, chat..., ping, pingの順で受け取る
-                    // log.info(JSON.stringify(obj, null, '  '));
+                    // log.info(`[fetchComment] WS received  - ${JSON.stringify(obj)}`);
                     // コメント番号更新
                     if ((_a = obj === null || obj === void 0 ? void 0 : obj.chat) === null || _a === void 0 ? void 0 : _a.no) {
                         _this.latestNo = obj.chat.no;
@@ -971,10 +981,10 @@ var NiconamaComment = /** @class */ (function (_super) {
                     var comment = (_c = chat.chat) === null || _c === void 0 ? void 0 : _c.content;
                     if (!comment)
                         return;
+                    electron_log_1.default.info("[fetchComment]WS - content: " + comment);
                     // /で始まるのはなんかコマンドなので除外する
                     if (comment.match(/^\/[a-z]+ /))
                         return;
-                    electron_log_1.default.info("[fetchComment]WS - content: " + comment);
                     var item = {
                         number: chat.chat.no.toString(),
                         name: '',
@@ -983,8 +993,12 @@ var NiconamaComment = /** @class */ (function (_super) {
                     _this.emit('comment', item);
                 });
                 ws.on('error', function (event) {
-                    electron_log_1.default.info('[fetchComment]なんかエラーだ');
-                    electron_log_1.default.info(event);
+                    electron_log_1.default.error('[fetchComment]なんかエラーだ');
+                    electron_log_1.default.error(JSON.stringify(event, null, '  '));
+                    _this.emit('error', new Error("\u30CB\u30B3\u751F\u30C1\u30E3\u30C3\u30C8\u306EWebSocket\u3067Error"));
+                    if (ws.OPEN)
+                        ws.close();
+                    _this.fetchComment(wsUrl, threadId);
                 });
                 ws.on('open', function () {
                     electron_log_1.default.info('[fetchComment] connected');
@@ -997,6 +1011,15 @@ var NiconamaComment = /** @class */ (function (_super) {
                         { ping: { content: 'rf:0' } },
                     ]));
                 });
+                // 定期的にping打つ
+                this.commentPingIntervalObj = setInterval(function () {
+                    if (ws.OPEN) {
+                        ws.ping();
+                    }
+                    else {
+                        clearInterval(_this.commentPingIntervalObj);
+                    }
+                }, 30 * 1000);
                 this.commentSocket = ws;
                 return [2 /*return*/];
             });
@@ -1005,6 +1028,10 @@ var NiconamaComment = /** @class */ (function (_super) {
         _this.stop = function () {
             _this.isFirstCommentReceived = false;
             _this.latestNo = NaN;
+            if (_this.commentPingIntervalObj) {
+                clearInterval(_this.commentPingIntervalObj);
+                _this.commentPingIntervalObj = null;
+            }
             if (_this.commentSocket)
                 _this.commentSocket.close();
             _this.emit('end');
@@ -2114,8 +2141,12 @@ exports.createDom = function (message, type) {
     var text = message.text
         .replace(/<a .*?>/g, '') // したらばはアンカーをaタグ化している
         .replace(/<\\a>/g, '');
+    // httpの直前に英数字記号が無い箇所を置換
     var reg = new RegExp("(h?ttps?(://[-_.!~*'()a-zA-Z0-9;/?:@&=+$,%#]+))", 'g');
-    var commentText = text.replace(reg, '<span class="url" onClick=\'urlopen("$1")\'>$1</span>');
+    // FIXME: imgタグへの誤爆を雑に回避
+    var tempText = text.replace(/"http/g, '★★★★http★★★★');
+    var commentText = tempText.replace(reg, '<span class="url" onClick=\'urlopen("$1")\'>$1</span>');
+    commentText = commentText.replace(/★★★★http★★★★/g, '"http');
     domStr += "\n    <span class=\"res\">\n      " + commentText + "\n    </span>\n  ";
     // サムネイル表示
     var isThumbnailShow = (globalThis.config.thumbnail == 1 && type === 'chat') || globalThis.config.thumbnail == 2;

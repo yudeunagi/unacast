@@ -81,6 +81,8 @@ class NiconamaComment extends EventEmitter {
   latestNo = NaN;
   /** コメント取得のWebSocket */
   commentSocket: WebSocket = null as any;
+  /** ニコ生チャットWebSocketに対する定期ping */
+  commentPingIntervalObj: NodeJS.Timeout = null as any;
 
   constructor(options: { communityId: string }) {
     super();
@@ -150,7 +152,7 @@ class NiconamaComment extends EventEmitter {
     tWs.onmessage = (event) => {
       const obj = JSON.parse(event.data.toString());
       // log.info(JSON.stringify(obj, null, '  '));
-      log.info(`[fetchCommentServerThread]WS - type: ${obj.type}`);
+      log.info(`[fetchCommentServerThread] WS received - type: ${obj.type}`);
       switch (obj.type) {
         case 'serverTime': {
           // currentMs
@@ -203,6 +205,13 @@ class NiconamaComment extends EventEmitter {
 
       tWs.send(JSON.stringify({ type: 'getAkashic', data: { chasePlay: false } }));
     });
+    tWs.on('error', (event) => {
+      log.error('[fetchCommentServerThread] スレッドID取得のWebSocketでエラー。再接続を実施。');
+      log.error(JSON.stringify(event, null, '  '));
+      this.emit('error', new Error(`スレッドID取得のWebSocketでError`));
+      if (tWs.OPEN) tWs.close();
+      this.fetchCommentServerThread();
+    });
   };
 
   /**
@@ -223,7 +232,7 @@ class NiconamaComment extends EventEmitter {
       const obj = JSON.parse(event.toString());
       // 初回取得時は ping, ping, thread, chat, chat..., ping, pingの順で受け取る
 
-      // log.info(JSON.stringify(obj, null, '  '));
+      // log.info(`[fetchComment] WS received  - ${JSON.stringify(obj)}`);
 
       // コメント番号更新
       if (obj?.chat?.no) {
@@ -241,10 +250,10 @@ class NiconamaComment extends EventEmitter {
       const comment = chat.chat?.content;
       if (!comment) return;
 
+      log.info(`[fetchComment]WS - content: ${comment}`);
+
       // /で始まるのはなんかコマンドなので除外する
       if (comment.match(/^\/[a-z]+ /)) return;
-
-      log.info(`[fetchComment]WS - content: ${comment}`);
 
       const item: CommentItem = {
         number: chat.chat.no.toString(),
@@ -255,8 +264,11 @@ class NiconamaComment extends EventEmitter {
     });
 
     ws.on('error', (event) => {
-      log.info('[fetchComment]なんかエラーだ');
-      log.info(event);
+      log.error('[fetchComment]なんかエラーだ');
+      log.error(JSON.stringify(event, null, '  '));
+      this.emit('error', new Error(`ニコ生チャットのWebSocketでError`));
+      if (ws.OPEN) ws.close();
+      this.fetchComment(wsUrl, threadId);
     });
 
     ws.on('open', () => {
@@ -273,6 +285,15 @@ class NiconamaComment extends EventEmitter {
       );
     });
 
+    // 定期的にping打つ
+    this.commentPingIntervalObj = setInterval(() => {
+      if (ws.OPEN) {
+        ws.ping();
+      } else {
+        clearInterval(this.commentPingIntervalObj);
+      }
+    }, 30 * 1000);
+
     this.commentSocket = ws;
   };
 
@@ -280,6 +301,10 @@ class NiconamaComment extends EventEmitter {
   public stop = () => {
     this.isFirstCommentReceived = false;
     this.latestNo = NaN;
+    if (this.commentPingIntervalObj) {
+      clearInterval(this.commentPingIntervalObj);
+      this.commentPingIntervalObj = null as any;
+    }
     if (this.commentSocket) this.commentSocket.close();
     this.emit('end');
   };
