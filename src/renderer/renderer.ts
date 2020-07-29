@@ -35,8 +35,8 @@ document.addEventListener('DOMContentLoaded', () => {
     //設定情報をローカルストレージへ保存
     saveConfigToLocalStrage(config);
 
-    // URLとポートを指定していない場合はエラー
-    if (config.url === null || config.url.length < 1 || config.port === null || (config.port as any).length < 1) {
+    // ポートを指定していない場合はエラー
+    if (config.port === null || (config.port as any).length < 1) {
       return;
     }
 
@@ -112,6 +112,8 @@ const toggleInputFormDisable = (isDisabled: boolean) => {
   (document.getElementById('text-youtube-id') as HTMLInputElement).disabled = isDisabled;
   (document.getElementById('text-twitch-id') as HTMLInputElement).disabled = isDisabled;
   (document.getElementById('text-niconico-id') as HTMLInputElement).disabled = isDisabled;
+  (document.getElementById('text-jpnknFast-id') as HTMLInputElement).disabled = isDisabled;
+
   document.getElementsByName('dispSort').forEach((v, i) => {
     (v as HTMLInputElement).disabled = isDisabled;
     (v.parentNode as HTMLElement).style.backgroundColor = isDisabled ? 'lightgray' : '';
@@ -140,6 +142,7 @@ const buildConfigJson = () => {
   const youtubeUrl = (document.getElementById('text-youtube-id') as HTMLInputElement).value;
   const twitchUrl = (document.getElementById('text-twitch-id') as HTMLInputElement).value;
   const niconicoUrl = (document.getElementById('text-niconico-id') as HTMLInputElement).value;
+  const jpnknFastBoardId = (document.getElementById('text-jpnknFast-id') as HTMLInputElement).value;
   const sePath = (document.getElementById('text-se-path') as HTMLInputElement).value;
   const tamiyasuPath = (document.getElementById('text-tamiyasu-path') as HTMLInputElement).value;
   const bouyomiPort = parseInt((document.getElementById('text-bouyomi-port') as HTMLInputElement).value);
@@ -200,6 +203,7 @@ const buildConfigJson = () => {
     youtubeId: youtubeUrl,
     twitchId: twitchUrl,
     niconicoId: niconicoUrl,
+    jpnknFastBoardId,
     dispSort,
     newLine,
     showIcon,
@@ -247,6 +251,7 @@ const loadConfigToLocalStrage = () => {
     youtubeId: '',
     twitchId: '',
     niconicoId: '',
+    jpnknFastBoardId: '',
     dispSort: false,
     newLine: true,
     showIcon: true,
@@ -310,6 +315,7 @@ const loadConfigToLocalStrage = () => {
   (document.getElementById('text-youtube-id') as any).value = config.youtubeId;
   (document.getElementById('text-twitch-id') as any).value = config.twitchId;
   (document.getElementById('text-niconico-id') as any).value = config.niconicoId;
+  (document.getElementById('text-jpnknFast-id') as any).value = config.jpnknFastBoardId;
   // レス着信音
   (document.getElementById('text-se-path') as any).value = config.sePath;
   (document.getElementById('checkbox-playSe') as any).checked = config.playSe;
@@ -415,11 +421,17 @@ ipcRenderer.on(electronEvent['show-alert'], async (event: any, args: string) => 
 });
 
 // 何かしら通知したいことがあったら表示する
-ipcRenderer.on(electronEvent.UPDATE_STATUS, async (event: any, args: { commentType: 'bbs' | 'youtube' | 'twitch' | 'niconico'; category: string; message: string }) => {
+ipcRenderer.on(electronEvent.UPDATE_STATUS, async (event: any, args: { commentType: 'bbs' | 'jpnkn' | 'youtube' | 'twitch' | 'niconico'; category: string; message: string }) => {
   console.log(`[UPDATE_STATUS]`);
   switch (args.commentType) {
     case 'bbs': {
       (document.getElementById('bbs-connection-status') as HTMLElement).innerText = args.message;
+      break;
+    }
+    case 'jpnkn': {
+      if (args.category === 'status') {
+        (document.getElementById('jpnknFast-connection-status') as HTMLElement).innerText = args.message;
+      }
       break;
     }
     case 'youtube': {

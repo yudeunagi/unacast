@@ -2,6 +2,7 @@ import { BrowserWindow } from 'electron';
 import { ChatClient } from 'dank-twitch-irc';
 import { LiveChat } from '../main/youtube-chat';
 import NiconamaComment from '../main/niconama';
+import JpnknFast from '../main/jpnkn';
 
 declare global {
   namespace electron {
@@ -13,6 +14,8 @@ declare global {
     let twitchChat: ChatClient;
     /** Youtubeチャットインスタンス */
     let youtubeChat: LiveChat;
+    /** jpnknFast */
+    let jpnknFast: JpnknFast;
     /** ニコ生チャットインスタンス */
     let niconicoChat: NiconamaComment;
     /** 掲示板の読み込み済みのレス番号 */
@@ -25,6 +28,15 @@ declare global {
   namespace config {
     /** 掲示板URL */
     let url: string;
+    /** jpnkn Fastインタフェース 掲示板ID */
+    let jpnknFastBoardId: string;
+    /** Youtube チャンネルID */
+    let youtubeId: string;
+    /** Twitch ユーザID */
+    let twitchId: string;
+    /** ニコニココミュニティID */
+    let niconicoId: string;
+
     /** 開始レス番号 */
     let resNumber: string;
     /** 初期表示テキスト */
@@ -35,12 +47,6 @@ declare global {
     let dispNumber: number;
     /** 更新間隔 */
     let interval: number;
-    /** Youtube チャンネルID */
-    let youtubeId: string;
-    /** Twitch ユーザID */
-    let twitchId: string;
-    /** ニコニココミュニティID */
-    let niconicoId: string;
     /**
      * レス表示順序
      * - true: 新着が下

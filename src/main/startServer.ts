@@ -14,6 +14,7 @@ import bouyomiChan from './bouyomi-chan';
 import { spawn } from 'child_process';
 import { electronEvent } from './const';
 import NiconamaComment from './niconama';
+import JpnknFast from './jpnkn';
 
 let app: expressWs.Instance['app'];
 
@@ -170,6 +171,44 @@ ipcMain.on(electronEvent['start-server'], async (event: any, config: typeof glob
       globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'niconico', category: 'status', message: `error` });
     });
     nico.start();
+  }
+
+  // jpnkn
+  if (globalThis.config.jpnknFastBoardId) {
+    const jpn = new JpnknFast(globalThis.config.jpnknFastBoardId);
+    globalThis.electron.jpnknFast = jpn;
+    jpn.on('start', () => {
+      globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'jpnkn', category: 'status', message: `connection waiting` });
+    });
+
+    jpn.on('open', () => {
+      globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, {
+        commentType: 'jpnkn',
+        category: 'status',
+        message: `ok`,
+      });
+    });
+
+    jpn.on('comment', (event) => {
+      globalThis.electron.commentQueueList.push(event);
+      globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, {
+        commentType: 'jpnkn',
+        category: 'status',
+        message: `ok No=${event.number}`,
+      });
+    });
+    // 切断とか枠終了とか
+    jpn.on('end', () => {
+      globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, {
+        commentType: 'jpnkn',
+        category: 'status',
+        message: `disconnect`,
+      });
+    });
+    jpn.on('error', () => {
+      globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'jpnkn', category: 'status', message: `error` });
+    });
+    jpn.start();
   }
 
   // 棒読みちゃん接続
@@ -366,11 +405,25 @@ ipcMain.on(electronEvent['stop-server'], (event) => {
     globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'niconico', category: 'status', message: `connection end` });
     globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'niconico', category: 'liveId', message: `none` });
   }
+  // jpnkn Fastインターフェース
+  if (globalThis.electron.jpnknFast) {
+    globalThis.electron.jpnknFast.stop();
+    globalThis.electron.jpnknFast.removeAllListeners();
+    globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'jpnkn', category: 'status', message: `connection end` });
+  }
 });
 
 const getResInterval = async (exeId: number) => {
   let resNum: number;
   let isfirst = false;
+
+  // 板URLが未指定ならスキップ
+  if (!globalThis.config.url && threadIntervalEvent && exeId === serverId) {
+    await sleep(globalThis.config.interval * 1000);
+    getResInterval(exeId);
+    return;
+  }
+
   if (!globalThis.electron.threadNumber) {
     // 初回
     isfirst = true;

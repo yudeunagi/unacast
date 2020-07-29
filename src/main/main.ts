@@ -40,6 +40,7 @@ if (!app.requestSingleInstanceLock()) {
     twitchChat: null as any,
     youtubeChat: null as any,
     niconicoChat: null as any,
+    jpnknFast: null as any,
     threadConnectionError: 0,
     threadNumber: 0,
     commentQueueList: [],
