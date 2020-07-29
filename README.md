@@ -4,6 +4,7 @@
 ## 対応サービス
 
 - 2ch互換掲示板(したらば含む)
+- jpnkn Fastインターフェース
 - Youtube Live
 - Twitch
 - ニコ生
