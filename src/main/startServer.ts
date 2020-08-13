@@ -330,11 +330,8 @@ const startYoutubeChat = async () => {
       log.info('[Youtube Chat] disconnect');
       globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'status', message: 'connection end' });
     });
-    // チャット受信
-    globalThis.electron.youtubeChat.on('comment', (comment: CommentItem) => {
-      log.info('[Youtube] comment received');
-      globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'status', message: 'ok' });
 
+    const createYoutubeComment = (comment: CommentItem) => {
       // log.info(JSON.stringify(comment, null, '  '));
       const imgUrl = comment.author.thumbnail?.url ?? '';
       const name = escapeHtml(comment.author.name);
@@ -350,8 +347,23 @@ const startYoutubeChat = async () => {
         }
       }
       // const text = escapeHtml((comment.message[0] as any).text);
-      globalThis.electron.commentQueueList.push({ imgUrl, name, text });
+      return { imgUrl, name, text };
+    };
+    // 初期チャット受信
+    globalThis.electron.youtubeChat.on('firstComment', (comment: CommentItem) => {
+      log.info('[Youtube] comment received');
+      globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'status', message: 'ok' });
+      // チャットウィンドウだけに出力
+      sendDomForChatWindow([createYoutubeComment(comment)]);
     });
+
+    // チャット受信
+    globalThis.electron.youtubeChat.on('comment', (comment: CommentItem) => {
+      log.info('[Youtube] comment received');
+      globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'status', message: 'ok' });
+      globalThis.electron.commentQueueList.push(createYoutubeComment(comment));
+    });
+
     // 何かエラーがあった
     globalThis.electron.youtubeChat.on('error', (err: Error) => {
       log.error(`[Youtube Chat] error ${err.message}`);

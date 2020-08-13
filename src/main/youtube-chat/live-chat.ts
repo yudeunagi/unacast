@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import axios from 'axios';
-import { actionToRenderer, CommentItem, parseData, usecToTime } from './parser';
+import { actionToRenderer, CommentItem, parseData } from './parser';
 import { sleep } from '../util';
 
 type LiveChatResponse = [
@@ -33,7 +33,7 @@ export class LiveChat extends EventEmitter {
   private static readonly headers = { 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.142 Safari/537.36' };
   public readonly channelId?: string;
   public liveId?: string;
-  private prevTime = Date.now();
+  private id = '';
   private observer?: NodeJS.Timeout;
   private isStop = false;
 
@@ -88,6 +88,7 @@ export class LiveChat extends EventEmitter {
       clearInterval(this.observer);
       this.emit('end', reason);
     }
+    this.id = '';
   }
 
   private async fetchChat() {
@@ -99,37 +100,41 @@ export class LiveChat extends EventEmitter {
       //   return;
       // }
 
-      // 前回取得した時刻より新しいチャットを取得する
+      // 前回取得したidより新しいチャットを取得する
       // actions配列の末尾は入室メッセージみたいなやつなので除外する
-      const items = res.data[1].response.contents.liveChatRenderer.actions
-        .slice(0, -1)
-        .filter((v: Action) => {
-          const messageRenderer = actionToRenderer(v);
-          if (messageRenderer !== null) {
-            if (messageRenderer) {
-              return usecToTime(messageRenderer.timestampUsec) > this.prevTime;
-            }
-          }
-          return false;
-        })
-        .map((v: Action) => parseData(v));
+      const temp = res.data[1].response.contents.liveChatRenderer.actions.slice(0, -1).filter((v: Action) => {
+        const messageRenderer = actionToRenderer(v);
+        return messageRenderer !== null && messageRenderer;
+      });
+      const lastIndex = temp.findIndex((v) => {
+        const messageRenderer = actionToRenderer(v);
+        return messageRenderer?.id === this.id;
+      });
+      const items = temp.filter((v, i) => i > lastIndex).map((v: Action) => parseData(v));
 
+      // 初回取得の場合は初期データとして出力
       items.forEach((v) => {
         if (v) {
-          this.emit('comment', v);
+          if (this.id) {
+            this.emit('comment', v);
+          } else {
+            this.emit('firstComment', v);
+          }
         }
       });
 
+      // 末尾のidを取得
+      console.log(`[Youtube-chat] items = ${items.length}`);
       if (items.length > 0) {
-        console.log(`[Youtube-chat] items = ${items.length}`);
         const item = items[items.length - 1];
-        if (item) this.prevTime = item.timestamp;
+        if (item) this.id = item.id;
       }
     } catch (e) {
       this.emit('error', new Error(`Error occured at fetchchat url=${url}`));
     }
   }
 
+  public on(event: 'firstComment', listener: (comment: CommentItem) => void): this;
   public on(event: 'comment', listener: (comment: CommentItem) => void): this;
   public on(event: 'start', listener: (liveId: string) => void): this;
   public on(event: 'end', listener: (reason?: string) => void): this;

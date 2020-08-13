@@ -2039,6 +2039,7 @@ var startTwitchChat = function () { return __awaiter(void 0, void 0, void 0, fun
 }); };
 /** Youtubeチャットに接続 */
 var startYoutubeChat = function () { return __awaiter(void 0, void 0, void 0, function () {
+    var createYoutubeComment_1;
     return __generator(this, function (_a) {
         try {
             electron_log_1.default.info('[Youtube Chat] connect started');
@@ -2055,11 +2056,8 @@ var startYoutubeChat = function () { return __awaiter(void 0, void 0, void 0, fu
                 electron_log_1.default.info('[Youtube Chat] disconnect');
                 globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'status', message: 'connection end' });
             });
-            // チャット受信
-            globalThis.electron.youtubeChat.on('comment', function (comment) {
+            createYoutubeComment_1 = function (comment) {
                 var _a, _b;
-                electron_log_1.default.info('[Youtube] comment received');
-                globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'status', message: 'ok' });
                 // log.info(JSON.stringify(comment, null, '  '));
                 var imgUrl = (_b = (_a = comment.author.thumbnail) === null || _a === void 0 ? void 0 : _a.url) !== null && _b !== void 0 ? _b : '';
                 var name = util_1.escapeHtml(comment.author.name);
@@ -2077,7 +2075,20 @@ var startYoutubeChat = function () { return __awaiter(void 0, void 0, void 0, fu
                     }
                 }
                 // const text = escapeHtml((comment.message[0] as any).text);
-                globalThis.electron.commentQueueList.push({ imgUrl: imgUrl, name: name, text: text });
+                return { imgUrl: imgUrl, name: name, text: text };
+            };
+            // 初期チャット受信
+            globalThis.electron.youtubeChat.on('firstComment', function (comment) {
+                electron_log_1.default.info('[Youtube] comment received');
+                globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'status', message: 'ok' });
+                // チャットウィンドウだけに出力
+                sendDomForChatWindow([createYoutubeComment_1(comment)]);
+            });
+            // チャット受信
+            globalThis.electron.youtubeChat.on('comment', function (comment) {
+                electron_log_1.default.info('[Youtube] comment received');
+                globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'status', message: 'ok' });
+                globalThis.electron.commentQueueList.push(createYoutubeComment_1(comment));
             });
             // 何かエラーがあった
             globalThis.electron.youtubeChat.on('error', function (err) {
@@ -2630,7 +2641,7 @@ var LiveChat = /** @class */ (function (_super) {
         if (interval === void 0) { interval = 1000; }
         var _this = _super.call(this) || this;
         _this.interval = interval;
-        _this.prevTime = Date.now();
+        _this.id = '';
         _this.isStop = false;
         if ('channelId' in options) {
             _this.channelId = options.channelId;
@@ -2700,10 +2711,11 @@ var LiveChat = /** @class */ (function (_super) {
             clearInterval(this.observer);
             this.emit('end', reason);
         }
+        this.id = '';
     };
     LiveChat.prototype.fetchChat = function () {
         return __awaiter(this, void 0, void 0, function () {
-            var url, res, items, item, e_2;
+            var url, res, temp, lastIndex_1, items, item, e_2;
             var _this = this;
             return __generator(this, function (_a) {
                 switch (_a.label) {
@@ -2715,28 +2727,32 @@ var LiveChat = /** @class */ (function (_super) {
                         return [4 /*yield*/, axios_1.default.get(url, { headers: LiveChat.headers })];
                     case 2:
                         res = _a.sent();
-                        items = res.data[1].response.contents.liveChatRenderer.actions
-                            .slice(0, -1)
-                            .filter(function (v) {
+                        temp = res.data[1].response.contents.liveChatRenderer.actions.slice(0, -1).filter(function (v) {
                             var messageRenderer = parser_1.actionToRenderer(v);
-                            if (messageRenderer !== null) {
-                                if (messageRenderer) {
-                                    return parser_1.usecToTime(messageRenderer.timestampUsec) > _this.prevTime;
-                                }
-                            }
-                            return false;
-                        })
-                            .map(function (v) { return parser_1.parseData(v); });
+                            return messageRenderer !== null && messageRenderer;
+                        });
+                        lastIndex_1 = temp.findIndex(function (v) {
+                            var messageRenderer = parser_1.actionToRenderer(v);
+                            return (messageRenderer === null || messageRenderer === void 0 ? void 0 : messageRenderer.id) === _this.id;
+                        });
+                        items = temp.filter(function (v, i) { return i > lastIndex_1; }).map(function (v) { return parser_1.parseData(v); });
+                        // 初回取得の場合は初期データとして出力
                         items.forEach(function (v) {
                             if (v) {
-                                _this.emit('comment', v);
+                                if (_this.id) {
+                                    _this.emit('comment', v);
+                                }
+                                else {
+                                    _this.emit('firstComment', v);
+                                }
                             }
                         });
+                        // 末尾のidを取得
+                        console.log("[Youtube-chat] items = " + items.length);
                         if (items.length > 0) {
-                            console.log("[Youtube-chat] items = " + items.length);
                             item = items[items.length - 1];
                             if (item)
-                                this.prevTime = item.timestamp;
+                                this.id = item.id;
                         }
                         return [3 /*break*/, 4];
                     case 3:
