@@ -26,6 +26,9 @@ export const electronEvent = {
   /** サーバー起動の返信 */
   'start-server-reply': 'start-server-reply',
 
+  /** 強制的に端にスクロール */
+  FORCE_SCROLL: 'FORCE_SCROLL',
+
   /** ステータス更新 */
   UPDATE_STATUS: 'UPDATE_STATUS',
 };

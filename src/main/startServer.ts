@@ -691,6 +691,10 @@ const sendDom = async (messageList: UserComment[]) => {
       text = text.replace(/<img.*?\/>/g, '');
       text = text.replace(/<a .*?>/g, '').replace(/<\/a>/g, '');
       text = unescapeHtml(text);
+
+      if (globalThis.config.yomikoReplaceNewline) {
+        text = text.replace(/\r\n/g, ' ').replace(/\n/g, ' ');
+      }
       await playYomiko(text);
     }
 

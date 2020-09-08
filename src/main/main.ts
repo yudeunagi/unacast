@@ -4,6 +4,7 @@ import electron, { Tray, Menu, dialog, MenuItem } from 'electron';
 import log from 'electron-log';
 import { sleep } from './util';
 import windowStateKeeper from 'electron-window-state';
+import { electronEvent } from './const';
 
 console.trace = () => {
   //
@@ -76,6 +77,17 @@ if (!app.requestSingleInstanceLock()) {
       checked: false,
       click: (e) => {
         globalThis.electron.chatWindow.setAlwaysOnTop(e.checked);
+      },
+    }),
+  );
+
+  chatContextMenu.append(
+    new MenuItem({
+      label: 'スクロールが端以外の時もコメント受信時に端に飛ぶ',
+      type: 'checkbox',
+      checked: true,
+      click: (e) => {
+        globalThis.electron.chatWindow.webContents.send(electronEvent.FORCE_SCROLL, e.checked);
       },
     }),
   );

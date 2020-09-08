@@ -300,6 +300,8 @@ exports.electronEvent = {
     'clear-comment': 'clear-comment',
     /** サーバー起動の返信 */
     'start-server-reply': 'start-server-reply',
+    /** 強制的に端にスクロール */
+    FORCE_SCROLL: 'FORCE_SCROLL',
     /** ステータス更新 */
     UPDATE_STATUS: 'UPDATE_STATUS',
 };
@@ -695,6 +697,7 @@ var electron_1 = __importStar(__webpack_require__(/*! electron */ "electron"));
 var electron_log_1 = __importDefault(__webpack_require__(/*! electron-log */ "electron-log"));
 var util_1 = __webpack_require__(/*! ./util */ "./src/main/util.ts");
 var electron_window_state_1 = __importDefault(__webpack_require__(/*! electron-window-state */ "electron-window-state"));
+var const_1 = __webpack_require__(/*! ./const */ "./src/main/const.ts");
 console.trace = function () {
     //
 };
@@ -753,6 +756,14 @@ else {
         checked: false,
         click: function (e) {
             globalThis.electron.chatWindow.setAlwaysOnTop(e.checked);
+        },
+    }));
+    chatContextMenu_1.append(new electron_1.MenuItem({
+        label: 'スクロールが端以外の時もコメント受信時に端に飛ぶ',
+        type: 'checkbox',
+        checked: true,
+        click: function (e) {
+            globalThis.electron.chatWindow.webContents.send(const_1.electronEvent.FORCE_SCROLL, e.checked);
         },
     }));
     // Electronの初期化完了後に実行
@@ -2435,6 +2446,9 @@ var sendDom = function (messageList) { return __awaiter(void 0, void 0, void 0, 
                 text = text.replace(/<img.*?\/>/g, '');
                 text = text.replace(/<a .*?>/g, '').replace(/<\/a>/g, '');
                 text = util_1.unescapeHtml(text);
+                if (globalThis.config.yomikoReplaceNewline) {
+                    text = text.replace(/\r\n/g, ' ').replace(/\n/g, ' ');
+                }
                 return [4 /*yield*/, playYomiko(text)];
             case 3:
                 _a.sent();

@@ -147,6 +147,8 @@ const buildConfigJson = () => {
   const tamiyasuPath = (document.getElementById('text-tamiyasu-path') as HTMLInputElement).value;
   const bouyomiPort = parseInt((document.getElementById('text-bouyomi-port') as HTMLInputElement).value);
   const bouyomiVolume = parseInt((document.getElementById('bouyomi-volume') as HTMLInputElement).value);
+  const yomikoReplaceNewline = (document.getElementById('yomiko-replace-newline') as any).checked === true;
+
   const notifyThreadConnectionErrorLimit = parseInt((document.getElementById('text-notify-threadConnectionErrorLimit') as HTMLInputElement).value);
   const notifyThreadResLimit = parseInt((document.getElementById('text-notify-threadResLimit') as HTMLInputElement).value);
 
@@ -219,6 +221,7 @@ const buildConfigJson = () => {
     tamiyasuPath,
     bouyomiPort,
     bouyomiVolume,
+    yomikoReplaceNewline,
     notifyThreadConnectionErrorLimit,
     notifyThreadResLimit,
     commentProcessType,
@@ -267,6 +270,7 @@ const loadConfigToLocalStrage = () => {
     tamiyasuPath: '',
     bouyomiPort: 50001,
     bouyomiVolume: 50,
+    yomikoReplaceNewline: false,
     notifyThreadConnectionErrorLimit: 0,
     notifyThreadResLimit: 0,
     commentProcessType: 0,
@@ -324,6 +328,8 @@ const loadConfigToLocalStrage = () => {
 
   // サムネイル表示
   (document.getElementById(`thumbnail_${config.thumbnail}`) as any).checked = true;
+
+  (document.getElementById('yomiko-replace-newline') as any).checked == config.yomikoReplaceNewline;
 
   // 読み子の種類
   switch (config.typeYomiko) {
