@@ -2655,7 +2655,10 @@ var LiveChat = /** @class */ (function (_super) {
         if (interval === void 0) { interval = 1000; }
         var _this = _super.call(this) || this;
         _this.interval = interval;
-        _this.id = '';
+        /** 表示済みのID */
+        _this.displayedId = {};
+        _this.isFirst = true;
+        /** 停止要求をされた */
         _this.isStop = false;
         if ('channelId' in options) {
             _this.channelId = options.channelId;
@@ -2669,6 +2672,7 @@ var LiveChat = /** @class */ (function (_super) {
         return _this;
     }
     LiveChat.prototype.start = function () {
+        this.isFirst = true;
         this.isStop = false;
         this.fetchLiveId();
     };
@@ -2725,11 +2729,11 @@ var LiveChat = /** @class */ (function (_super) {
             clearInterval(this.observer);
             this.emit('end', reason);
         }
-        this.id = '';
+        this.displayedId = {};
     };
     LiveChat.prototype.fetchChat = function () {
         return __awaiter(this, void 0, void 0, function () {
-            var url, res, temp, lastIndex_1, items, item, e_2;
+            var url, res, temp, items, e_2;
             var _this = this;
             return __generator(this, function (_a) {
                 switch (_a.label) {
@@ -2745,29 +2749,29 @@ var LiveChat = /** @class */ (function (_super) {
                             var messageRenderer = parser_1.actionToRenderer(v);
                             return messageRenderer !== null && messageRenderer;
                         });
-                        lastIndex_1 = temp.findIndex(function (v) {
-                            var messageRenderer = parser_1.actionToRenderer(v);
-                            return (messageRenderer === null || messageRenderer === void 0 ? void 0 : messageRenderer.id) === _this.id;
-                        });
-                        items = temp.filter(function (v, i) { return i > lastIndex_1; }).map(function (v) { return parser_1.parseData(v); });
+                        items = temp.map(function (v) { return parser_1.parseData(v); });
                         // 初回取得の場合は初期データとして出力
                         items.forEach(function (v) {
                             if (v) {
-                                if (_this.id) {
-                                    _this.emit('comment', v);
+                                if (_this.isFirst) {
+                                    _this.emit('firstComment', v);
                                 }
                                 else {
-                                    _this.emit('firstComment', v);
+                                    // 表示済みならスキップ
+                                    if (!_this.displayedId[v.id]) {
+                                        _this.emit('comment', v);
+                                    }
                                 }
                             }
                         });
+                        this.isFirst = false;
                         // 末尾のidを取得
                         console.log("[Youtube-chat] items = " + items.length);
-                        if (items.length > 0) {
-                            item = items[items.length - 1];
-                            if (item)
-                                this.id = item.id;
-                        }
+                        items.forEach(function (v) {
+                            var id = v === null || v === void 0 ? void 0 : v.id;
+                            if (id)
+                                _this.displayedId[id] = true;
+                        });
                         return [3 /*break*/, 4];
                     case 3:
                         e_2 = _a.sent();

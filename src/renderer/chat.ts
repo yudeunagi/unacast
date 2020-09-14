@@ -21,8 +21,8 @@ ipcRenderer.on(electronEvent['show-comment'], (event: any, args: { config: typeo
   const dom = document.getElementById('res-list') as HTMLInputElement;
 
   // スクロール位置が端であるなら、スクロール位置も追従する
-  const isTop = forceScroll || document.documentElement.scrollTop === 0;
-  const isBottom = forceScroll || document.documentElement.scrollTop + document.documentElement.clientHeight === document.documentElement.scrollHeight;
+  const isTop = document.documentElement.scrollTop === 0;
+  const isBottom = document.documentElement.scrollTop + document.documentElement.clientHeight === document.documentElement.scrollHeight;
 
   // 表示順オプションで上に追加するか下に追加するか選ぶ
   if (args.config.dispSort) {
@@ -33,10 +33,10 @@ ipcRenderer.on(electronEvent['show-comment'], (event: any, args: { config: typeo
     dom.insertAdjacentHTML('afterbegin', args.dom);
   }
 
-  if (isTop) {
+  if (isTop || (forceScroll && !args.config.dispSort)) {
     document.documentElement.scrollTo(0, 0);
   }
-  if (isBottom) {
+  if (isBottom || (forceScroll && args.config.dispSort)) {
     document.documentElement.scrollTo(0, document.documentElement.scrollHeight);
   }
 });

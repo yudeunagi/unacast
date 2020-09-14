@@ -31,10 +31,15 @@ type LiveChatResponse = [
  */
 export class LiveChat extends EventEmitter {
   private static readonly headers = { 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.142 Safari/537.36' };
+  /** チャンネルID */
   public readonly channelId?: string;
+  /** 配信ID */
   public liveId?: string;
-  private id = '';
+  /** 表示済みのID */
+  private displayedId: { [commentId: string]: true } = {};
+  private isFirst = true;
   private observer?: NodeJS.Timeout;
+  /** 停止要求をされた */
   private isStop = false;
 
   constructor(options: { channelId: string } | { liveId: string }, private interval = 1000) {
@@ -49,6 +54,7 @@ export class LiveChat extends EventEmitter {
   }
 
   public start() {
+    this.isFirst = true;
     this.isStop = false;
     this.fetchLiveId();
   }
@@ -88,7 +94,7 @@ export class LiveChat extends EventEmitter {
       clearInterval(this.observer);
       this.emit('end', reason);
     }
-    this.id = '';
+    this.displayedId = {};
   }
 
   private async fetchChat() {
@@ -106,29 +112,30 @@ export class LiveChat extends EventEmitter {
         const messageRenderer = actionToRenderer(v);
         return messageRenderer !== null && messageRenderer;
       });
-      const lastIndex = temp.findIndex((v) => {
-        const messageRenderer = actionToRenderer(v);
-        return messageRenderer?.id === this.id;
-      });
-      const items = temp.filter((v, i) => i > lastIndex).map((v: Action) => parseData(v));
+
+      const items = temp.map((v: Action) => parseData(v));
 
       // 初回取得の場合は初期データとして出力
       items.forEach((v) => {
         if (v) {
-          if (this.id) {
-            this.emit('comment', v);
-          } else {
+          if (this.isFirst) {
             this.emit('firstComment', v);
+          } else {
+            // 表示済みならスキップ
+            if (!this.displayedId[v.id]) {
+              this.emit('comment', v);
+            }
           }
         }
       });
+      this.isFirst = false;
 
       // 末尾のidを取得
       console.log(`[Youtube-chat] items = ${items.length}`);
-      if (items.length > 0) {
-        const item = items[items.length - 1];
-        if (item) this.id = item.id;
-      }
+      items.forEach((v) => {
+        const id = v?.id;
+        if (id) this.displayedId[id] = true;
+      });
     } catch (e) {
       this.emit('error', new Error(`Error occured at fetchchat url=${url}`));
     }
