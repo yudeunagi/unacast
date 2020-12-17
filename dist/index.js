@@ -2698,7 +2698,7 @@ var LiveChat = /** @class */ (function (_super) {
                         //     this.emit('error', new Error('Live stream offline'));
                         //     return false;
                         //   }
-                        this.liveId = (_a = liveRes.data.match(/videoId\\":\\"(.+?)\\/)) === null || _a === void 0 ? void 0 : _a[1];
+                        this.liveId = (_a = liveRes.data.match(/videoId":"(.+?)"/)) === null || _a === void 0 ? void 0 : _a[1];
                         return [3 /*break*/, 4];
                     case 3:
                         e_1 = _b.sent();
