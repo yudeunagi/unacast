@@ -1861,7 +1861,7 @@ electron_1.ipcMain.on(const_1.electronEvent['start-server'], function (event, co
             startTwitchChat();
         }
         // Youtubeチャット
-        if (globalThis.config.youtubeId) {
+        if (globalThis.config.youtubeId || globalThis.config.youtubeLiveId) {
             startYoutubeChat();
         }
         // ニコ生
@@ -2054,7 +2054,12 @@ var startYoutubeChat = function () { return __awaiter(void 0, void 0, void 0, fu
     return __generator(this, function (_a) {
         try {
             electron_log_1.default.info('[Youtube Chat] connect started');
-            globalThis.electron.youtubeChat = new youtube_chat_1.LiveChat({ channelId: globalThis.config.youtubeId });
+            if (globalThis.config.youtubeLiveId) {
+                globalThis.electron.youtubeChat = new youtube_chat_1.LiveChat({ liveId: globalThis.config.youtubeLiveId });
+            }
+            else {
+                globalThis.electron.youtubeChat = new youtube_chat_1.LiveChat({ channelId: globalThis.config.youtubeId });
+            }
             globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'status', message: 'wait live' });
             // 接続開始イベント
             globalThis.electron.youtubeChat.on('start', function (liveId) {
@@ -2686,39 +2691,44 @@ var LiveChat = /** @class */ (function (_super) {
                     case 0:
                         if (this.isStop)
                             return [2 /*return*/];
-                        if (!this.channelId) return [3 /*break*/, 4];
+                        if (!this.channelId) return [3 /*break*/, 6];
                         url = "https://www.youtube.com/channel/" + this.channelId + "/live";
                         _b.label = 1;
                     case 1:
-                        _b.trys.push([1, 3, , 4]);
+                        _b.trys.push([1, 5, , 6]);
                         return [4 /*yield*/, axios_1.default.get(url, { headers: LiveChat.headers })];
                     case 2:
                         liveRes = _b.sent();
-                        //   if (liveRes.data.match(/LIVE_STREAM_OFFLINE/)) {
-                        //     this.emit('error', new Error('Live stream offline'));
-                        //     return false;
-                        //   }
-                        this.liveId = (_a = liveRes.data.match(/videoId":"(.+?)"/)) === null || _a === void 0 ? void 0 : _a[1];
-                        return [3 /*break*/, 4];
+                        if (!!liveRes.data.match(/liveChatHeaderRenderer/)) return [3 /*break*/, 4];
+                        // 配信が開始してないパターンが考えられるのでリトライ
+                        this.emit('error', new Error('Live stream not found'));
+                        return [4 /*yield*/, util_1.sleep(2000)];
                     case 3:
+                        _b.sent();
+                        this.fetchLiveId();
+                        return [2 /*return*/];
+                    case 4:
+                        this.liveId = (_a = liveRes.data.match(/videoId":"(.+?)"/)) === null || _a === void 0 ? void 0 : _a[1];
+                        return [3 /*break*/, 6];
+                    case 5:
                         e_1 = _b.sent();
                         // チャンネルID自体が違うのはもうどうしようもないので止める
                         this.emit('error', new Error("connection error url = " + url));
                         return [2 /*return*/];
-                    case 4:
-                        if (!this.liveId) return [3 /*break*/, 5];
+                    case 6:
+                        if (!this.liveId) return [3 /*break*/, 7];
                         this.observer = setInterval(function () { return _this.fetchChat(); }, this.interval);
                         this.emit('start', this.liveId);
-                        return [3 /*break*/, 7];
-                    case 5:
+                        return [3 /*break*/, 9];
+                    case 7:
                         // 配信が開始してないパターンが考えられるのでリトライ
                         this.emit('error', new Error('Live stream not found'));
                         return [4 /*yield*/, util_1.sleep(2000)];
-                    case 6:
+                    case 8:
                         _b.sent();
                         this.fetchLiveId();
-                        _b.label = 7;
-                    case 7: return [2 /*return*/];
+                        _b.label = 9;
+                    case 9: return [2 /*return*/];
                 }
             });
         });

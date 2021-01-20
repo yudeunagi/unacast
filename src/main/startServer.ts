@@ -122,7 +122,7 @@ ipcMain.on(electronEvent['start-server'], async (event: any, config: typeof glob
   }
 
   // Youtubeチャット
-  if (globalThis.config.youtubeId) {
+  if (globalThis.config.youtubeId || globalThis.config.youtubeLiveId) {
     startYoutubeChat();
   }
 
@@ -316,7 +316,11 @@ const startTwitchChat = async () => {
 const startYoutubeChat = async () => {
   try {
     log.info('[Youtube Chat] connect started');
-    globalThis.electron.youtubeChat = new LiveChat({ channelId: globalThis.config.youtubeId });
+    if (globalThis.config.youtubeLiveId) {
+      globalThis.electron.youtubeChat = new LiveChat({ liveId: globalThis.config.youtubeLiveId });
+    } else {
+      globalThis.electron.youtubeChat = new LiveChat({ channelId: globalThis.config.youtubeId });
+    }
     globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'status', message: 'wait live' });
 
     // 接続開始イベント

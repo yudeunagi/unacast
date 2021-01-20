@@ -32,6 +32,8 @@ declare global {
     let jpnknFastBoardId: string;
     /** Youtube チャンネルID */
     let youtubeId: string;
+    /** Youtube LiveID */
+    let youtubeLiveId: string;
     /** Twitch ユーザID */
     let twitchId: string;
     /** ニコニココミュニティID */

@@ -110,6 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
 const toggleInputFormDisable = (isDisabled: boolean) => {
   (document.getElementById('text-port-number') as HTMLInputElement).disabled = isDisabled;
   (document.getElementById('text-youtube-id') as HTMLInputElement).disabled = isDisabled;
+  (document.getElementById('text-youtube-liveid') as HTMLInputElement).disabled = isDisabled;
   (document.getElementById('text-twitch-id') as HTMLInputElement).disabled = isDisabled;
   (document.getElementById('text-niconico-id') as HTMLInputElement).disabled = isDisabled;
   (document.getElementById('text-jpnknFast-id') as HTMLInputElement).disabled = isDisabled;
@@ -140,6 +141,7 @@ const buildConfigJson = () => {
   const dispNumber = NaN;
   const interval = parseInt((document.getElementById('rangeSpan') as HTMLInputElement).value);
   const youtubeUrl = (document.getElementById('text-youtube-id') as HTMLInputElement).value;
+  const youtubeLiveId = (document.getElementById('text-youtube-liveid') as HTMLInputElement).value;
   const twitchUrl = (document.getElementById('text-twitch-id') as HTMLInputElement).value;
   const niconicoUrl = (document.getElementById('text-niconico-id') as HTMLInputElement).value;
   const jpnknFastBoardId = (document.getElementById('text-jpnknFast-id') as HTMLInputElement).value;
@@ -203,6 +205,7 @@ const buildConfigJson = () => {
     dispNumber,
     interval,
     youtubeId: youtubeUrl,
+    youtubeLiveId: youtubeLiveId,
     twitchId: twitchUrl,
     niconicoId: niconicoUrl,
     jpnknFastBoardId,
@@ -252,6 +255,7 @@ const loadConfigToLocalStrage = () => {
     interval: 10,
     dispNumber: NaN,
     youtubeId: '',
+    youtubeLiveId: '',
     twitchId: '',
     niconicoId: '',
     jpnknFastBoardId: '',
@@ -317,6 +321,7 @@ const loadConfigToLocalStrage = () => {
   (document.getElementById('text-url') as any).value = config.url;
   (document.getElementById('text-res-number') as any).value = config.resNumber.toString();
   (document.getElementById('text-youtube-id') as any).value = config.youtubeId;
+  (document.getElementById('text-youtube-liveid') as any).value = config.youtubeLiveId;
   (document.getElementById('text-twitch-id') as any).value = config.twitchId;
   (document.getElementById('text-niconico-id') as any).value = config.niconicoId;
   (document.getElementById('text-jpnknFast-id') as any).value = config.jpnknFastBoardId;
@@ -402,7 +407,7 @@ ipcRenderer.on(electronEvent['wait-yomiko-time'], async (event: any, arg: string
  * @param 読み込む文章
  */
 const yomikoTime = async (msg: string) => {
-  return new Promise((resolve) => {
+  return new Promise<void>((resolve) => {
     const uttr = new globalThis.SpeechSynthesisUtterance(msg);
     uttr.volume = 0;
     uttr.onend = (event) => {

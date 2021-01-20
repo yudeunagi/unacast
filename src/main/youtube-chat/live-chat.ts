@@ -65,10 +65,15 @@ export class LiveChat extends EventEmitter {
       const url = `https://www.youtube.com/channel/${this.channelId}/live`;
       try {
         const liveRes = await axios.get(url, { headers: LiveChat.headers });
-        //   if (liveRes.data.match(/LIVE_STREAM_OFFLINE/)) {
-        //     this.emit('error', new Error('Live stream offline'));
-        //     return false;
-        //   }
+
+        // ライブが始まってなくて、チャンネルのトップに飛ばされているケース
+        if (!liveRes.data.match(/liveChatHeaderRenderer/)) {
+          // 配信が開始してないパターンが考えられるのでリトライ
+          this.emit('error', new Error('Live stream not found'));
+          await sleep(2000);
+          this.fetchLiveId();
+          return;
+        }
         this.liveId = liveRes.data.match(/videoId":"(.+?)"/)?.[1] as string;
       } catch (e) {
         // チャンネルID自体が違うのはもうどうしようもないので止める

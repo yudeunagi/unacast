@@ -96,7 +96,14 @@
           </div>
 
           <div class="mdl-textfield mdl-js-textfield" style="width: 100%">
-            <div class="subtitle">Youtube チャンネルID</div>
+            <div class="subtitle">Youtube</div>
+            <div class="caption">両方入力した場合はLiveIDが優先されます</div>
+            <div class="subtitle" style="font-size: small;">LiveID</div>
+            <div class="labeledInputArea">
+              <span>https://www.youtube.com/watch?v=</span>
+              <input class="mdl-textfield__input" type="text" id="text-youtube-liveid" pattern="^(?!.*http.?:)(?!.*/.*).*$" />
+            </div>
+            <div class="subtitle" style="font-size: small;">チャンネルID</div>
             <div class="labeledInputArea">
               <span>https://www.youtube.com/channel/</span>
               <input class="mdl-textfield__input" type="text" id="text-youtube-id" pattern="^(?!.*http.?:)(?!.*/.*).*$" />

@@ -33,11 +33,16 @@ ipcRenderer.on(electronEvent['show-comment'], (event: any, args: { config: typeo
     dom.insertAdjacentHTML('afterbegin', args.dom);
   }
 
-  if (isTop || (forceScroll && !args.config.dispSort)) {
-    document.documentElement.scrollTo(0, 0);
-  }
-  if (isBottom || (forceScroll && args.config.dispSort)) {
-    document.documentElement.scrollTo(0, document.documentElement.scrollHeight);
+  if (args.config.dispSort) {
+    // 新着が下
+    if (isBottom || forceScroll) {
+      document.documentElement.scrollTo(0, document.documentElement.scrollHeight);
+    }
+  } else {
+    // 新着が上
+    if (isTop || forceScroll) {
+      document.documentElement.scrollTo(0, 0);
+    }
   }
 });
 
