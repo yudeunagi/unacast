@@ -1056,7 +1056,11 @@ var NiconamaComment = /** @class */ (function (_super) {
                         frontendId = embeddedData.site.frontendId;
                         threadWssUrl = "wss://a.live2.nicovideo.jp/unama/wsapi/v2/watch/" + broadcastId + "?audience_token=" + audienceToken + "&frontend_id=" + frontendId;
                         electron_log_1.default.info(threadWssUrl);
-                        tWs = new ws_1.default(threadWssUrl);
+                        tWs = new ws_1.default(threadWssUrl, {
+                            headers: {
+                                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36',
+                            },
+                        });
                         tWs.onmessage = function (event) {
                             var obj = JSON.parse(event.data.toString());
                             // log.info(JSON.stringify(obj, null, '  '));
@@ -1092,6 +1096,7 @@ var NiconamaComment = /** @class */ (function (_super) {
                                     break;
                                 }
                                 case 'ping': {
+                                    tWs.send({ type: 'pong' });
                                     break;
                                 }
                                 // 切断。枠が終了した時もここ。
@@ -1104,10 +1109,12 @@ var NiconamaComment = /** @class */ (function (_super) {
                             }
                         };
                         tWs.on('open', function () {
+                            electron_log_1.default.info('startWatching');
                             tWs.send(JSON.stringify({
                                 type: 'startWatching',
                                 data: { stream: { quality: 'high', protocol: 'hls', latency: 'low', chasePlay: false }, room: { protocol: 'webSocket', commentable: true }, reconnect: false },
                             }));
+                            electron_log_1.default.info('getAkashic');
                             tWs.send(JSON.stringify({ type: 'getAkashic', data: { chasePlay: false } }));
                         });
                         tWs.on('error', function (event) {

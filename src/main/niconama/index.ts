@@ -148,7 +148,11 @@ class NiconamaComment extends EventEmitter {
     // スレッドURLを取得
     const threadWssUrl = `wss://a.live2.nicovideo.jp/unama/wsapi/v2/watch/${broadcastId}?audience_token=${audienceToken}&frontend_id=${frontendId}`;
     log.info(threadWssUrl);
-    const tWs = new WebSocket(threadWssUrl);
+    const tWs = new WebSocket(threadWssUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36',
+      },
+    });
     tWs.onmessage = (event) => {
       const obj = JSON.parse(event.data.toString());
       // log.info(JSON.stringify(obj, null, '  '));
@@ -184,6 +188,7 @@ class NiconamaComment extends EventEmitter {
           break;
         }
         case 'ping': {
+          tWs.send({ type: 'pong' });
           break;
         }
         // 切断。枠が終了した時もここ。
@@ -196,6 +201,7 @@ class NiconamaComment extends EventEmitter {
       }
     };
     tWs.on('open', () => {
+      log.info('startWatching');
       tWs.send(
         JSON.stringify({
           type: 'startWatching',
@@ -203,6 +209,7 @@ class NiconamaComment extends EventEmitter {
         }),
       );
 
+      log.info('getAkashic');
       tWs.send(JSON.stringify({ type: 'getAkashic', data: { chasePlay: false } }));
     });
     tWs.on('error', (event) => {
