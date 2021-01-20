@@ -1096,7 +1096,7 @@ var NiconamaComment = /** @class */ (function (_super) {
                                     break;
                                 }
                                 case 'ping': {
-                                    tWs.send({ type: 'pong' });
+                                    tWs.send(JSON.stringify({ type: 'pong' }));
                                     break;
                                 }
                                 // 切断。枠が終了した時もここ。
