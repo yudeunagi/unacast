@@ -16,7 +16,7 @@ ipcRenderer.on(electronEvent.FORCE_SCROLL, (event: any, args: boolean) => {
 });
 
 // コメント表示
-ipcRenderer.on(electronEvent['show-comment'], (event: any, args: { config: typeof globalThis['config']; dom: string }) => {
+ipcRenderer.on(electronEvent.SHOW_COMMENT, (event: any, args: { config: typeof globalThis['config']; dom: string }) => {
   log.info('[show-comment] received');
   const dom = document.getElementById('res-list') as HTMLInputElement;
 
@@ -47,7 +47,7 @@ ipcRenderer.on(electronEvent['show-comment'], (event: any, args: { config: typeo
 });
 
 // リセット
-ipcRenderer.on(electronEvent['clear-comment'], (event: any) => {
+ipcRenderer.on(electronEvent.CLEAR_COMMENT, (event: any) => {
   log.info('[clear-comment] received');
   const dom = document.getElementById('res-list') as HTMLInputElement;
   dom.innerHTML = '';

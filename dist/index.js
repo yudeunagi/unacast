@@ -280,26 +280,27 @@ exports.default = BouyomiChan;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.electronEvent = {
     /** サーバー起動 */
-    'start-server': 'start-server',
+    START_SERVER: 'start-server',
     /** サーバー停止 */
-    'stop-server': 'stop-server',
+    STOP_SERVER: 'stop-server',
     /** Config適用 */
-    'apply-config': 'apply-config',
+    APPLY_CONFIG: 'apply-config',
     /** アラート表示 */
-    'show-alert': 'show-alert',
+    SHOW_ALERT: 'show-alert',
+    SAVE_CONFIG: 'save-config',
     /** 棒読み再生 */
-    'play-tamiyasu': 'play-tamiyasu',
+    PLAY_TAMIYASU: 'play-tamiyasu',
     /** レス着信音再生 */
-    'play-sound-start': 'play-sound-start',
-    'play-sound-end': 'play-sound-end',
-    'wait-yomiko-time': 'wait-yomiko-time',
-    'speaking-end': 'speaking-end',
+    PLAY_SOUND_START: 'play-sound-start',
+    PLAY_SOUND_END: 'play-sound-end',
+    WAIT_YOMIKO_TIME: 'wait-yomiko-time',
+    SPEAKING_END: 'speaking-end',
     /** コメント表示 */
-    'show-comment': 'show-comment',
+    SHOW_COMMENT: 'show-comment',
     /** コメント欄初期化 */
-    'clear-comment': 'clear-comment',
+    CLEAR_COMMENT: 'clear-comment',
     /** サーバー起動の返信 */
-    'start-server-reply': 'start-server-reply',
+    START_SERVER_REPLY: 'start-server-reply',
     /** 強制的に端にスクロール */
     FORCE_SCROLL: 'FORCE_SCROLL',
     /** ステータス更新 */
@@ -368,7 +369,16 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
+var axios_1 = __importDefault(__webpack_require__(/*! axios */ "axios"));
+var iconv_lite_1 = __importDefault(__webpack_require__(/*! iconv-lite */ "iconv-lite")); // 文字コード変換用パッケージ
 var express_1 = __importDefault(__webpack_require__(/*! express */ "express"));
 var body_parser_1 = __importDefault(__webpack_require__(/*! body-parser */ "body-parser")); // jsonパーサ
 var router = express_1.default.Router();
@@ -376,8 +386,8 @@ var electron_log_1 = __importDefault(__webpack_require__(/*! electron-log */ "el
 var ReadIcons_1 = __importDefault(__webpack_require__(/*! ./ReadIcons */ "./src/main/ReadIcons.ts")); //アイコンファイル名取得
 var readIcons = new ReadIcons_1.default();
 var startServer_1 = __webpack_require__(/*! ./startServer */ "./src/main/startServer.ts");
-var readSitaraba_1 = __importDefault(__webpack_require__(/*! ./readBBS/readSitaraba */ "./src/main/readBBS/readSitaraba.ts")); // したらば読み込み用モジュール
-var Read5ch_1 = __importDefault(__webpack_require__(/*! ./readBBS/Read5ch */ "./src/main/readBBS/Read5ch.ts")); // 5ch互換板読み込み用モジュール
+var readSitaraba_1 = __importStar(__webpack_require__(/*! ./readBBS/readSitaraba */ "./src/main/readBBS/readSitaraba.ts")); // したらば読み込み用モジュール
+var Read5ch_1 = __importStar(__webpack_require__(/*! ./readBBS/Read5ch */ "./src/main/readBBS/Read5ch.ts")); // 5ch互換板読み込み用モジュール
 var sitaraba = new readSitaraba_1.default();
 var read5ch = new Read5ch_1.default();
 // 掲示板読み込みモジュール、一度決定したら使いまわすためにグローバル宣言
@@ -393,13 +403,19 @@ router.get('/', function (req, res, next) { return __awaiter(void 0, void 0, voi
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
+                electron_log_1.default.info('[getRes.js] access /');
                 threadUrl = globalThis.config.url;
                 resNum = globalThis.config.resNumber ? Number(globalThis.config.resNumber) : NaN;
+                electron_log_1.default.info("[getRes.js] threadUrl=" + threadUrl + " resNum=" + resNum);
+                if (!resNum) {
+                    res.send(JSON.stringify([]));
+                    return [2 /*return*/];
+                }
                 res.header('Content-Type', 'application/json; charset=UTF-8');
                 return [4 /*yield*/, exports.getRes(threadUrl, resNum)];
             case 1:
                 result = _a.sent();
-                result.shift();
+                result = result.filter(function (item) { return item.from !== 'system'; });
                 doms = result.map(function (item) { return startServer_1.createDom(item, 'server'); });
                 res.send(JSON.stringify(doms));
                 return [2 /*return*/];
@@ -409,7 +425,7 @@ router.get('/', function (req, res, next) { return __awaiter(void 0, void 0, voi
 /**
  * 掲示板のレスを取得する
  * @param threadUrl スレのURL
- * @param resNum この番号以降を取得する。指定しない場合は最新1件を取得。
+ * @param resNum この番号以降を取得する。指定しない場合は全件取得
  */
 exports.getRes = function (threadUrl, resNum) { return __awaiter(void 0, void 0, void 0, function () {
     var response, e_1;
@@ -441,6 +457,7 @@ exports.getRes = function (threadUrl, resNum) { return __awaiter(void 0, void 0,
                                     name: 'unacastより',
                                     imgUrl: './img/unacast.png',
                                     text: '掲示板が規定回数通信エラーになりました。設定を見直すか、掲示板URLを変更してください。',
+                                    from: 'system',
                                 },
                             ]];
                     }
@@ -456,8 +473,6 @@ exports.getRes = function (threadUrl, resNum) { return __awaiter(void 0, void 0,
 var analysBBSName = function (threadUrl) {
     // したらばドメイン名
     var sitarabaDomain = 'jbbs.shitaraba.net';
-    // こんな感じで必要に応じて増やしていけばいいんじゃね？
-    // const dokkanoBBS = 'dokka.bbs.com';
     if (threadUrl.indexOf(sitarabaDomain) !== -1) {
         // URLにしたらばドメイン名が入ってればしたらば
         return sitaraba;
@@ -466,6 +481,134 @@ var analysBBSName = function (threadUrl) {
     // この辺も対応ドメインリストとか作ってちゃんと判定したほうがよさそう
     return read5ch;
 };
+exports.getThreadList = function (boardUrl) { return __awaiter(void 0, void 0, void 0, function () {
+    var sitarabaDomain;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                sitarabaDomain = 'jbbs.shitaraba.net';
+                if (!(boardUrl.indexOf(sitarabaDomain) !== -1)) return [3 /*break*/, 2];
+                return [4 /*yield*/, readSitaraba_1.readBoard(boardUrl)];
+            case 1: 
+            // URLにしたらばドメイン名が入ってればしたらば
+            //
+            return [2 /*return*/, _a.sent()];
+            case 2: return [4 /*yield*/, Read5ch_1.readBoard(boardUrl)];
+            case 3: return [2 /*return*/, _a.sent()];
+        }
+    });
+}); };
+/** レスを投稿 */
+exports.postResponse = function (hostname, threadNumber, boardId, message) { return __awaiter(void 0, void 0, void 0, function () {
+    var sitarabaDomain;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                electron_log_1.default.info("[postResponse] " + hostname + " " + threadNumber + " " + boardId);
+                sitarabaDomain = 'jbbs.shitaraba.net';
+                if (!(hostname.indexOf(sitarabaDomain) !== -1)) return [3 /*break*/, 2];
+                return [4 /*yield*/, readSitaraba_1.postRes(hostname, threadNumber, boardId, message)];
+            case 1: 
+            // URLにしたらばドメイン名が入ってればしたらば
+            return [2 /*return*/, _a.sent()];
+            case 2: return [4 /*yield*/, Read5ch_1.postRes(hostname, threadNumber, boardId, message)];
+            case 3: return [2 /*return*/, _a.sent()];
+        }
+    });
+}); };
+/**
+ * スレのURLから板情報を取得
+ * @param threadUrl スレのURL
+ */
+exports.threadUrlToBoardInfo = function (threadUrl) { return __awaiter(void 0, void 0, void 0, function () {
+    var sitarabaDomain, result, boardUrl, tempUrl, encoding, options, response, str, e_2;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                sitarabaDomain = 'jbbs.shitaraba.net';
+                result = {
+                    status: 'ng',
+                    boardUrl: threadUrl,
+                    boardName: '★取得失敗★',
+                };
+                boardUrl = '';
+                tempUrl = threadUrl;
+                tempUrl = tempUrl.replace(/\/l\d+$/, '/');
+                if (!tempUrl.match(/.*\/$/)) {
+                    tempUrl += '/';
+                }
+                encoding = '';
+                if (tempUrl.indexOf(sitarabaDomain) !== -1) {
+                    // スレ: https://jbbs.shitaraba.net/bbs/read.cgi/game/51638/1581839266/
+                    // 板: https://jbbs.shitaraba.net/game/51638/
+                    // 設定: https://jbbs.shitaraba.net/bbs/api/setting.cgi/game/51638/
+                    encoding = 'EUC-JP';
+                    // 板かスレか判定
+                    if (tempUrl.match('read.cgi')) {
+                        // スレ
+                        tempUrl = tempUrl.replace('jbbs.shitaraba.net/bbs/read.cgi/', '').replace(/https?:\/\//, '');
+                        tempUrl = tempUrl.match(/(.+)\/.+\/$/)[1] + '/';
+                        boardUrl = "http://jbbs.shitaraba.net/" + tempUrl;
+                        tempUrl = "http://jbbs.shitaraba.net/bbs/api/setting.cgi/" + tempUrl;
+                    }
+                    else {
+                        // 板
+                        boardUrl = tempUrl;
+                        tempUrl = tempUrl.replace('jbbs.shitaraba.net/', '').replace(/https?:\/\//, '');
+                        tempUrl = "http://jbbs.shitaraba.net/bbs/api/setting.cgi/" + tempUrl;
+                    }
+                }
+                else {
+                    // スレ: https://bbs.jpnkn.com/test/read.cgi/pasta04/1586794623/
+                    // 板: https://bbs.jpnkn.com/pasta04/
+                    // 設定: https://bbs.jpnkn.com/pasta04/SETTING.TXT
+                    encoding = 'SHIFT-JIS';
+                    // 板かスレか判定
+                    if (tempUrl.match(/test\/read.cgi\/.+\/.+\//)) {
+                        // スレ
+                        tempUrl = tempUrl.replace('test/read.cgi/', '').match(/(.+)\/.+\/$/)[1] + "/";
+                        boardUrl = tempUrl;
+                        tempUrl = tempUrl + "SETTING.TXT";
+                    }
+                    else {
+                        // 板
+                        boardUrl = tempUrl;
+                        tempUrl = tempUrl + "SETTING.TXT";
+                    }
+                }
+                console.log("[tempUrl] " + tempUrl + " [boardUrl] " + boardUrl);
+                _a.label = 1;
+            case 1:
+                _a.trys.push([1, 3, , 4]);
+                options = {
+                    url: tempUrl,
+                    method: 'GET',
+                    timeout: 3 * 1000,
+                    responseType: 'arraybuffer',
+                };
+                return [4 /*yield*/, axios_1.default(options)];
+            case 2:
+                response = _a.sent();
+                if (response.status < 400) {
+                    str = iconv_lite_1.default.decode(Buffer.from(response.data), encoding);
+                    str.split(/\n/g).map(function (text) {
+                        var matched = text.match(/BBS_TITLE=(.+)/);
+                        if (matched) {
+                            result.boardName = matched[1];
+                            result.boardUrl = boardUrl;
+                            result.status = 'ok';
+                        }
+                    });
+                }
+                return [3 /*break*/, 4];
+            case 3:
+                e_2 = _a.sent();
+                electron_log_1.default.error('なんかエラー');
+                return [3 /*break*/, 4];
+            case 4: return [2 /*return*/, result];
+        }
+    });
+}); };
 exports.default = router;
 
 
@@ -580,6 +723,7 @@ var JpnknFast = /** @class */ (function (_super) {
                         threadTitle: '',
                         id: '',
                         email: res[1],
+                        from: 'jpnkn',
                     };
                     _this.emit('comment', item);
                 };
@@ -1301,112 +1445,182 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * 5ch互換BBS読み込み用モジュール
  */
 var axios_1 = __importDefault(__webpack_require__(/*! axios */ "axios"));
-var https_1 = __importDefault(__webpack_require__(/*! https */ "https"));
 var iconv_lite_1 = __importDefault(__webpack_require__(/*! iconv-lite */ "iconv-lite")); // 文字コード変換用パッケージ
 var electron_log_1 = __importDefault(__webpack_require__(/*! electron-log */ "electron-log"));
-// ステータスコード304 _NotModified
+var encoding_japanese_1 = __importDefault(__webpack_require__(/*! encoding-japanese */ "encoding-japanese"));
+/** ステータスコード304 _NotModified */
 var NOT_MODIFIED = '304';
 var RANGE_NOT_SATISFIABLE = '416';
-// 最終取得スレッド
-var lastThreadUrl = '';
-// 最終レス番号
-var lastResNumber = 0;
-//最終更新日時
-var lastModified = null;
-// 最終バイト数
-var lastByte = 0;
+/** スレ一覧を読み込む */
+exports.readBoard = function (boardUrl) { return __awaiter(void 0, void 0, void 0, function () {
+    var requestUrl, list, options, response, str, error_1;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                requestUrl = boardUrl + "subject.txt";
+                list = [];
+                options = {
+                    url: requestUrl,
+                    method: 'GET',
+                    timeout: 3 * 1000,
+                    responseType: 'arraybuffer',
+                };
+                _a.label = 1;
+            case 1:
+                _a.trys.push([1, 3, , 4]);
+                return [4 /*yield*/, axios_1.default(options)];
+            case 2:
+                response = _a.sent();
+                str = iconv_lite_1.default.decode(Buffer.from(response.data), 'Shift_JIS');
+                // パースして格納
+                list.push.apply(list, str
+                    .split('\n')
+                    .filter(function (item) { return item; })
+                    .map(function (line) { return parseThreadList(boardUrl, line); }));
+                return [3 /*break*/, 4];
+            case 3:
+                error_1 = _a.sent();
+                if (error_1.status == NOT_MODIFIED) {
+                    electron_log_1.default.error('[Read5ch.js]5ch系BBS板取得APIリクエストエラー、NOT_MODIFIED');
+                }
+                else if (error_1.status == RANGE_NOT_SATISFIABLE) {
+                    electron_log_1.default.error('[Read5ch.js]5ch系BBS板取得APIリクエストエラー、RANGE_NOT_SATISFIABLE');
+                }
+                else {
+                    electron_log_1.default.error('[Read5ch.js]5ch系BBS板取得APIリクエストエラー、message=' + error_1.message);
+                }
+                throw new Error('connection error');
+            case 4: return [2 /*return*/, list];
+        }
+    });
+}); };
 /**
- * コンストラクタ
- *
+ * レスを投稿する
+ * @param hostname ホスト名。https://hogehoge/
+ * @param threadNumber スレ番号 12345678
+ * @param boardId 板ID pasta04
+ * @param message 投稿文
  */
+exports.postRes = function (hostname, threadNumber, boardId, message) { return __awaiter(void 0, void 0, void 0, function () {
+    var unicodeArray, i, sjisArray, encodedKeyword, result;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                unicodeArray = [];
+                for (i = 0; i < message.length; i++) {
+                    unicodeArray.push(message.charCodeAt(i));
+                }
+                sjisArray = encoding_japanese_1.default.convert(unicodeArray, {
+                    to: 'SJIS',
+                    from: 'UNICODE',
+                });
+                encodedKeyword = encoding_japanese_1.default.urlEncode(sjisArray);
+                // log.info(encodeURIComponent.toString());
+                electron_log_1.default.info(hostname + "test/bbs.cgi");
+                electron_log_1.default.info("FROM=&MESSAGE=" + encodedKeyword + "&mail=sage&key=" + threadNumber + "&bbs=" + boardId);
+                return [4 /*yield*/, axios_1.default.post(hostname + "test/bbs.cgi", "FROM=&MESSAGE=" + encodedKeyword + "&mail=sage&key=" + threadNumber + "&bbs=" + boardId, {
+                        headers: {
+                            Accept: '*/*',
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'Accept-Encoding': 'gzip, deflate, br',
+                            Cookie: 'MAIL="sage"; NAME=""',
+                        },
+                        withCredentials: true,
+                    })];
+            case 1:
+                result = _a.sent();
+                return [2 /*return*/];
+        }
+    });
+}); };
 var Read5ch = /** @class */ (function () {
     function Read5ch() {
         var _this = this;
-        // constructor() {}
         /**
          * レス読み込み
          * 引数で指定した板からレスを読む
-         * レス番号を指定していない場合は最新1件取得
+         * レス番号を指定していない場合は全件取得
          * @param threadUrl スレURL
          * @param resNum レス番号
          */
         this.read = function (threadUrl, resNum) { return __awaiter(_this, void 0, void 0, function () {
-            var rep, requestUrl, range, options, instance, responseJson, response, headers, str, error_1;
+            var rep, requestUrl, range, options, responseJson, response, headers, str, result, error_2;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
                         // log.info(`[Read5ch] threadUrl=${threadUrl} resNum=${resNum}`);
-                        // 板や最終日レス番号がかわったら最初からとり直す(lastmodifiと rangeのリセット)
-                        if (threadUrl != lastThreadUrl || Number.isNaN(resNum) || resNum < lastResNumber) {
-                            lastThreadUrl = threadUrl;
-                            lastModified = null;
-                            lastByte = 0;
-                            console.trace('[Read5ch.js]resete!!!!!!!!!!!!!!!!');
+                        // 板や最終レス番号がかわったら最初からとり直す(lastmodifiと rangeのリセット)
+                        if (threadUrl != this.lastThreadUrl || Number.isNaN(resNum) || resNum < this.lastResNumber) {
+                            this.lastThreadUrl = threadUrl;
+                            this.lastModified = null;
+                            this.lastByte = 0;
+                            console.trace('[Read5ch.js]reset!!!!!!!!!!!!!!!!');
                         }
                         else {
-                            console.trace('noresete');
+                            console.trace('noreset');
                         }
                         rep = /\/test\/read.cgi(\/.+)(\/.+)\//;
                         requestUrl = threadUrl.replace(rep, '$1/dat$2.dat');
-                        range = lastByte;
+                        range = this.lastByte;
                         options = {
                             url: requestUrl,
                             method: 'GET',
                             timeout: 3 * 1000,
                             responseType: 'arraybuffer',
                             headers: {
-                                'if-modified-since': lastModified,
+                                'if-modified-since': this.lastModified,
                                 range: 'bytes=' + range + '-',
                             },
                         };
-                        instance = axios_1.default.create({
-                            httpsAgent: new https_1.default.Agent({
-                                rejectUnauthorized: false,
-                            }),
-                        });
                         _a.label = 1;
                     case 1:
                         _a.trys.push([1, 3, , 4]);
-                        return [4 /*yield*/, instance(options)];
+                        return [4 /*yield*/, axios_1.default(options)];
                     case 2:
                         response = _a.sent();
                         headers = response.headers;
                         // LastModifiedとRange更新処理
                         if (headers['last-modified'] != null) {
-                            lastModified = headers['last-modified'];
+                            this.lastModified = headers['last-modified'];
                         }
                         str = iconv_lite_1.default.decode(Buffer.from(response.data), 'Shift_JIS');
                         // レスポンスオブジェクト作成、content-rangeがある場合とない場合で処理を分ける
-                        if (headers['content-range'] == null || lastByte == 0) {
+                        if (headers['content-range'] == null || this.lastByte == 0) {
                             console.trace('[Read5ch.read]content-range=' + headers['content-range']);
-                            responseJson = purseNewResponse(str, resNum);
+                            result = parseNewResponse(str, resNum);
+                            responseJson = result.result;
+                            this.lastResNumber = result.lastResNumber;
                         }
                         else {
                             responseJson = purseDiffResponse(str, resNum);
                         }
                         // 取得バイト数表示
                         if (headers['content-length'] != null && responseJson.length > 0) {
-                            lastByte = lastByte + parseInt(headers['content-length']) - 1;
-                            console.trace('[Read5ch.read]lastByte=' + lastByte);
+                            this.lastByte = this.lastByte + parseInt(headers['content-length']) - 1;
+                            console.trace('[Read5ch.read]lastByte=' + this.lastByte);
                         }
                         return [3 /*break*/, 4];
                     case 3:
-                        error_1 = _a.sent();
+                        error_2 = _a.sent();
                         responseJson = [];
-                        if (error_1.status == NOT_MODIFIED) {
+                        if (error_2.status == NOT_MODIFIED) {
                             electron_log_1.default.error('[Read5ch.js]5ch系BBSレス取得APIリクエストエラー、NOT_MODIFIED');
                         }
-                        else if (error_1.status == RANGE_NOT_SATISFIABLE) {
+                        else if (error_2.status == RANGE_NOT_SATISFIABLE) {
                             electron_log_1.default.error('[Read5ch.js]5ch系BBSレス取得APIリクエストエラー、RANGE_NOT_SATISFIABLE');
                         }
                         else {
-                            electron_log_1.default.error('[Read5ch.js]5ch系BBSレス取得APIリクエストエラー、message=' + error_1.message);
+                            electron_log_1.default.error('[Read5ch.js]5ch系BBSレス取得APIリクエストエラー、message=' + error_2.message);
                         }
                         throw new Error('connection error');
                     case 4: return [2 /*return*/, responseJson];
                 }
             });
         }); };
+        this.lastThreadUrl = '';
+        this.lastResNumber = 0;
+        this.lastModified = null;
+        this.lastByte = 0;
     }
     return Read5ch;
 }());
@@ -1416,7 +1630,7 @@ var Read5ch = /** @class */ (function () {
  * @param res 板から返却されたdat
  * @param resNum リクエストされたレス番号
  */
-var purseNewResponse = function (res, resNum) {
+var parseNewResponse = function (res, resNum) {
     // 結果を格納する配列
     var result = [];
     // レス番号
@@ -1425,29 +1639,30 @@ var purseNewResponse = function (res, resNum) {
     var resArray = res.split(/\r\n|\r|\n/);
     // 新着なしなら戻る。
     if (resArray.length === 0) {
-        return result;
+        return { result: result, lastResNumber: resNum };
     }
     // 配列の最後に空の要素が入ることがあるので取り除く
     if (resArray[resArray.length - 1].length === 0) {
         resArray.pop();
     }
-    // レス指定なしの場合最後の1件取得
-    if (Number.isNaN(resNum)) {
-        num = resArray.length - 1;
+    // レス指定なしの場合全件取得
+    if (Number.isNaN(resNum) || resNum < 1) {
+        electron_log_1.default.info("resNum: " + resNum + " ");
+        num = 0;
     }
     else {
         num = resNum - 1;
     }
+    // log.info(`num = ${num}  resArrayLength = ${resArray.length}   ${resArray[num]}`);
     // 1行ごとにパースする
     for (; num < resArray.length; num++) {
         // パースメソッド呼び出し
         if (resArray[num].length > 0) {
-            result.push(purseResponse(resArray[num], num + 1));
+            result.push(parseResponse(resArray[num], num + 1));
         }
     }
-    lastResNumber = num + 1;
     // パースしたオブジェクトの配列を返却
-    return result;
+    return { result: result, lastResNumber: num + 1 };
 };
 /**
  * 取得したレスポンス（複数）のパース
@@ -1477,7 +1692,7 @@ var purseDiffResponse = function (res, resNum) {
     resArray.forEach(function (value) {
         //パースメソッド呼び出し
         if (value.length > 0) {
-            result.push(purseResponse(value, num));
+            result.push(parseResponse(value, num));
             num++;
         }
     });
@@ -1485,12 +1700,38 @@ var purseDiffResponse = function (res, resNum) {
     return result;
 };
 /**
- * レスポンスのパース
- * Jsonオブジェクトを返却する
+ * スレ一覧のパース
  * @param String // res レスポンス1レス
  * @param Integer // num レス番（0スタート）
  */
-var purseResponse = function (res, num) {
+var parseThreadList = function (boardUrl, subjectLine) {
+    var _a, _b, _c, _d, _e;
+    //APIの返却値を<>で分割
+    //レスの要素
+    //0:dat名
+    //1:スレタイ（レス数）
+    var splitRes = subjectLine.split('<>');
+    console.log(splitRes);
+    var datNum = splitRes[0].replace('.dat', '');
+    var hostname = (_b = (_a = boardUrl.match(/^https?:\/\/.+?\//)) === null || _a === void 0 ? void 0 : _a[0]) !== null && _b !== void 0 ? _b : '';
+    var boardName = boardUrl.replace(hostname, '');
+    var url = hostname + "test/read.cgi/" + boardName + datNum + "/";
+    var titleTemp = splitRes[1];
+    var name = (_d = (_c = titleTemp.match(/(.*?) \(\d+\)$/)) === null || _c === void 0 ? void 0 : _c[1]) !== null && _d !== void 0 ? _d : '★取得失敗★';
+    var resNum = Number((_e = titleTemp.match(/\(\d+\)$/)) === null || _e === void 0 ? void 0 : _e[0].replace(/\(|\)/g, ''));
+    // オブジェクトを返却
+    return {
+        url: url,
+        name: name,
+        resNum: resNum,
+    };
+};
+/**
+ * レスのパース
+ * @param res レスポンス1レス
+ * @param num レス番
+ */
+var parseResponse = function (res, num) {
     //APIの返却値を<>で分割
     //レスの要素
     //0:名前
@@ -1509,9 +1750,10 @@ var purseResponse = function (res, num) {
         email: splitRes[1],
         date: date,
         text: splitRes[3],
-        // threadTitle: splitRes[4],
+        threadTitle: splitRes[4] ? splitRes[4] : '',
         id: id,
         imgUrl: '',
+        from: 'bbs',
     };
     // オブジェクトを返却
     return resJson;
@@ -1574,24 +1816,95 @@ Object.defineProperty(exports, "__esModule", { value: true });
  * したらば読み込み用モジュール
  */
 var axios_1 = __importDefault(__webpack_require__(/*! axios */ "axios"));
-var https_1 = __importDefault(__webpack_require__(/*! https */ "https"));
 var iconv_lite_1 = __importDefault(__webpack_require__(/*! iconv-lite */ "iconv-lite")); // 文字コード変換用パッケージ
+var electron_log_1 = __importDefault(__webpack_require__(/*! electron-log */ "electron-log"));
+var encoding_japanese_1 = __importDefault(__webpack_require__(/*! encoding-japanese */ "encoding-japanese"));
+/** スレ一覧を読み込む */
+exports.readBoard = function (boardUrl) { return __awaiter(void 0, void 0, void 0, function () {
+    var requestUrl, list, options, response, str, error_1;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                requestUrl = boardUrl + "subject.txt";
+                list = [];
+                options = {
+                    url: requestUrl,
+                    method: 'GET',
+                    timeout: 3 * 1000,
+                    responseType: 'arraybuffer',
+                };
+                _a.label = 1;
+            case 1:
+                _a.trys.push([1, 3, , 4]);
+                return [4 /*yield*/, axios_1.default(options)];
+            case 2:
+                response = _a.sent();
+                str = iconv_lite_1.default.decode(Buffer.from(response.data), 'EUC-JP');
+                // パースして格納
+                list.push.apply(list, str
+                    .split('\n')
+                    .filter(function (item) { return item; })
+                    .map(function (line) { return parseThreadList(boardUrl, line); }));
+                return [3 /*break*/, 4];
+            case 3:
+                error_1 = _a.sent();
+                electron_log_1.default.error('[Read5ch.js]5ch系BBS板取得APIリクエストエラー、message=' + error_1.message);
+                throw new Error('connection error');
+            case 4: return [2 /*return*/, list];
+        }
+    });
+}); };
 /**
- * コンストラクタ
+ * レスを投稿する
+ * @param hostname ホスト名。https://hogehoge/
+ * @param threadNumber スレ番号 12345678
+ * @param boardId 板ID pasta04
+ * @param message 投稿文
  */
+exports.postRes = function (hostname, threadNumber, boardId, message) { return __awaiter(void 0, void 0, void 0, function () {
+    var unicodeArray, i, sjisArray, encodedKeyword, dir, bbs, result;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                unicodeArray = [];
+                for (i = 0; i < message.length; i++) {
+                    unicodeArray.push(message.charCodeAt(i));
+                }
+                sjisArray = encoding_japanese_1.default.convert(unicodeArray, {
+                    to: 'EUCJP',
+                    from: 'UNICODE',
+                });
+                encodedKeyword = encoding_japanese_1.default.urlEncode(sjisArray);
+                dir = boardId.split('/')[0];
+                bbs = boardId.split('/')[1];
+                return [4 /*yield*/, axios_1.default.post(hostname + "bbs/write.cgi/" + boardId + "/" + threadNumber + "/", "dir=" + dir + "&bbs=" + bbs + "&key=" + threadNumber + "&time=" + new Date().getTime() + "&name=&MAIL=sage&MESSAGE=" + encodedKeyword, {
+                        headers: {
+                            Accept: '*/*',
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'Accept-Encoding': 'gzip, deflate, br',
+                            Referer: "" + hostname + boardId + "/",
+                            Cookie: 'MAIL="sage"; NAME=""',
+                        },
+                        withCredentials: true,
+                    })];
+            case 1:
+                result = _a.sent();
+                return [2 /*return*/];
+        }
+    });
+}); };
 var ReadSitaraba = /** @class */ (function () {
     function ReadSitaraba() {
-        // constructor() {}
         var _this = this;
         /**
          * レス読み込み
          * @description 引数で指定した板からレスを読む。
-         * @description レス番号を指定していない場合は最新1件取得
+         * @description レス番号を指定していない場合は全件取得
          * @param threadUrl スレURL
          * @param resNum レス番号
          */
         this.read = function (threadUrl, resNum) { return __awaiter(_this, void 0, void 0, function () {
-            var requestUrl, options, instance, response, str, responseJson;
+            var requestUrl, options, response, str, responseJson, e_1;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -1601,29 +1914,29 @@ var ReadSitaraba = /** @class */ (function () {
                             requestUrl += resNum + '-';
                         }
                         else {
-                            // レス番号がない場合最新の1件取得
-                            requestUrl += 'l1';
+                            // レス番号がない場合全県取得
+                            requestUrl += '';
                         }
                         options = {
                             url: requestUrl,
                             method: 'GET',
                             responseType: 'arraybuffer',
                             timeout: 3 * 1000,
-                            headers: {
-                                Accept: '*/*',
-                            },
                         };
-                        instance = axios_1.default.create({
-                            httpsAgent: new https_1.default.Agent({
-                                rejectUnauthorized: false,
-                            }),
-                        });
-                        return [4 /*yield*/, instance(options)];
+                        _a.label = 1;
                     case 1:
+                        _a.trys.push([1, 3, , 4]);
+                        return [4 /*yield*/, axios_1.default(options)];
+                    case 2:
                         response = _a.sent();
                         str = decodeUnicodeStr(iconv_lite_1.default.decode(Buffer.from(response.data), 'EUC-JP'));
-                        responseJson = purseNewResponse(str);
+                        responseJson = parseNewResponse(str);
                         return [2 /*return*/, responseJson];
+                    case 3:
+                        e_1 = _a.sent();
+                        // 通信エラー
+                        throw new Error("\u901A\u4FE1\u30A8\u30E9\u30FC: " + requestUrl);
+                    case 4: return [2 /*return*/];
                 }
             });
         }); };
@@ -1634,7 +1947,7 @@ var ReadSitaraba = /** @class */ (function () {
  * 取得したレスポンス（複数）のパース
  * @param res
  */
-var purseNewResponse = function (res) {
+var parseNewResponse = function (res) {
     //結果を格納する配列
     var result = [];
     // 新着レスを改行ごとにSplitする
@@ -1647,6 +1960,34 @@ var purseNewResponse = function (res) {
         }
     });
     return result;
+};
+/**
+ * スレ一覧のパース
+ * @param String // res レスポンス1レス
+ * @param Integer // num レス番（0スタート）
+ */
+var parseThreadList = function (boardUrl, subjectLine) {
+    var _a, _b, _c, _d, _e;
+    //APIの返却値を<>で分割
+    //レスの要素
+    //0:dat名
+    //1:スレタイ（レス数）
+    var splitRes = subjectLine.split(',');
+    // console.log(splitRes);
+    var datNum = splitRes[0].replace('.cgi', '');
+    var hostname = (_b = (_a = boardUrl.match(/^https?:\/\/.+?\//)) === null || _a === void 0 ? void 0 : _a[0]) !== null && _b !== void 0 ? _b : '';
+    var boardName = boardUrl.replace(hostname, '');
+    var url = hostname + "bbs/read.cgi/" + boardName + datNum + "/";
+    // log.info(`${hostname}  ${boardName} ${datNum}`);
+    var titleTemp = splitRes[1];
+    var name = (_d = (_c = titleTemp.match(/(.*?)\(\d+\)$/)) === null || _c === void 0 ? void 0 : _c[1]) !== null && _d !== void 0 ? _d : '★取得失敗★';
+    var resNum = Number((_e = titleTemp.match(/\(\d+\)$/)) === null || _e === void 0 ? void 0 : _e[0].replace(/\(|\)/g, ''));
+    // オブジェクトを返却
+    return {
+        url: url,
+        name: name,
+        resNum: resNum,
+    };
 };
 /**
  * レスポンスのパース
@@ -1670,9 +2011,10 @@ var purseResponse = function (res) {
         email: splitRes[2],
         date: splitRes[3],
         text: splitRes[4],
-        // threadTitle: splitRes[5],
+        threadTitle: splitRes[5] ? splitRes[5] : '',
         id: splitRes[6],
         imgUrl: '',
+        from: 'bbs',
     };
     // オブジェクトを返却
     return resJson;
@@ -1790,7 +2132,7 @@ var serverId = 0;
 /**
  * 設定の適用
  */
-electron_1.ipcMain.on(const_1.electronEvent['apply-config'], function (event, config) { return __awaiter(void 0, void 0, void 0, function () {
+electron_1.ipcMain.on(const_1.electronEvent.APPLY_CONFIG, function (event, config) { return __awaiter(void 0, void 0, void 0, function () {
     var isChangedUrl, isChangeSePath, ret;
     return __generator(this, function (_a) {
         switch (_a.label) {
@@ -1814,7 +2156,7 @@ electron_1.ipcMain.on(const_1.electronEvent['apply-config'], function (event, co
                 ret = _a.sent();
                 console.log(ret);
                 if (ret.length === 0) {
-                    globalThis.electron.mainWindow.webContents.send(const_1.electronEvent['show-alert'], '掲示板URLがおかしそうです');
+                    globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.SHOW_ALERT, '掲示板URLがおかしそうです');
                     return [2 /*return*/];
                 }
                 globalThis.electron.threadNumber = Number(ret[ret.length - 1].number);
@@ -1829,10 +2171,10 @@ electron_1.ipcMain.on(const_1.electronEvent['apply-config'], function (event, co
 /**
  * サーバー起動
  */
-electron_1.ipcMain.on(const_1.electronEvent['start-server'], function (event, config) { return __awaiter(void 0, void 0, void 0, function () {
+electron_1.ipcMain.on(const_1.electronEvent.START_SERVER, function (event, config) { return __awaiter(void 0, void 0, void 0, function () {
     var expressInstance, nico, jpn;
     return __generator(this, function (_a) {
-        globalThis.electron.chatWindow.webContents.send(const_1.electronEvent['clear-comment']);
+        globalThis.electron.chatWindow.webContents.send(const_1.electronEvent.CLEAR_COMMENT);
         globalThis.electron.threadNumber = 0;
         globalThis.electron.commentQueueList = [];
         globalThis.electron.threadConnectionError = 0;
@@ -1894,7 +2236,7 @@ electron_1.ipcMain.on(const_1.electronEvent['start-server'], function (event, co
                 });
             });
             nico.on('comment', function (event) {
-                globalThis.electron.commentQueueList.push({ imgUrl: './img/niconico.png', number: event.number, name: event.name, text: event.comment });
+                globalThis.electron.commentQueueList.push({ imgUrl: './img/niconico.png', number: event.number, name: event.name, text: event.comment, from: 'niconico' });
                 globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, {
                     commentType: 'niconico',
                     category: 'status',
@@ -2001,7 +2343,7 @@ exports.findSeList = function () { return __awaiter(void 0, void 0, void 0, func
             case 3: return [3 /*break*/, 5];
             case 4:
                 e_1 = _a.sent();
-                globalThis.electron.mainWindow.webContents.send(const_1.electronEvent['show-alert'], '着信音のパスがおかしそうです');
+                globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.SHOW_ALERT, '着信音のパスがおかしそうです');
                 return [3 /*break*/, 5];
             case 5: return [2 /*return*/];
         }
@@ -2036,7 +2378,7 @@ var startTwitchChat = function () { return __awaiter(void 0, void 0, void 0, fun
                 msg.emotes.map(function (emote) {
                     text = text.replace(emote.code, "<img src=\"https://static-cdn.jtvnw.net/emoticons/v1/" + emote.id + "/1.0\" />");
                 });
-                globalThis.electron.commentQueueList.push({ imgUrl: imgUrl, name: name, text: text });
+                globalThis.electron.commentQueueList.push({ imgUrl: imgUrl, name: name, text: text, from: 'twitch' });
             });
             globalThis.electron.twitchChat = twitchChat;
             // なんかエラーがあった
@@ -2098,7 +2440,7 @@ var startYoutubeChat = function () { return __awaiter(void 0, void 0, void 0, fu
                     }
                 }
                 // const text = escapeHtml((comment.message[0] as any).text);
-                return { imgUrl: imgUrl, name: name, text: text };
+                return { imgUrl: imgUrl, name: name, text: text, from: 'youtube' };
             };
             // 初期チャット受信
             globalThis.electron.youtubeChat.on('firstComment', function (comment) {
@@ -2130,7 +2472,7 @@ var startYoutubeChat = function () { return __awaiter(void 0, void 0, void 0, fu
 /**
  * サーバー停止
  */
-electron_1.ipcMain.on(const_1.electronEvent['stop-server'], function (event) {
+electron_1.ipcMain.on(const_1.electronEvent.STOP_SERVER, function (event) {
     console.log('[startServer]server stop');
     server.close();
     aWss.close();
@@ -2141,6 +2483,7 @@ electron_1.ipcMain.on(const_1.electronEvent['stop-server'], function (event) {
     globalThis.electron.commentQueueList = [];
     // レス取得の停止
     threadIntervalEvent = false;
+    globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'bbs', category: 'title', message: "" });
     globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'bbs', category: 'status', message: "connection end" });
     // Twitchチャットの停止
     if (globalThis.electron.twitchChat) {
@@ -2170,7 +2513,7 @@ electron_1.ipcMain.on(const_1.electronEvent['stop-server'], function (event) {
     }
 });
 var getResInterval = function (exeId) { return __awaiter(void 0, void 0, void 0, function () {
-    var resNum, isfirst, result, temp, _loop_1, _i, result_1, item;
+    var resNum, isfirst, result, threadTitle, temp, _loop_1, _i, result_1, item;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -2185,7 +2528,7 @@ var getResInterval = function (exeId) { return __awaiter(void 0, void 0, void 0,
                 if (!globalThis.electron.threadNumber) {
                     // 初回
                     isfirst = true;
-                    resNum = globalThis.config.resNumber ? Number(globalThis.config.resNumber) : NaN;
+                    resNum = NaN;
                 }
                 else {
                     // 2回目以降
@@ -2194,9 +2537,14 @@ var getResInterval = function (exeId) { return __awaiter(void 0, void 0, void 0,
                 return [4 /*yield*/, getRes_1.getRes(globalThis.config.url, resNum)];
             case 3:
                 result = _a.sent();
-                // 指定したレス番は除外対象
-                if (!isfirst)
-                    result.shift();
+                if (isfirst && result.length > 0) {
+                    threadTitle = result[0].threadTitle;
+                    globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'bbs', category: 'title', message: threadTitle });
+                }
+                // 指定したレス番以下は除外対象
+                if (resNum) {
+                    result = result.filter(function (res) { return (res.number ? Number(res.number) > resNum : true); });
+                }
                 if (result.length > 0 && result[result.length - 1].number) {
                     globalThis.electron.threadNumber = Number(result[result.length - 1].number);
                     if (isfirst) {
@@ -2225,16 +2573,19 @@ var getResInterval = function (exeId) { return __awaiter(void 0, void 0, void 0,
                     // 番号が無くて結果が入ってるのは通信エラーメッセージ
                     sendDomForChatWindow(result);
                 }
-                return [4 /*yield*/, notifyThreadResLimit()];
+                return [4 /*yield*/, checkAutoMoveThread()];
             case 4:
                 _a.sent();
-                if (!(threadIntervalEvent && exeId === serverId)) return [3 /*break*/, 6];
-                return [4 /*yield*/, util_1.sleep(globalThis.config.interval * 1000)];
+                return [4 /*yield*/, notifyThreadResLimit()];
             case 5:
                 _a.sent();
+                if (!(threadIntervalEvent && exeId === serverId)) return [3 /*break*/, 7];
+                return [4 /*yield*/, util_1.sleep(globalThis.config.interval * 1000)];
+            case 6:
+                _a.sent();
                 getResInterval(exeId);
-                _a.label = 6;
-            case 6: return [2 /*return*/];
+                _a.label = 7;
+            case 7: return [2 /*return*/];
         }
     });
 }); };
@@ -2244,16 +2595,17 @@ var notifyThreadResLimit = function () { return __awaiter(void 0, void 0, void 0
         switch (_a.label) {
             case 0:
                 if (!(globalThis.config.notifyThreadResLimit > 0 && globalThis.electron.threadNumber >= globalThis.config.notifyThreadResLimit)) return [3 /*break*/, 2];
-                globalThis.electron.commentQueueList.push({
-                    name: 'unacastより',
-                    imgUrl: './img/unacast.png',
-                    text: "\u30EC\u30B9\u304C" + globalThis.config.notifyThreadResLimit + "\u3092\u8D85\u3048\u307E\u3057\u305F\u3002\u6B21\u30B9\u30EC\u3092\u7ACB\u3066\u3066\u304F\u3060\u3055\u3044\u3002",
-                });
-                // TODO: 次スレ検索ポーリング処理を走らせる
+                sendDomForChatWindow([
+                    {
+                        name: 'unacastより',
+                        imgUrl: './img/unacast.png',
+                        text: "\u30EC\u30B9\u304C" + globalThis.config.notifyThreadResLimit + "\u3092\u8D85\u3048\u307E\u3057\u305F\u3002\u6B21\u30B9\u30EC\u3092\u7ACB\u3066\u3066\u304F\u3060\u3055\u3044\u3002",
+                        from: 'system',
+                    },
+                ]);
                 // スレ立て中だと思うのでちょっと待つ
                 return [4 /*yield*/, util_1.sleep(10 * 1000)];
             case 1:
-                // TODO: 次スレ検索ポーリング処理を走らせる
                 // スレ立て中だと思うのでちょっと待つ
                 _a.sent();
                 _a.label = 2;
@@ -2261,8 +2613,41 @@ var notifyThreadResLimit = function () { return __awaiter(void 0, void 0, void 0
         }
     });
 }); };
+var checkAutoMoveThread = function () { return __awaiter(void 0, void 0, void 0, function () {
+    var threadUrl, boardInfo, threadList, target;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                if (!globalThis.config.moveThread)
+                    return [2 /*return*/];
+                if (globalThis.electron.threadNumber < 1000)
+                    return [2 /*return*/];
+                threadUrl = globalThis.config.url;
+                return [4 /*yield*/, getRes_1.threadUrlToBoardInfo(threadUrl)];
+            case 1:
+                boardInfo = _a.sent();
+                return [4 /*yield*/, getRes_1.getThreadList(boardInfo.boardUrl)];
+            case 2:
+                threadList = _a.sent();
+                target = threadList.find(function (item) { return item.url !== threadUrl && item.resNum < 1000; });
+                if (!target)
+                    return [2 /*return*/];
+                // 次スレが見つかったので移動する
+                globalThis.electron.commentQueueList.push({
+                    name: 'unacastより',
+                    imgUrl: './img/unacast.png',
+                    text: "\u30EC\u30B91000\u3092\u8D85\u3048\u307E\u3057\u305F\u3002\u6B21\u30B9\u30EC\u5019\u88DC \u300C" + target.name + "\u300D \u306B\u79FB\u52D5\u3057\u307E\u3059",
+                    from: 'system',
+                });
+                globalThis.config.url = target.url;
+                globalThis.electron.threadNumber = 0;
+                globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.SAVE_CONFIG, globalThis.config);
+                return [2 /*return*/];
+        }
+    });
+}); };
 /**
- * キューに溜まったコメントを処理する
+ * キューに溜まったコメントをブラウザに表示する
  */
 var taskScheduler = function (exeId) { return __awaiter(void 0, void 0, void 0, function () {
     var temp, comment;
@@ -2321,7 +2706,7 @@ var playYomiko = function (msg) { return __awaiter(void 0, void 0, void 0, funct
                     }
                 }
                 // 読み子が読んでる時間分相当待つ
-                globalThis.electron.mainWindow.webContents.send(const_1.electronEvent['wait-yomiko-time'], msg);
+                globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.WAIT_YOMIKO_TIME, msg);
                 _a.label = 1;
             case 1:
                 if (!isSpeaking) return [3 /*break*/, 3];
@@ -2333,7 +2718,7 @@ var playYomiko = function (msg) { return __awaiter(void 0, void 0, void 0, funct
         }
     });
 }); };
-electron_1.ipcMain.on(const_1.electronEvent['speaking-end'], function (event) { return (isSpeaking = false); });
+electron_1.ipcMain.on(const_1.electronEvent.SPEAKING_END, function (event) { return (isSpeaking = false); });
 var isPlayingSe = false;
 var playSe = function () { return __awaiter(void 0, void 0, void 0, function () {
     var wavfilepath;
@@ -2342,7 +2727,7 @@ var playSe = function () { return __awaiter(void 0, void 0, void 0, function () 
             case 0:
                 wavfilepath = globalThis.electron.seList[Math.floor(Math.random() * globalThis.electron.seList.length)];
                 isPlayingSe = true;
-                globalThis.electron.mainWindow.webContents.send(const_1.electronEvent['play-sound-start'], { wavfilepath: wavfilepath, volume: globalThis.config.playSeVolume });
+                globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.PLAY_SOUND_START, { wavfilepath: wavfilepath, volume: globalThis.config.playSeVolume });
                 _a.label = 1;
             case 1:
                 if (!isPlayingSe) return [3 /*break*/, 3];
@@ -2354,7 +2739,7 @@ var playSe = function () { return __awaiter(void 0, void 0, void 0, function () 
         }
     });
 }); };
-electron_1.ipcMain.on(const_1.electronEvent['play-sound-end'], function (event) { return (isPlayingSe = false); });
+electron_1.ipcMain.on(const_1.electronEvent.PLAY_SOUND_END, function (event) { return (isPlayingSe = false); });
 exports.createDom = function (message, type) {
     var domStr = "<li class=\"list-item\">";
     /** レス番とかの行が何かしら表示対象になっているか */
@@ -2493,7 +2878,7 @@ var sendDomForChatWindow = function (messageList) {
     })
         .map(function (message) { return exports.createDom(message, 'chat'); })
         .join('\n');
-    globalThis.electron.chatWindow.webContents.send(const_1.electronEvent['show-comment'], { config: globalThis.config, dom: domStr2 });
+    globalThis.electron.chatWindow.webContents.send(const_1.electronEvent.SHOW_COMMENT, { config: globalThis.config, dom: domStr2 });
 };
 var resetInitMessage = function () {
     if (globalThis.config.dispType === 1) {
@@ -3021,6 +3406,17 @@ module.exports = require("electron-window-state");
 
 /***/ }),
 
+/***/ "encoding-japanese":
+/*!************************************!*\
+  !*** external "encoding-japanese" ***!
+  \************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = require("encoding-japanese");
+
+/***/ }),
+
 /***/ "events":
 /*!*************************!*\
   !*** external "events" ***!
@@ -3062,17 +3458,6 @@ module.exports = require("express-ws");
 /***/ (function(module, exports) {
 
 module.exports = require("fs");
-
-/***/ }),
-
-/***/ "https":
-/*!************************!*\
-  !*** external "https" ***!
-  \************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-module.exports = require("https");
 
 /***/ }),
 

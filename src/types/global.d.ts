@@ -98,6 +98,8 @@ declare global {
     let notifyThreadConnectionErrorLimit: number;
     /** スレのレス数が超えた時の通知 */
     let notifyThreadResLimit: number;
+    /** 自動スレ移動 */
+    let moveThread: boolean;
     /**
      * レスの処理方法
      * - 0: 新着を優先

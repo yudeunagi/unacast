@@ -8,7 +8,7 @@ import { ipcMain } from 'electron';
 import expressWs from 'express-ws';
 import { readWavFiles, sleep, escapeHtml, unescapeHtml } from './util';
 // レス取得APIをセット
-import getRes, { getRes as getBbsResponse } from './getRes';
+import getRes, { getRes as getBbsResponse, getThreadList, threadUrlToBoardInfo } from './getRes';
 import { CommentItem, ImageItem } from './youtube-chat/parser';
 import bouyomiChan from './bouyomi-chan';
 import { spawn } from 'child_process';
@@ -38,7 +38,7 @@ let serverId = 0;
 /**
  * 設定の適用
  */
-ipcMain.on(electronEvent['apply-config'], async (event: any, config: typeof globalThis['config']) => {
+ipcMain.on(electronEvent.APPLY_CONFIG, async (event: any, config: typeof globalThis['config']) => {
   log.info('[apply-config] start');
   log.info(config);
 
@@ -61,7 +61,7 @@ ipcMain.on(electronEvent['apply-config'], async (event: any, config: typeof glob
     const ret = await getBbsResponse(globalThis.config.url, NaN);
     console.log(ret);
     if (ret.length === 0) {
-      globalThis.electron.mainWindow.webContents.send(electronEvent['show-alert'], '掲示板URLがおかしそうです');
+      globalThis.electron.mainWindow.webContents.send(electronEvent.SHOW_ALERT, '掲示板URLがおかしそうです');
       return;
     }
     globalThis.electron.threadNumber = Number(ret[ret.length - 1].number);
@@ -74,8 +74,8 @@ ipcMain.on(electronEvent['apply-config'], async (event: any, config: typeof glob
 /**
  * サーバー起動
  */
-ipcMain.on(electronEvent['start-server'], async (event: any, config: typeof globalThis['config']) => {
-  globalThis.electron.chatWindow.webContents.send(electronEvent['clear-comment']);
+ipcMain.on(electronEvent.START_SERVER, async (event: any, config: typeof globalThis['config']) => {
+  globalThis.electron.chatWindow.webContents.send(electronEvent.CLEAR_COMMENT);
   globalThis.electron.threadNumber = 0;
   globalThis.electron.commentQueueList = [];
   globalThis.electron.threadConnectionError = 0;
@@ -152,7 +152,7 @@ ipcMain.on(electronEvent['start-server'], async (event: any, config: typeof glob
     });
 
     nico.on('comment', (event) => {
-      globalThis.electron.commentQueueList.push({ imgUrl: './img/niconico.png', number: event.number, name: event.name, text: event.comment });
+      globalThis.electron.commentQueueList.push({ imgUrl: './img/niconico.png', number: event.number, name: event.name, text: event.comment, from: 'niconico' });
       globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, {
         commentType: 'niconico',
         category: 'status',
@@ -258,7 +258,7 @@ export const findSeList = async () => {
       globalThis.electron.seList = [];
     }
   } catch (e) {
-    globalThis.electron.mainWindow.webContents.send(electronEvent['show-alert'], '着信音のパスがおかしそうです');
+    globalThis.electron.mainWindow.webContents.send(electronEvent.SHOW_ALERT, '着信音のパスがおかしそうです');
   }
 };
 
@@ -293,7 +293,7 @@ const startTwitchChat = async () => {
         text = text.replace(emote.code, `<img src="https://static-cdn.jtvnw.net/emoticons/v1/${emote.id}/1.0" />`);
       });
 
-      globalThis.electron.commentQueueList.push({ imgUrl, name, text });
+      globalThis.electron.commentQueueList.push({ imgUrl, name, text, from: 'twitch' });
     });
     globalThis.electron.twitchChat = twitchChat;
 
@@ -335,7 +335,7 @@ const startYoutubeChat = async () => {
       globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'status', message: 'connection end' });
     });
 
-    const createYoutubeComment = (comment: CommentItem) => {
+    const createYoutubeComment = (comment: CommentItem): UserComment => {
       // log.info(JSON.stringify(comment, null, '  '));
       const imgUrl = comment.author.thumbnail?.url ?? '';
       const name = escapeHtml(comment.author.name);
@@ -351,7 +351,7 @@ const startYoutubeChat = async () => {
         }
       }
       // const text = escapeHtml((comment.message[0] as any).text);
-      return { imgUrl, name, text };
+      return { imgUrl, name, text, from: 'youtube' };
     };
     // 初期チャット受信
     globalThis.electron.youtubeChat.on('firstComment', (comment: CommentItem) => {
@@ -384,7 +384,7 @@ const startYoutubeChat = async () => {
 /**
  * サーバー停止
  */
-ipcMain.on(electronEvent['stop-server'], (event) => {
+ipcMain.on(electronEvent.STOP_SERVER, (event) => {
   console.log('[startServer]server stop');
   server.close();
   aWss.close();
@@ -397,6 +397,7 @@ ipcMain.on(electronEvent['stop-server'], (event) => {
 
   // レス取得の停止
   threadIntervalEvent = false;
+  globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'bbs', category: 'title', message: `` });
   globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'bbs', category: 'status', message: `connection end` });
 
   // Twitchチャットの停止
@@ -443,15 +444,23 @@ const getResInterval = async (exeId: number) => {
   if (!globalThis.electron.threadNumber) {
     // 初回
     isfirst = true;
-    resNum = globalThis.config.resNumber ? Number(globalThis.config.resNumber) : NaN;
+    resNum = NaN;
   } else {
     // 2回目以降
     resNum = globalThis.electron.threadNumber;
   }
 
-  const result = await getBbsResponse(globalThis.config.url, resNum);
-  // 指定したレス番は除外対象
-  if (!isfirst) result.shift();
+  let result = await getBbsResponse(globalThis.config.url, resNum);
+  if (isfirst && result.length > 0) {
+    const threadTitle = result[0].threadTitle as string;
+    globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'bbs', category: 'title', message: threadTitle });
+  }
+
+  // 指定したレス番以下は除外対象
+  if (resNum) {
+    result = result.filter((res) => (res.number ? Number(res.number) > resNum : true));
+  }
+
   if (result.length > 0 && result[result.length - 1].number) {
     globalThis.electron.threadNumber = Number(result[result.length - 1].number);
 
@@ -470,12 +479,16 @@ const getResInterval = async (exeId: number) => {
         }
       }
     }
+
     globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'bbs', category: 'status', message: `ok res=${globalThis.electron.threadNumber}` });
   } else if (result.length > 0) {
     globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'bbs', category: 'status', message: 'error!' });
     // 番号が無くて結果が入ってるのは通信エラーメッセージ
     sendDomForChatWindow(result);
   }
+
+  await checkAutoMoveThread();
+
   await notifyThreadResLimit();
 
   if (threadIntervalEvent && exeId === serverId) {
@@ -487,20 +500,47 @@ const getResInterval = async (exeId: number) => {
 /** レス番が上限かチェックして、超えてたら通知する */
 const notifyThreadResLimit = async () => {
   if (globalThis.config.notifyThreadResLimit > 0 && globalThis.electron.threadNumber >= globalThis.config.notifyThreadResLimit) {
-    globalThis.electron.commentQueueList.push({
-      name: 'unacastより',
-      imgUrl: './img/unacast.png',
-      text: `レスが${globalThis.config.notifyThreadResLimit}を超えました。次スレを立ててください。`,
-    });
-    // TODO: 次スレ検索ポーリング処理を走らせる
-
+    sendDomForChatWindow([
+      {
+        name: 'unacastより',
+        imgUrl: './img/unacast.png',
+        text: `レスが${globalThis.config.notifyThreadResLimit}を超えました。次スレを立ててください。`,
+        from: 'system',
+      },
+    ]);
     // スレ立て中だと思うのでちょっと待つ
     await sleep(10 * 1000);
   }
 };
 
+const checkAutoMoveThread = async () => {
+  if (!globalThis.config.moveThread) return;
+  if (globalThis.electron.threadNumber < 1000) return;
+
+  const threadUrl = globalThis.config.url;
+
+  // スレ一覧を取得
+  const boardInfo = await threadUrlToBoardInfo(threadUrl);
+  const threadList = await getThreadList(boardInfo.boardUrl);
+  const target = threadList.find((item) => item.url !== threadUrl && item.resNum < 1000);
+  if (!target) return;
+
+  // 次スレが見つかったので移動する
+  globalThis.electron.commentQueueList.push({
+    name: 'unacastより',
+    imgUrl: './img/unacast.png',
+    text: `レス1000を超えました。次スレ候補 「${target.name}」 に移動します`,
+    from: 'system',
+  });
+
+  globalThis.config.url = target.url;
+  globalThis.electron.threadNumber = 0;
+
+  globalThis.electron.mainWindow.webContents.send(electronEvent.SAVE_CONFIG, globalThis.config);
+};
+
 /**
- * キューに溜まったコメントを処理する
+ * キューに溜まったコメントをブラウザに表示する
  */
 const taskScheduler = async (exeId: number) => {
   if (globalThis.electron?.commentQueueList?.length > 0) {
@@ -547,27 +587,27 @@ const playYomiko = async (msg: string) => {
     }
   }
   // 読み子が読んでる時間分相当待つ
-  globalThis.electron.mainWindow.webContents.send(electronEvent['wait-yomiko-time'], msg);
+  globalThis.electron.mainWindow.webContents.send(electronEvent.WAIT_YOMIKO_TIME, msg);
   while (isSpeaking) {
     await sleep(50);
   }
   // log.info('[playYomiko] end');
 };
-ipcMain.on(electronEvent['speaking-end'], (event) => (isSpeaking = false));
+ipcMain.on(electronEvent.SPEAKING_END, (event) => (isSpeaking = false));
 
 let isPlayingSe = false;
 const playSe = async () => {
   // log.info('[playSe] start');
   const wavfilepath = globalThis.electron.seList[Math.floor(Math.random() * globalThis.electron.seList.length)];
   isPlayingSe = true;
-  globalThis.electron.mainWindow.webContents.send(electronEvent['play-sound-start'], { wavfilepath, volume: globalThis.config.playSeVolume });
+  globalThis.electron.mainWindow.webContents.send(electronEvent.PLAY_SOUND_START, { wavfilepath, volume: globalThis.config.playSeVolume });
 
   while (isPlayingSe) {
     await sleep(50);
   }
   // log.info('[playSe] end');
 };
-ipcMain.on(electronEvent['play-sound-end'], (event) => (isPlayingSe = false));
+ipcMain.on(electronEvent.PLAY_SOUND_END, (event) => (isPlayingSe = false));
 
 export const createDom = (message: UserComment, type: 'chat' | 'server') => {
   let domStr = `<li class="list-item">`;
@@ -727,7 +767,7 @@ const sendDomForChatWindow = (messageList: UserComment[]) => {
     })
     .map((message) => createDom(message, 'chat'))
     .join('\n');
-  globalThis.electron.chatWindow.webContents.send(electronEvent['show-comment'], { config: globalThis.config, dom: domStr2 });
+  globalThis.electron.chatWindow.webContents.send(electronEvent.SHOW_COMMENT, { config: globalThis.config, dom: domStr2 });
 };
 
 const resetInitMessage = () => {

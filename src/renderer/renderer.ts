@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     //設定情報をローカルストレージへ保存
     saveConfigToLocalStrage(config);
 
-    ipcRenderer.send(electronEvent['apply-config'], config);
+    ipcRenderer.send(electronEvent.APPLY_CONFIG, config);
   };
 
   // 起動・停止ボタン
@@ -153,6 +153,8 @@ const buildConfigJson = () => {
 
   const notifyThreadConnectionErrorLimit = parseInt((document.getElementById('text-notify-threadConnectionErrorLimit') as HTMLInputElement).value);
   const notifyThreadResLimit = parseInt((document.getElementById('text-notify-threadResLimit') as HTMLInputElement).value);
+  // 自動レス移動
+  const moveThread = (document.getElementById('moveThread') as any).checked === true;
 
   // アイコン表示設定
   const showIcon = (document.getElementById('checkbox-showIcon') as HTMLInputElement).checked === true;
@@ -227,6 +229,7 @@ const buildConfigJson = () => {
     yomikoReplaceNewline,
     notifyThreadConnectionErrorLimit,
     notifyThreadResLimit,
+    moveThread,
     commentProcessType,
     dispType,
   };
@@ -277,6 +280,7 @@ const loadConfigToLocalStrage = () => {
     yomikoReplaceNewline: false,
     notifyThreadConnectionErrorLimit: 0,
     notifyThreadResLimit: 0,
+    moveThread: true,
     commentProcessType: 0,
     dispType: 0,
   };
@@ -369,37 +373,38 @@ const loadConfigToLocalStrage = () => {
   (document.getElementById('bouyomi-volume') as any).value = config.bouyomiVolume;
   (document.getElementById('text-notify-threadConnectionErrorLimit') as any).value = config.notifyThreadConnectionErrorLimit;
   (document.getElementById('text-notify-threadResLimit') as any).value = config.notifyThreadResLimit;
+  (document.getElementById('moveThread') as any).checked == config.moveThread;
 
   console.debug('[renderer.js]config loaded');
 };
 
 // サーバー起動返信
-ipcRenderer.on(electronEvent['start-server-reply'], (event: any, arg: any) => {
+ipcRenderer.on(electronEvent.START_SERVER_REPLY, (event: any, arg: any) => {
   console.debug(arg);
 });
 
 // 着信音再生
 const audioElem = new Audio();
-ipcRenderer.on(electronEvent['play-sound-start'], (event: any, arg: { wavfilepath: string; volume: number }) => {
+ipcRenderer.on(electronEvent.PLAY_SOUND_START, (event: any, arg: { wavfilepath: string; volume: number }) => {
   try {
     audioElem.volume = arg.volume / 100;
     audioElem.src = arg.wavfilepath;
     audioElem.play();
     audioElem.onended = () => {
-      ipcRenderer.send(electronEvent['play-sound-end']);
+      ipcRenderer.send(electronEvent.PLAY_SOUND_END);
     };
     audioElem.onerror = () => {
-      ipcRenderer.send(electronEvent['play-sound-end']);
+      ipcRenderer.send(electronEvent.PLAY_SOUND_END);
     };
   } catch (e) {
     log.error(e);
-    ipcRenderer.send(electronEvent['play-sound-end']);
+    ipcRenderer.send(electronEvent.PLAY_SOUND_END);
   }
 });
 
-ipcRenderer.on(electronEvent['wait-yomiko-time'], async (event: any, arg: string) => {
+ipcRenderer.on(electronEvent.WAIT_YOMIKO_TIME, async (event: any, arg: string) => {
   await yomikoTime(arg);
-  ipcRenderer.send(electronEvent['speaking-end']);
+  ipcRenderer.send(electronEvent.SPEAKING_END);
 });
 
 /**
@@ -423,7 +428,7 @@ const yomikoTime = async (msg: string) => {
 };
 
 // 何かしら通知したいことがあったら表示する
-ipcRenderer.on(electronEvent['show-alert'], async (event: any, args: string) => {
+ipcRenderer.on(electronEvent.SHOW_ALERT, async (event: any, args: string) => {
   // 停止確認ダイアログ
   ((document.getElementById('alert-dialog') as HTMLElement).getElementsByClassName('mdl-dialog__content')[0] as HTMLElement).innerText = args;
 
@@ -436,7 +441,11 @@ ipcRenderer.on(electronEvent.UPDATE_STATUS, async (event: any, args: { commentTy
   console.log(`[UPDATE_STATUS]`);
   switch (args.commentType) {
     case 'bbs': {
-      (document.getElementById('bbs-connection-status') as HTMLElement).innerText = args.message;
+      if (args.category === 'title') {
+        (document.getElementById('bbs-title') as HTMLElement).innerText = args.message;
+      } else if (args.category === 'status') {
+        (document.getElementById('bbs-connection-status') as HTMLElement).innerText = args.message;
+      }
       break;
     }
     case 'jpnkn': {
@@ -464,4 +473,9 @@ ipcRenderer.on(electronEvent.UPDATE_STATUS, async (event: any, args: { commentTy
       break;
     }
   }
+});
+
+// config保存
+ipcRenderer.on(electronEvent.SAVE_CONFIG, async (event: any, arg: typeof globalThis.config) => {
+  saveConfigToLocalStrage(arg);
 });

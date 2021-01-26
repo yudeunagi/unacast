@@ -1,30 +1,32 @@
 export const electronEvent = {
   /** サーバー起動 */
-  'start-server': 'start-server',
+  START_SERVER: 'start-server',
   /** サーバー停止 */
-  'stop-server': 'stop-server',
+  STOP_SERVER: 'stop-server',
   /** Config適用 */
-  'apply-config': 'apply-config',
+  APPLY_CONFIG: 'apply-config',
 
   /** アラート表示 */
-  'show-alert': 'show-alert',
+  SHOW_ALERT: 'show-alert',
+
+  SAVE_CONFIG: 'save-config',
 
   /** 棒読み再生 */
-  'play-tamiyasu': 'play-tamiyasu',
+  PLAY_TAMIYASU: 'play-tamiyasu',
   /** レス着信音再生 */
-  'play-sound-start': 'play-sound-start',
-  'play-sound-end': 'play-sound-end',
+  PLAY_SOUND_START: 'play-sound-start',
+  PLAY_SOUND_END: 'play-sound-end',
 
-  'wait-yomiko-time': 'wait-yomiko-time',
-  'speaking-end': 'speaking-end',
+  WAIT_YOMIKO_TIME: 'wait-yomiko-time',
+  SPEAKING_END: 'speaking-end',
 
   /** コメント表示 */
-  'show-comment': 'show-comment',
+  SHOW_COMMENT: 'show-comment',
   /** コメント欄初期化 */
-  'clear-comment': 'clear-comment',
+  CLEAR_COMMENT: 'clear-comment',
 
   /** サーバー起動の返信 */
-  'start-server-reply': 'start-server-reply',
+  START_SERVER_REPLY: 'start-server-reply',
 
   /** 強制的に端にスクロール */
   FORCE_SCROLL: 'FORCE_SCROLL',

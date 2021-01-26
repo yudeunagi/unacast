@@ -75,11 +75,14 @@
             <div class="mdl-textfield mdl-js-textfield" style="width: 100%">
               <div class="subtitle">掲示板URL</div>
               <div class="caption">サーバ起動中に変更した場合は、最新の1レスがコメント欄に表示されます。</div>
+              <div>
+                <span class="status" id="bbs-title"></span>
+              </div>              
               <input id="text-url" class="mdl-textfield__input" type="text" pattern="http.?://.+/$" value="" />
               <span id="text-url-error" class="mdl-textfield__error">URLを入力してください</span>
             </div>
             <div class="bbsStatusArea">
-              <span class="status"><span class="status-label">status:</span><span id="bbs-connection-status">none</span></span>
+                <span class="status"><span class="status-label">status:</span><span id="bbs-connection-status">none</span></span>
             </div>
           </div>
 
@@ -323,6 +326,14 @@
             <div class="subtitle">掲示板が連続で通信エラーになった時に通知する閾値(0で使用しない)</div>
             <input id="text-notify-threadConnectionErrorLimit" class="mdl-textfield__input" type="text" required="true" pattern="[0-9]{0,2}?" value="0" />
             <span class="mdl-textfield__error">0-99 までの数値を入れてください</span>
+          </div>
+
+          <div class="mdl-textfield mdl-js-textfield" style="width: 100vw;">
+            <div class="caption">スレ順に探索して、最初に見つかった1000以外のスレに移動します。移動先の初回取得結果はブラウザ側には表示しません。</div>
+            <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="moveThread">
+              <input type="checkbox" id="moveThread" class="mdl-checkbox__input" value="0" checked />
+              <span class="mdl-checkbox__label">1000で自動スレ移動</span>
+            </label>
           </div>
 
           <div class="mdl-textfield mdl-js-textfield" style="width: 100vw;">

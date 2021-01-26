@@ -1,6 +1,6 @@
 {
   "name": "unacast",
-  "version": "0.6.10",
+  "version": "0.6.11",
   "description": "掲示板のレスをYoutubeコメント風に表示したいという思想の元に開発されるツール",
   "main": "dist/index.js",
   "scripts": {
@@ -30,6 +30,7 @@
     "ejs": "^2.7.1",
     "electron-log": "^4.1.1",
     "electron-window-state": "^5.0.3",
+    "encoding-japanese": "^1.0.30",
     "express": "^4.17.1",
     "express-ws": "^4.0.0",
     "iconv-lite": "^0.5.0",
@@ -40,6 +41,7 @@
   "devDependencies": {
     "@types/cheerio": "^0.22.18",
     "@types/ejs": "^3.0.2",
+    "@types/encoding-japanese": "^1.0.17",
     "@types/express": "^4.17.6",
     "@types/express-ws": "^3.0.0",
     "@types/node": "^13.11.1",
