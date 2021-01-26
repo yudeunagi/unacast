@@ -4,7 +4,14 @@
 import axios, { AxiosRequestConfig } from 'axios';
 import iconv from 'iconv-lite'; // 文字コード変換用パッケージ
 import log from 'electron-log';
+import https from 'https';
 import encoding from 'encoding-japanese';
+
+const instance = axios.create({
+  httpsAgent: new https.Agent({
+    rejectUnauthorized: false,
+  }),
+});
 
 /** ステータスコード304 _NotModified */
 const NOT_MODIFIED = '304';
@@ -25,7 +32,7 @@ export const readBoard = async (boardUrl: string) => {
 
   //掲示板へのリクエスト実行
   try {
-    const response = await axios(options);
+    const response = await instance(options);
 
     // レスポンスヘッダ表示
     // const headers: { [key: string]: string } = response.headers;
@@ -93,7 +100,9 @@ class Read5ch {
   private lastThreadUrl: string;
   /** 最終レス番号 */
   private lastResNumber: number;
-  /** 最終更新日時 */
+  /** 最終書き込み時刻 */
+  private lastWroteDate: Date | null;
+  /** 最終更新日時(ヘッダ) */
   private lastModified: string | null;
   /** 最終バイト数 */
   private lastByte: number;
@@ -103,6 +112,7 @@ class Read5ch {
     this.lastResNumber = 0;
     this.lastModified = null;
     this.lastByte = 0;
+    this.lastWroteDate = null;
   }
 
   /**
@@ -119,7 +129,8 @@ class Read5ch {
       this.lastThreadUrl = threadUrl;
       this.lastModified = null;
       this.lastByte = 0;
-      console.trace('[Read5ch.js]reset!!!!!!!!!!!!!!!!');
+      this.lastWroteDate = null;
+      log.info('[Read5ch.js] reset');
     } else {
       console.trace('noreset');
     }
@@ -151,20 +162,23 @@ class Read5ch {
         'if-modified-since': this.lastModified,
         range: 'bytes=' + range + '-',
       },
+      validateStatus: (status: number) => {
+        return status >= 200 && status <= 304;
+      },
     };
 
     let responseJson: UserComment[];
     //掲示板へのリクエスト実行
     try {
-      const response = await axios(options);
+      // log.info(JSON.stringify(options, null, '  '));
+      const response = await instance(options);
+      if (response.status === 304) {
+        log.info('status 304');
+        return [];
+      }
 
       // レスポンスヘッダ表示
       const headers: { [key: string]: string } = response.headers;
-      // LastModifiedとRange更新処理
-      if (headers['last-modified'] != null) {
-        this.lastModified = headers['last-modified'];
-      }
-      // gzipで取得出来たら解凍処理も入れる
 
       // 文字コード変換
       const str = iconv.decode(Buffer.from(response.data), 'Shift_JIS');
@@ -173,9 +187,38 @@ class Read5ch {
         console.trace('[Read5ch.read]content-range=' + headers['content-range']);
         const result = parseNewResponse(str, resNum);
         responseJson = result.result;
-        this.lastResNumber = result.lastResNumber;
       } else {
-        responseJson = purseDiffResponse(str, resNum);
+        responseJson = parseDiffResponse(str, resNum);
+      }
+
+      // 最終書き込み時刻の整合性チェック
+      // ぜろちゃんねる固有の問題？たまにデータが巻き戻る
+      if (responseJson.length > 0) {
+        const dateStr = responseJson[responseJson.length - 1].date;
+        if (dateStr) {
+          const date = new Date(dateStr);
+          if (this.lastWroteDate) {
+            // スレが変わったわけでもないのに最終書き込み時刻よりも古いデータが取得できた場合は無かったことにする
+            if (this.lastWroteDate > date) {
+              log.warn(`時刻不整合: unacast: ${this.lastWroteDate} bbs: ${date}`);
+              responseJson = [];
+            } else {
+              this.lastWroteDate = date;
+            }
+          } else {
+            this.lastWroteDate = date;
+          }
+        }
+      }
+
+      // LastModifiedとRange更新処理
+      if (responseJson.length > 0 && headers['last-modified'] != null) {
+        this.lastModified = headers['last-modified'];
+      }
+
+      // 最終レス番更新
+      if (responseJson.length > 0) {
+        this.lastResNumber = Number(responseJson[responseJson.length - 1].number);
       }
 
       // 取得バイト数表示
@@ -200,12 +243,14 @@ class Read5ch {
 }
 
 /**
- * 取得したレスポンス（複数）のパース
+ * 全取得したレスポンス（複数）のパース
  * 戻りとしてパースしたjsonオブジェクトの配列を返す
  * @param res 板から返却されたdat
  * @param resNum リクエストされたレス番号
  */
 const parseNewResponse = (res: string, resNum: number) => {
+  log.info(`parseNewResponse: res=${res.length} resNum=${resNum}`);
+
   // 結果を格納する配列
   const result: ReturnType<typeof parseResponse>[] = [];
   // レス番号
@@ -227,7 +272,7 @@ const parseNewResponse = (res: string, resNum: number) => {
     log.info(`resNum: ${resNum} `);
     num = 0;
   } else {
-    num = resNum - 1;
+    num = resNum;
   }
 
   // log.info(`num = ${num}  resArrayLength = ${resArray.length}   ${resArray[num]}`);
@@ -243,16 +288,18 @@ const parseNewResponse = (res: string, resNum: number) => {
 };
 
 /**
- * 取得したレスポンス（複数）のパース
+ * 差分取得したレスポンス（複数）のパース
  * 戻りとしてパースしたjsonオブジェクトの配列を返す
  * @param res 板から返却されたdat1行分
  * @param resNum リクエストされたレス番号
  */
-const purseDiffResponse = (res: string, resNum: number) => {
+const parseDiffResponse = (res: string, resNum: number) => {
+  log.info(`parseDiffResponse: res=${res.length} resNum=${resNum}`);
+
   //結果を格納する配列
   const result: ReturnType<typeof parseResponse>[] = [];
   // レス番号
-  let num = resNum;
+  let num = resNum + 1;
 
   //新着レスを改行ごとにSplitする
   const resArray = res.split(/\r\n|\r|\n/);

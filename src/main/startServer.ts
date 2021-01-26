@@ -55,7 +55,7 @@ ipcMain.on(electronEvent.APPLY_CONFIG, async (event: any, config: typeof globalT
   // initメッセージ
   resetInitMessage();
 
-  // スレのURL
+  // スレのURLが変わった
   if (isChangedUrl) {
     // 新スレを取得
     const ret = await getBbsResponse(globalThis.config.url, NaN);
@@ -68,6 +68,9 @@ ipcMain.on(electronEvent.APPLY_CONFIG, async (event: any, config: typeof globalT
     log.info(`[apply-config] new res num is ${globalThis.electron.threadNumber}`);
     // チャットウィンドウとブラウザに、末尾のスレだけ反映する
     sendDom([ret[ret.length - 1]]);
+
+    // スレタイ更新
+    globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'bbs', category: 'title', message: ret[0].threadTitle });
   }
 });
 

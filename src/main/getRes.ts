@@ -57,7 +57,7 @@ export const getRes = async (threadUrl: string, resNum: number): Promise<UserCom
     // 選択したモジュールでレス取得処理を行う
     const response = await bbsModule.read(threadUrl, resNum);
     globalThis.electron.threadConnectionError = 0;
-    console.log(`[getRes.js] fetch ${threadUrl} resNum = ${resNum}, result = ${response.length}`);
+    console.log(`[getRes.js] fetch ${threadUrl} resNum = ${resNum}, result = ${response.length} lastResNum=${response.length > 0 ? response[response.length - 1].number : '-'}`);
 
     return response.map((res) => {
       return {

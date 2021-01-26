@@ -439,7 +439,7 @@ exports.getRes = function (threadUrl, resNum) { return __awaiter(void 0, void 0,
             case 1:
                 response = _a.sent();
                 globalThis.electron.threadConnectionError = 0;
-                console.log("[getRes.js] fetch " + threadUrl + " resNum = " + resNum + ", result = " + response.length);
+                console.log("[getRes.js] fetch " + threadUrl + " resNum = " + resNum + ", result = " + response.length + " lastResNum=" + (response.length > 0 ? response[response.length - 1].number : '-'));
                 return [2 /*return*/, response.map(function (res) {
                         return __assign(__assign({}, res), { imgUrl: readIcons.getRandomIcons() });
                     })];
@@ -1447,7 +1447,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var axios_1 = __importDefault(__webpack_require__(/*! axios */ "axios"));
 var iconv_lite_1 = __importDefault(__webpack_require__(/*! iconv-lite */ "iconv-lite")); // 文字コード変換用パッケージ
 var electron_log_1 = __importDefault(__webpack_require__(/*! electron-log */ "electron-log"));
+var https_1 = __importDefault(__webpack_require__(/*! https */ "https"));
 var encoding_japanese_1 = __importDefault(__webpack_require__(/*! encoding-japanese */ "encoding-japanese"));
+var instance = axios_1.default.create({
+    httpsAgent: new https_1.default.Agent({
+        rejectUnauthorized: false,
+    }),
+});
 /** ステータスコード304 _NotModified */
 var NOT_MODIFIED = '304';
 var RANGE_NOT_SATISFIABLE = '416';
@@ -1468,7 +1474,7 @@ exports.readBoard = function (boardUrl) { return __awaiter(void 0, void 0, void 
                 _a.label = 1;
             case 1:
                 _a.trys.push([1, 3, , 4]);
-                return [4 /*yield*/, axios_1.default(options)];
+                return [4 /*yield*/, instance(options)];
             case 2:
                 response = _a.sent();
                 str = iconv_lite_1.default.decode(Buffer.from(response.data), 'Shift_JIS');
@@ -1544,7 +1550,7 @@ var Read5ch = /** @class */ (function () {
          * @param resNum レス番号
          */
         this.read = function (threadUrl, resNum) { return __awaiter(_this, void 0, void 0, function () {
-            var rep, requestUrl, range, options, responseJson, response, headers, str, result, error_2;
+            var rep, requestUrl, range, options, responseJson, response, headers, str, result, dateStr, date, error_2;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
@@ -1554,7 +1560,8 @@ var Read5ch = /** @class */ (function () {
                             this.lastThreadUrl = threadUrl;
                             this.lastModified = null;
                             this.lastByte = 0;
-                            console.trace('[Read5ch.js]reset!!!!!!!!!!!!!!!!');
+                            this.lastWroteDate = null;
+                            electron_log_1.default.info('[Read5ch.js] reset');
                         }
                         else {
                             console.trace('noreset');
@@ -1571,28 +1578,59 @@ var Read5ch = /** @class */ (function () {
                                 'if-modified-since': this.lastModified,
                                 range: 'bytes=' + range + '-',
                             },
+                            validateStatus: function (status) {
+                                return status >= 200 && status <= 304;
+                            },
                         };
                         _a.label = 1;
                     case 1:
                         _a.trys.push([1, 3, , 4]);
-                        return [4 /*yield*/, axios_1.default(options)];
+                        return [4 /*yield*/, instance(options)];
                     case 2:
                         response = _a.sent();
-                        headers = response.headers;
-                        // LastModifiedとRange更新処理
-                        if (headers['last-modified'] != null) {
-                            this.lastModified = headers['last-modified'];
+                        if (response.status === 304) {
+                            electron_log_1.default.info('status 304');
+                            return [2 /*return*/, []];
                         }
+                        headers = response.headers;
                         str = iconv_lite_1.default.decode(Buffer.from(response.data), 'Shift_JIS');
                         // レスポンスオブジェクト作成、content-rangeがある場合とない場合で処理を分ける
                         if (headers['content-range'] == null || this.lastByte == 0) {
                             console.trace('[Read5ch.read]content-range=' + headers['content-range']);
                             result = parseNewResponse(str, resNum);
                             responseJson = result.result;
-                            this.lastResNumber = result.lastResNumber;
                         }
                         else {
-                            responseJson = purseDiffResponse(str, resNum);
+                            responseJson = parseDiffResponse(str, resNum);
+                        }
+                        // 最終書き込み時刻の整合性チェック
+                        // ぜろちゃんねる固有の問題？たまにデータが巻き戻る
+                        if (responseJson.length > 0) {
+                            dateStr = responseJson[responseJson.length - 1].date;
+                            if (dateStr) {
+                                date = new Date(dateStr);
+                                if (this.lastWroteDate) {
+                                    // スレが変わったわけでもないのに最終書き込み時刻よりも古いデータが取得できた場合は無かったことにする
+                                    if (this.lastWroteDate > date) {
+                                        electron_log_1.default.warn("\u6642\u523B\u4E0D\u6574\u5408: unacast: " + this.lastWroteDate + " bbs: " + date);
+                                        responseJson = [];
+                                    }
+                                    else {
+                                        this.lastWroteDate = date;
+                                    }
+                                }
+                                else {
+                                    this.lastWroteDate = date;
+                                }
+                            }
+                        }
+                        // LastModifiedとRange更新処理
+                        if (responseJson.length > 0 && headers['last-modified'] != null) {
+                            this.lastModified = headers['last-modified'];
+                        }
+                        // 最終レス番更新
+                        if (responseJson.length > 0) {
+                            this.lastResNumber = Number(responseJson[responseJson.length - 1].number);
                         }
                         // 取得バイト数表示
                         if (headers['content-length'] != null && responseJson.length > 0) {
@@ -1621,16 +1659,18 @@ var Read5ch = /** @class */ (function () {
         this.lastResNumber = 0;
         this.lastModified = null;
         this.lastByte = 0;
+        this.lastWroteDate = null;
     }
     return Read5ch;
 }());
 /**
- * 取得したレスポンス（複数）のパース
+ * 全取得したレスポンス（複数）のパース
  * 戻りとしてパースしたjsonオブジェクトの配列を返す
  * @param res 板から返却されたdat
  * @param resNum リクエストされたレス番号
  */
 var parseNewResponse = function (res, resNum) {
+    electron_log_1.default.info("parseNewResponse: res=" + res.length + " resNum=" + resNum);
     // 結果を格納する配列
     var result = [];
     // レス番号
@@ -1651,7 +1691,7 @@ var parseNewResponse = function (res, resNum) {
         num = 0;
     }
     else {
-        num = resNum - 1;
+        num = resNum;
     }
     // log.info(`num = ${num}  resArrayLength = ${resArray.length}   ${resArray[num]}`);
     // 1行ごとにパースする
@@ -1665,16 +1705,17 @@ var parseNewResponse = function (res, resNum) {
     return { result: result, lastResNumber: num + 1 };
 };
 /**
- * 取得したレスポンス（複数）のパース
+ * 差分取得したレスポンス（複数）のパース
  * 戻りとしてパースしたjsonオブジェクトの配列を返す
  * @param res 板から返却されたdat1行分
  * @param resNum リクエストされたレス番号
  */
-var purseDiffResponse = function (res, resNum) {
+var parseDiffResponse = function (res, resNum) {
+    electron_log_1.default.info("parseDiffResponse: res=" + res.length + " resNum=" + resNum);
     //結果を格納する配列
     var result = [];
     // レス番号
-    var num = resNum;
+    var num = resNum + 1;
     //新着レスを改行ごとにSplitする
     var resArray = res.split(/\r\n|\r|\n/);
     // 新着なしなら戻る。
@@ -2163,6 +2204,8 @@ electron_1.ipcMain.on(const_1.electronEvent.APPLY_CONFIG, function (event, confi
                 electron_log_1.default.info("[apply-config] new res num is " + globalThis.electron.threadNumber);
                 // チャットウィンドウとブラウザに、末尾のスレだけ反映する
                 sendDom([ret[ret.length - 1]]);
+                // スレタイ更新
+                globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'bbs', category: 'title', message: ret[0].threadTitle });
                 _a.label = 4;
             case 4: return [2 /*return*/];
         }
@@ -3458,6 +3501,17 @@ module.exports = require("express-ws");
 /***/ (function(module, exports) {
 
 module.exports = require("fs");
+
+/***/ }),
+
+/***/ "https":
+/*!************************!*\
+  !*** external "https" ***!
+  \************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = require("https");
 
 /***/ }),
 
