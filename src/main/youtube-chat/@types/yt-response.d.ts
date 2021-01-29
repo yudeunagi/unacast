@@ -145,3 +145,61 @@ interface Action {
   addChatItemAction?: ActionItem;
   addLiveChatTickerItemAction?: any;
 }
+
+interface GetLiveChatResponse {
+  responseContext: {
+    serviceTrackingParams: {
+      service: string;
+      params: {
+        key: string;
+        value: string;
+      }[];
+    }[];
+    mainAppWebResponseContext: {
+      loggedOut: boolean;
+    };
+    webResponseContextExtensionData: {
+      hasDecorated: boolean;
+    };
+  };
+  continuationContents: {
+    liveChatContinuation: {
+      continuations: [
+        {
+          invalidationContinuationData: {
+            invalidationId: {
+              objectSource: number;
+              objectId: string;
+              topic: string;
+              subscribeToGcmTopics: boolean;
+              protoCreationTimestampMs: string;
+            };
+            timeoutMs: number;
+            /** 次のコメント取得リクエストの時に含めるID */
+            continuation: string;
+          };
+        },
+      ];
+      actions?: Action[];
+    };
+  };
+}
+
+interface GetLiveChageRequestBody {
+  context: {
+    client: {
+      clientName: string;
+      clientVersion: string;
+      timeZone: 'Asia/Tokyo';
+      utcOffsetMinutes: 540;
+      mainAppWebInfo: {
+        /** @example 'https://www.youtube.com/live_chat?continuation=${continuation}' */
+        graftUrl: string;
+      };
+    };
+    request: {
+      useSsl: true;
+    };
+  };
+  continuation: string;
+}

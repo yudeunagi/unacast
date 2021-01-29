@@ -141,3 +141,8 @@ export const parseData = (data: Action): CommentItem | null => {
 
   return ret;
 };
+
+export const getContinuation = (body: GetLiveChatResponse) => {
+  const continuation = body.continuationContents.liveChatContinuation.continuations[0].invalidationContinuationData.continuation;
+  return continuation;
+};

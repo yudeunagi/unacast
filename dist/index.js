@@ -3092,10 +3092,14 @@ var util_1 = __webpack_require__(/*! ../util */ "./src/main/util.ts");
 var LiveChat = /** @class */ (function (_super) {
     __extends(LiveChat, _super);
     function LiveChat(options, interval) {
-        if (interval === void 0) { interval = 1000; }
+        if (interval === void 0) { interval = 5000; }
         var _this = _super.call(this) || this;
         _this.interval = interval;
-        /** 表示済みのID */
+        /** コメントAPIKey */
+        _this.commentApiKey = '';
+        /** 自分の取得位置を表すID */
+        _this.continuation = '';
+        /** 表示済みのコメントID */
         _this.displayedId = {};
         _this.isFirst = true;
         /** 停止要求をされた */
@@ -3114,12 +3118,14 @@ var LiveChat = /** @class */ (function (_super) {
     LiveChat.prototype.start = function () {
         this.isFirst = true;
         this.isStop = false;
+        this.commentApiKey = '';
+        this.continuation = '';
         this.fetchLiveId();
     };
     LiveChat.prototype.fetchLiveId = function () {
         var _a;
         return __awaiter(this, void 0, void 0, function () {
-            var url, liveRes, e_1;
+            var url, liveRes, e_1, init;
             var _this = this;
             return __generator(this, function (_b) {
                 switch (_b.label) {
@@ -3151,19 +3157,31 @@ var LiveChat = /** @class */ (function (_super) {
                         this.emit('error', new Error("connection error url = " + url));
                         return [2 /*return*/];
                     case 6:
-                        if (!this.liveId) return [3 /*break*/, 7];
-                        this.observer = setInterval(function () { return _this.fetchChat(); }, this.interval);
-                        this.emit('start', this.liveId);
-                        return [3 /*break*/, 9];
+                        if (!this.liveId) return [3 /*break*/, 8];
+                        return [4 /*yield*/, this.getInitParam()];
                     case 7:
+                        init = _b.sent();
+                        if (init.api && init.continuation) {
+                            this.commentApiKey = init.api;
+                            this.continuation = init.continuation;
+                            this.observer = setInterval(function () { return _this.fetchChat(); }, this.interval);
+                            this.emit('start', this.liveId);
+                        }
+                        else {
+                            // 配信ページはあるのに何らかの理由でAPIKeyが取れなかった
+                            this.emit('error', new Error("Error occured at fetch apikey liveId=" + this.liveId));
+                            this.fetchLiveId();
+                        }
+                        return [3 /*break*/, 10];
+                    case 8:
                         // 配信が開始してないパターンが考えられるのでリトライ
                         this.emit('error', new Error('Live stream not found'));
                         return [4 /*yield*/, util_1.sleep(2000)];
-                    case 8:
+                    case 9:
                         _b.sent();
                         this.fetchLiveId();
-                        _b.label = 9;
-                    case 9: return [2 /*return*/];
+                        _b.label = 10;
+                    case 10: return [2 /*return*/];
                 }
             });
         });
@@ -3176,21 +3194,81 @@ var LiveChat = /** @class */ (function (_super) {
         }
         this.displayedId = {};
     };
-    LiveChat.prototype.fetchChat = function () {
+    LiveChat.prototype.getInitParam = function () {
+        var _a, _b;
         return __awaiter(this, void 0, void 0, function () {
-            var url, res, temp, items, e_2;
-            var _this = this;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
+            var url, res, key, continuation;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
                     case 0:
-                        url = "https://www.youtube.com/live_chat?v=" + this.liveId + "&pbj=1";
-                        _a.label = 1;
+                        url = "https://www.youtube.com/watch?v=" + this.liveId;
+                        return [4 /*yield*/, axios_1.default.get(url)];
                     case 1:
-                        _a.trys.push([1, 3, , 4]);
-                        return [4 /*yield*/, axios_1.default.get(url, { headers: LiveChat.headers })];
+                        res = _c.sent();
+                        try {
+                            key = (_a = res.data
+                                .match(/innertubeApiKey":".*?"/)) === null || _a === void 0 ? void 0 : _a[0].split(':')[1].replace(/"/g, '');
+                            console.log("[Youtube Chat] key is " + key);
+                            continuation = (_b = res.data
+                                .match(/continuation":".*?"/)) === null || _b === void 0 ? void 0 : _b[0].split(':')[1].replace(/"/g, '');
+                            console.log("[Youtube Chat] initial continuation is " + continuation);
+                            return [2 /*return*/, { api: key, continuation: continuation }];
+                        }
+                        catch (e) {
+                            console.error(e);
+                            return [2 /*return*/, { api: '', continuation: '' }];
+                        }
+                        return [2 /*return*/];
+                }
+            });
+        });
+    };
+    LiveChat.prototype.fetchChat = function () {
+        var _a;
+        return __awaiter(this, void 0, void 0, function () {
+            var url, reqBody, res, con, temp, items, e_2;
+            var _this = this;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0:
+                        url = "https://www.youtube.com/youtubei/v1/live_chat/get_live_chat?key=" + this.commentApiKey;
+                        _b.label = 1;
+                    case 1:
+                        _b.trys.push([1, 3, , 4]);
+                        reqBody = {
+                            context: {
+                                client: {
+                                    clientName: 'WEB',
+                                    clientVersion: '2.20210126.08.02',
+                                    timeZone: 'Asia/Tokyo',
+                                    utcOffsetMinutes: 540,
+                                    mainAppWebInfo: {
+                                        graftUrl: "https://www.youtube.com/live_chat?continuation=",
+                                    },
+                                },
+                                request: {
+                                    useSsl: true,
+                                },
+                            },
+                            continuation: this.continuation,
+                        };
+                        console.debug("[Youtube Chat] " + url);
+                        return [4 /*yield*/, axios_1.default.post(url, JSON.stringify(reqBody), { headers: LiveChat.headers })];
                     case 2:
-                        res = _a.sent();
-                        temp = res.data[1].response.contents.liveChatRenderer.actions.slice(0, -1).filter(function (v) {
+                        res = _b.sent();
+                        con = parser_1.getContinuation(res.data);
+                        if (!con)
+                            throw new Error('getContinuation error');
+                        console.debug("[Youtube Chat] next continuation is " + con);
+                        this.continuation = con;
+                        temp = (_a = res.data.continuationContents.liveChatContinuation.actions) !== null && _a !== void 0 ? _a : [];
+                        if (temp.length === 0)
+                            return [2 /*return*/];
+                        if (this.isFirst) {
+                            // 初回のみ、actions配列の末尾は入室メッセージみたいなやつなので除外する
+                            temp = temp.slice(0, -1);
+                        }
+                        temp = temp.filter(function (v) {
                             var messageRenderer = parser_1.actionToRenderer(v);
                             return messageRenderer !== null && messageRenderer;
                         });
@@ -3219,7 +3297,8 @@ var LiveChat = /** @class */ (function (_super) {
                         });
                         return [3 /*break*/, 4];
                     case 3:
-                        e_2 = _a.sent();
+                        e_2 = _b.sent();
+                        console.error(e_2);
                         this.emit('error', new Error("Error occured at fetchchat url=" + url));
                         return [3 /*break*/, 4];
                     case 4: return [2 /*return*/];
@@ -3230,7 +3309,10 @@ var LiveChat = /** @class */ (function (_super) {
     LiveChat.prototype.on = function (event, listener) {
         return _super.prototype.on.call(this, event, listener);
     };
-    LiveChat.headers = { 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.142 Safari/537.36' };
+    LiveChat.headers = {
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.142 Safari/537.36',
+        'Content-Type': 'application/json',
+    };
     return LiveChat;
 }(events_1.EventEmitter));
 exports.LiveChat = LiveChat;
@@ -3356,6 +3438,10 @@ exports.parseData = function (data) {
         };
     }
     return ret;
+};
+exports.getContinuation = function (body) {
+    var continuation = body.continuationContents.liveChatContinuation.continuations[0].invalidationContinuationData.continuation;
+    return continuation;
 };
 
 
