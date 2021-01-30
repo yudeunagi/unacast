@@ -841,7 +841,6 @@ var electron_1 = __importStar(__webpack_require__(/*! electron */ "electron"));
 var electron_log_1 = __importDefault(__webpack_require__(/*! electron-log */ "electron-log"));
 var util_1 = __webpack_require__(/*! ./util */ "./src/main/util.ts");
 var electron_window_state_1 = __importDefault(__webpack_require__(/*! electron-window-state */ "electron-window-state"));
-var const_1 = __webpack_require__(/*! ./const */ "./src/main/const.ts");
 console.trace = function () {
     //
 };
@@ -883,33 +882,6 @@ else {
     //     app.quit();
     //   }
     // });
-    // 右クリックメニュー
-    var mainContextMenu_1 = new electron_1.Menu();
-    mainContextMenu_1.append(new electron_1.MenuItem({
-        label: '最前面表示',
-        type: 'checkbox',
-        checked: false,
-        click: function (e) {
-            globalThis.electron.mainWindow.setAlwaysOnTop(e.checked);
-        },
-    }));
-    var chatContextMenu_1 = new electron_1.Menu();
-    chatContextMenu_1.append(new electron_1.MenuItem({
-        label: '最前面表示',
-        type: 'checkbox',
-        checked: false,
-        click: function (e) {
-            globalThis.electron.chatWindow.setAlwaysOnTop(e.checked);
-        },
-    }));
-    chatContextMenu_1.append(new electron_1.MenuItem({
-        label: 'スクロールが端以外の時もコメント受信時に端に飛ぶ',
-        type: 'checkbox',
-        checked: true,
-        click: function (e) {
-            globalThis.electron.chatWindow.webContents.send(const_1.electronEvent.FORCE_SCROLL, e.checked);
-        },
-    }));
     // Electronの初期化完了後に実行
     app.on('ready', function () {
         var windowState = electron_window_state_1.default({
@@ -1009,13 +981,6 @@ else {
             });
         });
         createChatWindow();
-        // 右クリックメニュー開く
-        globalThis.electron.mainWindow.webContents.on('context-menu', function (e, params) {
-            mainContextMenu_1.popup({ window: globalThis.electron.mainWindow, x: params.x, y: params.y });
-        });
-        globalThis.electron.chatWindow.webContents.on('context-menu', function (e, params) {
-            chatContextMenu_1.popup({ window: globalThis.electron.chatWindow, x: params.x, y: params.y });
-        });
     });
     // 音声再生できるようにする
     app.commandLine.appendSwitch('--autoplay-policy', 'no-user-gesture-required');

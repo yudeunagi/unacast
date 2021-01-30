@@ -1,4 +1,4 @@
-import electron from 'electron';
+import electron, { remote } from 'electron';
 import log from 'electron-log';
 import { electronEvent } from '../main/const';
 import { sleep } from '../main/util';
@@ -102,6 +102,75 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   };
 });
+
+const mainContextMenuInText = (target: HTMLInputElement) => {
+  const menu = new remote.Menu();
+
+  menu.append(
+    new remote.MenuItem({
+      label: 'Cut',
+      type: 'normal',
+      click: (menu, browser, event) => {
+        const text = window.getSelection()?.toString() ?? '';
+        if (!text) return;
+
+        electron.clipboard.writeText(text);
+        target.value = target.value.replace(text, '');
+      },
+    }),
+  );
+
+  menu.append(
+    new remote.MenuItem({
+      label: 'Copy',
+      type: 'normal',
+      click: (menu, browser, event) => {
+        const text = window.getSelection()?.toString() ?? '';
+        if (!text) return;
+
+        electron.clipboard.writeText(text);
+      },
+    }),
+  );
+
+  menu.append(
+    new remote.MenuItem({
+      label: 'Paste',
+      type: 'normal',
+      click: (menu, browser, event) => {
+        const text = electron.clipboard.readText();
+        target.value = text;
+      },
+    }),
+  );
+
+  return menu;
+};
+
+const mainContextMenu = new remote.Menu();
+mainContextMenu.append(
+  new remote.MenuItem({
+    label: '最前面表示',
+    type: 'checkbox',
+    checked: false,
+    click: (e) => {
+      remote.getCurrentWindow().setAlwaysOnTop(e.checked);
+    },
+  }),
+);
+
+// 右クリックメニュー
+document.oncontextmenu = (e) => {
+  e.preventDefault();
+  const nodeName = (e.target as HTMLInputElement).nodeName;
+  if (nodeName === 'INPUT') {
+    // テキストボックスとか
+    mainContextMenuInText(e.target as HTMLInputElement).popup({ window: remote.getCurrentWindow(), x: e.x, y: e.y });
+  } else {
+    // それ以外
+    mainContextMenu.popup({ window: remote.getCurrentWindow(), x: e.x, y: e.y });
+  }
+};
 
 /**
  * サーバ起動中にいじっちゃいけない設定の活性状態を切り替える

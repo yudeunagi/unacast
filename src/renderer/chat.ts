@@ -1,4 +1,4 @@
-import electron from 'electron';
+import electron, { remote } from 'electron';
 import log from 'electron-log';
 import { electronEvent } from '../main/const';
 
@@ -9,6 +9,56 @@ let forceScroll = true;
 document.addEventListener('DOMContentLoaded', () => {
   console.debug('[renderer.js] DOM Content Loaded');
 });
+
+const contextMenuInText = new remote.Menu();
+contextMenuInText.append(
+  new remote.MenuItem({
+    label: 'Copy',
+    type: 'normal',
+    click: (menu, browser, event) => {
+      const text = window.getSelection()?.toString() ?? '';
+      if (!text) return;
+
+      electron.clipboard.writeText(text);
+    },
+  }),
+);
+
+const contextMenu = new remote.Menu();
+contextMenu.append(
+  new remote.MenuItem({
+    label: '最前面表示',
+    type: 'checkbox',
+    checked: false,
+    click: (e) => {
+      remote.getCurrentWindow().setAlwaysOnTop(e.checked);
+    },
+  }),
+);
+
+contextMenu.append(
+  new remote.MenuItem({
+    label: 'スクロールが端以外の時もコメント受信時に端に飛ぶ',
+    type: 'checkbox',
+    checked: true,
+    click: (e) => {
+      remote.getCurrentWindow().webContents.send(electronEvent.FORCE_SCROLL, e.checked);
+    },
+  }),
+);
+
+// 右クリックメニュー
+document.oncontextmenu = (e) => {
+  e.preventDefault();
+
+  // 選択範囲があるならCopyのメニューを出す
+  const selectText = window.getSelection()?.toString() ?? '';
+  if (selectText) {
+    contextMenuInText.popup({ window: remote.getCurrentWindow(), x: e.x, y: e.y });
+  } else {
+    contextMenu.popup({ window: remote.getCurrentWindow(), x: e.x, y: e.y });
+  }
+};
 
 ipcRenderer.on(electronEvent.FORCE_SCROLL, (event: any, args: boolean) => {
   log.info(`[FORCE_SCROLL] ${args}`);
