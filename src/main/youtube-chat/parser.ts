@@ -143,6 +143,23 @@ export const parseData = (data: Action): CommentItem | null => {
 };
 
 export const getContinuation = (body: GetLiveChatResponse) => {
-  const continuation = body.continuationContents.liveChatContinuation.continuations[0].invalidationContinuationData.continuation;
-  return continuation;
+  let continuation = '';
+  try {
+    continuation = body.continuationContents.liveChatContinuation.continuations[0].invalidationContinuationData?.continuation ?? '';
+  } catch (e) {
+    // なんかまた知らないパターンが来た時用
+    console.warn(e);
+  }
+  if (continuation) return continuation;
+
+  try {
+    continuation = body.continuationContents.liveChatContinuation.continuations[0].timedContinuationData?.continuation ?? '';
+  } catch (e) {
+    //
+    console.warn(e);
+  }
+  if (continuation) return continuation;
+
+  // なんやかんやしても見つからなかった
+  if (!continuation) throw new Error('continuation not found!');
 };

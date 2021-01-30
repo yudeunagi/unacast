@@ -166,7 +166,7 @@ interface GetLiveChatResponse {
     liveChatContinuation: {
       continuations: [
         {
-          invalidationContinuationData: {
+          invalidationContinuationData?: {
             invalidationId: {
               objectSource: number;
               objectId: string;
@@ -176,6 +176,10 @@ interface GetLiveChatResponse {
             };
             timeoutMs: number;
             /** 次のコメント取得リクエストの時に含めるID */
+            continuation: string;
+          };
+          timedContinuationData?: {
+            timeoutMs: number;
             continuation: string;
           };
         },

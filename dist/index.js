@@ -3440,8 +3440,29 @@ exports.parseData = function (data) {
     return ret;
 };
 exports.getContinuation = function (body) {
-    var continuation = body.continuationContents.liveChatContinuation.continuations[0].invalidationContinuationData.continuation;
-    return continuation;
+    var _a, _b, _c, _d;
+    var continuation = '';
+    try {
+        continuation = (_b = (_a = body.continuationContents.liveChatContinuation.continuations[0].invalidationContinuationData) === null || _a === void 0 ? void 0 : _a.continuation) !== null && _b !== void 0 ? _b : '';
+    }
+    catch (e) {
+        // なんかまた知らないパターンが来た時用
+        console.warn(e);
+    }
+    if (continuation)
+        return continuation;
+    try {
+        continuation = (_d = (_c = body.continuationContents.liveChatContinuation.continuations[0].timedContinuationData) === null || _c === void 0 ? void 0 : _c.continuation) !== null && _d !== void 0 ? _d : '';
+    }
+    catch (e) {
+        //
+        console.warn(e);
+    }
+    if (continuation)
+        return continuation;
+    // なんやかんやしても見つからなかった
+    if (!continuation)
+        throw new Error('continuation not found!');
 };
 
 
