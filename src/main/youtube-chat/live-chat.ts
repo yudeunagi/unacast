@@ -1,30 +1,9 @@
 import { EventEmitter } from 'events';
-import axios from 'axios';
+import axios, { AxiosResponse } from 'axios';
 import { actionToRenderer, CommentItem, getContinuation, parseData } from './parser';
 import { sleep } from '../util';
-
-type LiveChatResponse = [
-  {
-    page: string;
-    csn: string;
-  },
-  {
-    url: string;
-    response: {
-      responseContext: any;
-      contents: {
-        liveChatRenderer: {
-          actions: Action[];
-        };
-      };
-    };
-    timing: any;
-    page: string;
-    endpoint: string;
-    csn: string;
-    xsrf_token: string;
-  },
-];
+import electronlog from 'electron-log';
+const log = electronlog.scope('Youtube-chat');
 
 /**
  * YouTubeライブチャット取得イベント
@@ -92,15 +71,23 @@ export class LiveChat extends EventEmitter {
     }
 
     if (this.liveId) {
-      const init = await this.getInitParam();
-      if (init.api && init.continuation) {
-        this.commentApiKey = init.api;
-        this.continuation = init.continuation;
-        this.observer = setInterval(() => this.fetchChat(), this.interval);
-        this.emit('start', this.liveId);
-      } else {
-        // 配信ページはあるのに何らかの理由でAPIKeyが取れなかった
-        this.emit('error', new Error(`Error occured at fetch apikey liveId=${this.liveId}`));
+      try {
+        const init = await this.getInitParam();
+        if (init.api && init.continuation) {
+          this.commentApiKey = init.api;
+          this.continuation = init.continuation;
+          this.observer = setInterval(() => this.fetchChat(), this.interval);
+          this.emit('start', this.liveId);
+        } else {
+          // 配信ページはあるのに何らかの理由でAPIKeyが取れなかった
+          this.emit('error', new Error(`failed fetch apikey liveId=${this.liveId}`));
+          await sleep(2000);
+          this.fetchLiveId();
+        }
+      } catch (e) {
+        // 考えられるのは、LiveIdを指定していて、ページが取れたが、isLiveNowがfalseだった時
+        this.emit('error', new Error(e.message));
+        await sleep(2000);
         this.fetchLiveId();
       }
     } else {
@@ -123,30 +110,47 @@ export class LiveChat extends EventEmitter {
   private async getInitParam(): Promise<{ api: string; continuation: string }> {
     const url = `https://www.youtube.com/watch?v=${this.liveId}`;
     const res = await axios.get<string>(url);
+
+    let isLiveNow: string | undefined;
+    try {
+      // 配信中か確認。配信中でなければエラーとみなす
+      isLiveNow = res.data
+        .match(/isLiveNow":.*?,/)?.[0]
+        .split(':')[1]
+        .replace(/"/g, '')
+        .replace(/,/g, '');
+      log.debug(isLiveNow);
+    } catch (e) {
+      log.error(e.message);
+      return { api: '', continuation: '' };
+    }
+    if (isLiveNow === 'false') throw new Error(`liveId = ${this.liveId} is not Live Now`);
+
     try {
       const key = res.data
         .match(/innertubeApiKey":".*?"/)?.[0]
         .split(':')[1]
         .replace(/"/g, '');
 
-      console.log(`[Youtube Chat] key is ${key}`);
+      log.debug(`key is ${key}`);
 
       const continuation = res.data
         .match(/continuation":".*?"/)?.[0]
         .split(':')[1]
         .replace(/"/g, '');
 
-      console.log(`[Youtube Chat] initial continuation is ${continuation}`);
+      log.debug(`initial continuation is ${continuation}`);
 
       return { api: key as string, continuation: continuation as string };
     } catch (e) {
-      console.error(e);
+      log.error(e.message);
       return { api: '', continuation: '' };
     }
   }
 
   private async fetchChat() {
     const url = `https://www.youtube.com/youtubei/v1/live_chat/get_live_chat?key=${this.commentApiKey}`;
+    let res: AxiosResponse<GetLiveChatResponse>;
     try {
       const reqBody: GetLiveChageRequestBody = {
         context: {
@@ -165,11 +169,20 @@ export class LiveChat extends EventEmitter {
         },
         continuation: this.continuation,
       };
-      console.debug(`[Youtube Chat] ${url}`);
-      const res = await axios.post<GetLiveChatResponse>(url, JSON.stringify(reqBody), { headers: LiveChat.headers });
+      log.debug(`POST ${url}`);
+      res = await axios
+        .post<GetLiveChatResponse>(url, JSON.stringify(reqBody), { headers: LiveChat.headers })
+        .then((data) => {
+          return data;
+        })
+        .catch((err) => {
+          throw new Error(err.message);
+        });
+      // log.debug(JSON.stringify(res.data.continuationContents));
+
       const con = getContinuation(res.data);
       if (!con) throw new Error('getContinuation error');
-      console.debug(`[Youtube Chat] next continuation is ${con}`);
+      log.debug(`next continuation is ${con}`);
       this.continuation = con;
 
       let temp = res.data.continuationContents.liveChatContinuation.actions ?? [];
@@ -202,13 +215,17 @@ export class LiveChat extends EventEmitter {
       this.isFirst = false;
 
       // 末尾のidを取得
-      console.log(`[Youtube-chat] items = ${items.length}`);
+      log.info(`items = ${items.length}`);
       items.forEach((v) => {
         const id = v?.id;
         if (id) this.displayedId[id] = true;
       });
     } catch (e) {
-      console.error(e);
+      log.error(e);
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      if (res!) {
+        log.error(JSON.stringify(res.data));
+      }
       this.emit('error', new Error(`Error occured at fetchchat url=${url}`));
     }
   }

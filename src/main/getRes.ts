@@ -3,9 +3,9 @@ import iconv from 'iconv-lite'; // 文字コード変換用パッケージ
 import express from 'express';
 import bodyParser from 'body-parser'; // jsonパーサ
 const router = express.Router();
-import log from 'electron-log';
-import ReadIcons from './ReadIcons'; //アイコンファイル名取得
-const readIcons = new ReadIcons();
+import electronlog from 'electron-log';
+const log = electronlog.scope('bbs');
+import readIcons from './ReadIcons'; //アイコンファイル名取得
 
 import { createDom } from './startServer';
 import ReadSitaraba, { readBoard as readBoardShitaraba, postRes as postResShitaraba } from './readBBS/readSitaraba'; // したらば読み込み用モジュール
@@ -24,12 +24,12 @@ router.use(bodyParser.json());
  * ブラウザからの初期処理リクエスト
  */
 router.get('/', async (req, res, next) => {
-  log.info('[getRes.js] access /');
+  log.info('access /');
   // リクエストからURLとレス番号を取得する
   const threadUrl: string = globalThis.config.url;
   // レス番号取得
   const resNum: number = globalThis.config.resNumber ? Number(globalThis.config.resNumber) : NaN;
-  log.info(`[getRes.js] threadUrl=${threadUrl} resNum=${resNum}`);
+  log.info(`threadUrl=${threadUrl} resNum=${resNum}`);
   if (!resNum) {
     res.send(JSON.stringify([]));
     return;
@@ -57,7 +57,7 @@ export const getRes = async (threadUrl: string, resNum: number): Promise<UserCom
     // 選択したモジュールでレス取得処理を行う
     const response = await bbsModule.read(threadUrl, resNum);
     globalThis.electron.threadConnectionError = 0;
-    console.log(`[getRes.js] fetch ${threadUrl} resNum = ${resNum}, result = ${response.length} lastResNum=${response.length > 0 ? response[response.length - 1].number : '-'}`);
+    log.info(`fetch ${threadUrl} resNum = ${resNum}, result = ${response.length} lastResNum=${response.length > 0 ? response[response.length - 1].number : '-'}`);
 
     return response.map((res) => {
       return {
@@ -71,7 +71,7 @@ export const getRes = async (threadUrl: string, resNum: number): Promise<UserCom
     if (globalThis.config.notifyThreadConnectionErrorLimit > 0) {
       globalThis.electron.threadConnectionError += 1;
       if (globalThis.electron.threadConnectionError >= globalThis.config.notifyThreadConnectionErrorLimit) {
-        log.info('[getRes] エラー回数超過');
+        log.info('エラー回数超過');
 
         globalThis.electron.threadConnectionError = 0;
         return [
@@ -198,7 +198,7 @@ export const threadUrlToBoardInfo = async (threadUrl: string) => {
     }
   }
 
-  console.log(`[tempUrl] ${tempUrl} [boardUrl] ${boardUrl}`);
+  // log.debug(`[tempUrl] ${tempUrl} [boardUrl] ${boardUrl}`);
   try {
     const options: AxiosRequestConfig = {
       url: tempUrl,
@@ -209,7 +209,6 @@ export const threadUrlToBoardInfo = async (threadUrl: string) => {
 
     const response = await axios(options);
     if (response.status < 400) {
-      // console.log(response.data);
       const str = iconv.decode(Buffer.from(response.data), encoding);
 
       str.split(/\n/g).map((text: string) => {

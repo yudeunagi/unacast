@@ -3,7 +3,8 @@
  */
 import axios, { AxiosRequestConfig } from 'axios';
 import iconv from 'iconv-lite'; // 文字コード変換用パッケージ
-import log from 'electron-log';
+import electronlog from 'electron-log';
+const log = electronlog.scope('bbs');
 export type ShitarabaResponse = ReturnType<typeof purseResponse>;
 import encoding from 'encoding-japanese';
 import { json } from 'body-parser';
@@ -162,7 +163,7 @@ const parseThreadList = (boardUrl: string, subjectLine: string) => {
   //0:dat名
   //1:スレタイ（レス数）
   const splitRes = subjectLine.split(',');
-  // console.log(splitRes);
+  // log.debug(splitRes);
   const datNum = splitRes[0].replace('.cgi', '');
 
   const hostname = boardUrl.match(/^https?:\/\/.+?\//)?.[0] ?? '';

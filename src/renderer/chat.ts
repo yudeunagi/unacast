@@ -1,5 +1,6 @@
 import electron, { remote } from 'electron';
-import log from 'electron-log';
+import electronlog from 'electron-log';
+const log = electronlog.scope('renderer-chat');
 import { electronEvent } from '../main/const';
 
 const ipcRenderer = electron.ipcRenderer;
@@ -7,7 +8,7 @@ const ipcRenderer = electron.ipcRenderer;
 let forceScroll = true;
 
 document.addEventListener('DOMContentLoaded', () => {
-  console.debug('[renderer.js] DOM Content Loaded');
+  log.debug('DOM Content Loaded');
 });
 
 const contextMenuInText = new remote.Menu();

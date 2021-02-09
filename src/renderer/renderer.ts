@@ -1,12 +1,13 @@
 import electron, { remote } from 'electron';
-import log from 'electron-log';
+import electronlog from 'electron-log';
+const log = electronlog.scope('renderer-main');
 import { electronEvent } from '../main/const';
 import { sleep } from '../main/util';
 
 const ipcRenderer = electron.ipcRenderer;
 
 document.addEventListener('DOMContentLoaded', () => {
-  console.debug('[renderer.js]DOM Content Loaded');
+  log.debug('DOM Content Loaded');
   // 設定のロード
   loadConfigToLocalStrage();
 
@@ -14,8 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const applyButton = document.getElementById('button-config-apply') as HTMLInputElement;
   applyButton.onclick = () => {
     const config = buildConfigJson();
-    console.log('[renderer.js]config=');
-    console.log(config);
+    log.debug('config=');
+    log.debug(config);
     //設定情報をローカルストレージへ保存
     saveConfigToLocalStrage(config);
 
@@ -30,8 +31,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     //設定情報取得
     const config = buildConfigJson();
-    console.log('[renderer.js]config=');
-    console.log(config);
+    log.debug('config=');
+    log.debug(config);
     //設定情報をローカルストレージへ保存
     saveConfigToLocalStrage(config);
 
@@ -50,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // サーバー開始メッセージを送信する
     const result = ipcRenderer.sendSync('start-server', config);
-    console.debug(`[renderer.js] ${result}`);
+    log.debug(` ${result}`);
     // サーバー起動・停止ボタン状態変更
     stopButton.disabled = false;
     startButton.disabled = true;
@@ -73,7 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // サーバー停止確認ダイアログ
   closeOkButton.onclick = () => {
     const result = ipcRenderer.sendSync('stop-server');
-    console.debug('[renderer.js]' + result);
+    log.debug('' + result);
     //ダイアログクローズ
     (dialog as any).close();
 
@@ -312,7 +313,7 @@ const buildConfigJson = () => {
  */
 const saveConfigToLocalStrage = (config: typeof globalThis['config']) => {
   localStorage.setItem('config', JSON.stringify(config));
-  console.debug('[renderer.js]config saved');
+  log.debug('config saved');
 };
 
 /**
@@ -444,12 +445,12 @@ const loadConfigToLocalStrage = () => {
   (document.getElementById('text-notify-threadResLimit') as any).value = config.notifyThreadResLimit;
   (document.getElementById('moveThread') as any).checked == config.moveThread;
 
-  console.debug('[renderer.js]config loaded');
+  log.debug('config loaded');
 };
 
 // サーバー起動返信
 ipcRenderer.on(electronEvent.START_SERVER_REPLY, (event: any, arg: any) => {
-  console.debug(arg);
+  log.debug(arg);
 });
 
 // 着信音再生
@@ -507,7 +508,7 @@ ipcRenderer.on(electronEvent.SHOW_ALERT, async (event: any, args: string) => {
 
 // 何かしら通知したいことがあったら表示する
 ipcRenderer.on(electronEvent.UPDATE_STATUS, async (event: any, args: { commentType: 'bbs' | 'jpnkn' | 'youtube' | 'twitch' | 'niconico'; category: string; message: string }) => {
-  console.log(`[UPDATE_STATUS]`);
+  log.debug(`[UPDATE_STATUS] commentType = ${args.commentType} category = ${args.category}`);
   switch (args.commentType) {
     case 'bbs': {
       if (args.category === 'title') {

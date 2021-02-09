@@ -4,10 +4,11 @@
  */
 import fs from 'fs';
 import path from 'path';
-import log from 'electron-log';
+import electronlog from 'electron-log';
+const log = electronlog.scope('ReadIcons');
 
 let randomIconList: fs.Dirent[];
-let idIconList;
+let idIconList: fs.Dirent[];
 
 /**
  * コンストラクタ
@@ -19,13 +20,13 @@ class ReadIcons {
   constructor() {
     //画像ディレクトリ
     const randomDir = path.resolve(__dirname, `../public/img/random/`);
-    console.debug('[ReadIcons]loadRandomDir = ' + randomDir);
+    log.debug('loadRandomDir = ' + randomDir);
     //  ランダムアイコン取得
     randomIconList = readDir(randomDir);
 
-    //ID用アイコンディレクトリ
+    // ID用アイコンディレクトリ(未使用)
     const idDir = path.resolve(__dirname, `../public/img/id/`);
-    console.debug('[ReadIcons]loadIDDir = ' + idDir);
+    log.debug('loadIDDir = ' + idDir);
     //  ランダムアイコン取得
     idIconList = readDir(idDir);
   }
@@ -64,22 +65,7 @@ const readDir = (imgDir: string) => {
     }
   });
 
-  // console.log('[ReadIcons.readDir]end');
-  // console.log(JSON.stringify(iconFileList));
   return iconFileList;
 };
 
-/**
- * IDによるアイコン固定機能（オプションでON,OFF可能）
- * 初出のIDならばランダムでアイコンを取得し
- * IDとファイル名のセットでマップに格納
- * @param string // ID
- * @return string filename
- */
-
-/**
- * コテハンリスト機能（オプションでON,OFF可能）
- * koteフォルダの下にkotehan.jsonを作って
- * 名前とアイコンファイル名の対応をマップにして返すだけ
- */
-export default ReadIcons;
+export default new ReadIcons();

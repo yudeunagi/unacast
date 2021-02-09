@@ -3,7 +3,8 @@
  */
 import axios, { AxiosRequestConfig } from 'axios';
 import iconv from 'iconv-lite'; // 文字コード変換用パッケージ
-import log from 'electron-log';
+import electronlog from 'electron-log';
+const log = electronlog.scope('bbs');
 import https from 'https';
 import encoding from 'encoding-japanese';
 
@@ -49,11 +50,11 @@ export const readBoard = async (boardUrl: string) => {
     );
   } catch (error) {
     if (error.status == NOT_MODIFIED) {
-      log.error('[Read5ch.js]5ch系BBS板取得APIリクエストエラー、NOT_MODIFIED');
+      log.error('5ch系BBS板取得APIリクエストエラー、NOT_MODIFIED');
     } else if (error.status == RANGE_NOT_SATISFIABLE) {
-      log.error('[Read5ch.js]5ch系BBS板取得APIリクエストエラー、RANGE_NOT_SATISFIABLE');
+      log.error('5ch系BBS板取得APIリクエストエラー、RANGE_NOT_SATISFIABLE');
     } else {
-      log.error('[Read5ch.js]5ch系BBS板取得APIリクエストエラー、message=' + error.message);
+      log.error('5ch系BBS板取得APIリクエストエラー、message=' + error.message);
     }
     throw new Error('connection error');
   }
@@ -130,9 +131,9 @@ class Read5ch {
       this.lastModified = null;
       this.lastByte = 0;
       this.lastWroteDate = null;
-      log.info('[Read5ch.js] reset');
+      log.info(' reset');
     } else {
-      console.trace('noreset');
+      log.debug('noreset');
     }
 
     //リクエストURL作成 下記みたいな感じで変換する
@@ -184,7 +185,7 @@ class Read5ch {
       const str = iconv.decode(Buffer.from(response.data), 'Shift_JIS');
       // レスポンスオブジェクト作成、content-rangeがある場合とない場合で処理を分ける
       if (headers['content-range'] == null || this.lastByte == 0) {
-        console.trace('[Read5ch.read]content-range=' + headers['content-range']);
+        log.debug('content-range=' + headers['content-range']);
         const result = parseNewResponse(str, resNum);
         responseJson = result.result;
       } else {
@@ -224,16 +225,16 @@ class Read5ch {
       // 取得バイト数表示
       if (headers['content-length'] != null && responseJson.length > 0) {
         this.lastByte = this.lastByte + parseInt(headers['content-length']) - 1;
-        console.trace('[Read5ch.read]lastByte=' + this.lastByte);
+        log.debug('lastByte=' + this.lastByte);
       }
     } catch (error) {
       responseJson = [];
       if (error.status == NOT_MODIFIED) {
-        log.error('[Read5ch.js]5ch系BBSレス取得APIリクエストエラー、NOT_MODIFIED');
+        log.error('5ch系BBSレス取得APIリクエストエラー、NOT_MODIFIED');
       } else if (error.status == RANGE_NOT_SATISFIABLE) {
-        log.error('[Read5ch.js]5ch系BBSレス取得APIリクエストエラー、RANGE_NOT_SATISFIABLE');
+        log.error('5ch系BBSレス取得APIリクエストエラー、RANGE_NOT_SATISFIABLE');
       } else {
-        log.error('[Read5ch.js]5ch系BBSレス取得APIリクエストエラー、message=' + error.message);
+        log.error('5ch系BBSレス取得APIリクエストエラー、message=' + error.message);
       }
       throw new Error('connection error');
     }
@@ -313,7 +314,7 @@ const parseDiffResponse = (res: string, resNum: number) => {
     }
   }
 
-  console.trace('[Read5ch.purseDiffResponse]取得レス番号=' + num);
+  log.debug('purseDiffResponse 取得レス番号=' + num);
   //1行ごとにパースする
   resArray.forEach((value) => {
     //パースメソッド呼び出し
@@ -338,7 +339,7 @@ const parseThreadList = (boardUrl: string, subjectLine: string) => {
   //0:dat名
   //1:スレタイ（レス数）
   const splitRes = subjectLine.split('<>');
-  console.log(splitRes);
+  // log.debug(splitRes);
   const datNum = splitRes[0].replace('.dat', '');
 
   const hostname = boardUrl.match(/^https?:\/\/.+?\//)?.[0] ?? '';

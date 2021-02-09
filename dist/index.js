@@ -106,6 +106,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var fs_1 = __importDefault(__webpack_require__(/*! fs */ "fs"));
 var path_1 = __importDefault(__webpack_require__(/*! path */ "path"));
 var electron_log_1 = __importDefault(__webpack_require__(/*! electron-log */ "electron-log"));
+var log = electron_log_1.default.scope('ReadIcons');
 var randomIconList;
 var idIconList;
 /**
@@ -130,18 +131,18 @@ var ReadIcons = /** @class */ (function () {
                 iconPath = dirName + randomIconList[num];
             }
             catch (e) {
-                electron_log_1.default.error(e);
+                log.error(e);
             }
             return iconPath;
         };
         //画像ディレクトリ
         var randomDir = path_1.default.resolve(__dirname, "../public/img/random/");
-        console.debug('[ReadIcons]loadRandomDir = ' + randomDir);
+        log.debug('loadRandomDir = ' + randomDir);
         //  ランダムアイコン取得
         randomIconList = readDir(randomDir);
-        //ID用アイコンディレクトリ
+        // ID用アイコンディレクトリ(未使用)
         var idDir = path_1.default.resolve(__dirname, "../public/img/id/");
-        console.debug('[ReadIcons]loadIDDir = ' + idDir);
+        log.debug('loadIDDir = ' + idDir);
         //  ランダムアイコン取得
         idIconList = readDir(idDir);
     }
@@ -160,23 +161,9 @@ var readDir = function (imgDir) {
             iconFileList.push(target);
         }
     });
-    // console.log('[ReadIcons.readDir]end');
-    // console.log(JSON.stringify(iconFileList));
     return iconFileList;
 };
-/**
- * IDによるアイコン固定機能（オプションでON,OFF可能）
- * 初出のIDならばランダムでアイコンを取得し
- * IDとファイル名のセットでマップに格納
- * @param string // ID
- * @return string filename
- */
-/**
- * コテハンリスト機能（オプションでON,OFF可能）
- * koteフォルダの下にkotehan.jsonを作って
- * 名前とアイコンファイル名の対応をマップにして返すだけ
- */
-exports.default = ReadIcons;
+exports.default = new ReadIcons();
 
 
 /***/ }),
@@ -278,6 +265,7 @@ exports.default = BouyomiChan;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.electronEvent = void 0;
 exports.electronEvent = {
     /** サーバー起動 */
     START_SERVER: 'start-server',
@@ -330,6 +318,25 @@ var __assign = (this && this.__assign) || function () {
     };
     return __assign.apply(this, arguments);
 };
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -369,22 +376,16 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
-};
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.threadUrlToBoardInfo = exports.postResponse = exports.getThreadList = exports.getRes = void 0;
 var axios_1 = __importDefault(__webpack_require__(/*! axios */ "axios"));
 var iconv_lite_1 = __importDefault(__webpack_require__(/*! iconv-lite */ "iconv-lite")); // 文字コード変換用パッケージ
 var express_1 = __importDefault(__webpack_require__(/*! express */ "express"));
 var body_parser_1 = __importDefault(__webpack_require__(/*! body-parser */ "body-parser")); // jsonパーサ
 var router = express_1.default.Router();
 var electron_log_1 = __importDefault(__webpack_require__(/*! electron-log */ "electron-log"));
+var log = electron_log_1.default.scope('bbs');
 var ReadIcons_1 = __importDefault(__webpack_require__(/*! ./ReadIcons */ "./src/main/ReadIcons.ts")); //アイコンファイル名取得
-var readIcons = new ReadIcons_1.default();
 var startServer_1 = __webpack_require__(/*! ./startServer */ "./src/main/startServer.ts");
 var readSitaraba_1 = __importStar(__webpack_require__(/*! ./readBBS/readSitaraba */ "./src/main/readBBS/readSitaraba.ts")); // したらば読み込み用モジュール
 var Read5ch_1 = __importStar(__webpack_require__(/*! ./readBBS/Read5ch */ "./src/main/readBBS/Read5ch.ts")); // 5ch互換板読み込み用モジュール
@@ -403,10 +404,10 @@ router.get('/', function (req, res, next) { return __awaiter(void 0, void 0, voi
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
-                electron_log_1.default.info('[getRes.js] access /');
+                log.info('access /');
                 threadUrl = globalThis.config.url;
                 resNum = globalThis.config.resNumber ? Number(globalThis.config.resNumber) : NaN;
-                electron_log_1.default.info("[getRes.js] threadUrl=" + threadUrl + " resNum=" + resNum);
+                log.info("threadUrl=" + threadUrl + " resNum=" + resNum);
                 if (!resNum) {
                     res.send(JSON.stringify([]));
                     return [2 /*return*/];
@@ -427,7 +428,7 @@ router.get('/', function (req, res, next) { return __awaiter(void 0, void 0, voi
  * @param threadUrl スレのURL
  * @param resNum この番号以降を取得する。指定しない場合は全件取得
  */
-exports.getRes = function (threadUrl, resNum) { return __awaiter(void 0, void 0, void 0, function () {
+var getRes = function (threadUrl, resNum) { return __awaiter(void 0, void 0, void 0, function () {
     var response, e_1;
     return __generator(this, function (_a) {
         switch (_a.label) {
@@ -439,18 +440,18 @@ exports.getRes = function (threadUrl, resNum) { return __awaiter(void 0, void 0,
             case 1:
                 response = _a.sent();
                 globalThis.electron.threadConnectionError = 0;
-                console.log("[getRes.js] fetch " + threadUrl + " resNum = " + resNum + ", result = " + response.length + " lastResNum=" + (response.length > 0 ? response[response.length - 1].number : '-'));
+                log.info("fetch " + threadUrl + " resNum = " + resNum + ", result = " + response.length + " lastResNum=" + (response.length > 0 ? response[response.length - 1].number : '-'));
                 return [2 /*return*/, response.map(function (res) {
-                        return __assign(__assign({}, res), { imgUrl: readIcons.getRandomIcons() });
+                        return __assign(__assign({}, res), { imgUrl: ReadIcons_1.default.getRandomIcons() });
                     })];
             case 2:
                 e_1 = _a.sent();
-                electron_log_1.default.error(e_1);
+                log.error(e_1);
                 // エラー回数が規定回数以上かチェックして、超えてたら通知する
                 if (globalThis.config.notifyThreadConnectionErrorLimit > 0) {
                     globalThis.electron.threadConnectionError += 1;
                     if (globalThis.electron.threadConnectionError >= globalThis.config.notifyThreadConnectionErrorLimit) {
-                        electron_log_1.default.info('[getRes] エラー回数超過');
+                        log.info('エラー回数超過');
                         globalThis.electron.threadConnectionError = 0;
                         return [2 /*return*/, [
                                 {
@@ -467,6 +468,7 @@ exports.getRes = function (threadUrl, resNum) { return __awaiter(void 0, void 0,
         }
     });
 }); };
+exports.getRes = getRes;
 /*
  * URLをみてどこのBBSか判定して使用するモジュールを返却する
  */
@@ -481,7 +483,7 @@ var analysBBSName = function (threadUrl) {
     // この辺も対応ドメインリストとか作ってちゃんと判定したほうがよさそう
     return read5ch;
 };
-exports.getThreadList = function (boardUrl) { return __awaiter(void 0, void 0, void 0, function () {
+var getThreadList = function (boardUrl) { return __awaiter(void 0, void 0, void 0, function () {
     var sitarabaDomain;
     return __generator(this, function (_a) {
         switch (_a.label) {
@@ -498,13 +500,14 @@ exports.getThreadList = function (boardUrl) { return __awaiter(void 0, void 0, v
         }
     });
 }); };
+exports.getThreadList = getThreadList;
 /** レスを投稿 */
-exports.postResponse = function (hostname, threadNumber, boardId, message) { return __awaiter(void 0, void 0, void 0, function () {
+var postResponse = function (hostname, threadNumber, boardId, message) { return __awaiter(void 0, void 0, void 0, function () {
     var sitarabaDomain;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
-                electron_log_1.default.info("[postResponse] " + hostname + " " + threadNumber + " " + boardId);
+                log.info("[postResponse] " + hostname + " " + threadNumber + " " + boardId);
                 sitarabaDomain = 'jbbs.shitaraba.net';
                 if (!(hostname.indexOf(sitarabaDomain) !== -1)) return [3 /*break*/, 2];
                 return [4 /*yield*/, readSitaraba_1.postRes(hostname, threadNumber, boardId, message)];
@@ -516,11 +519,12 @@ exports.postResponse = function (hostname, threadNumber, boardId, message) { ret
         }
     });
 }); };
+exports.postResponse = postResponse;
 /**
  * スレのURLから板情報を取得
  * @param threadUrl スレのURL
  */
-exports.threadUrlToBoardInfo = function (threadUrl) { return __awaiter(void 0, void 0, void 0, function () {
+var threadUrlToBoardInfo = function (threadUrl) { return __awaiter(void 0, void 0, void 0, function () {
     var sitarabaDomain, result, boardUrl, tempUrl, encoding, options, response, str, e_2;
     return __generator(this, function (_a) {
         switch (_a.label) {
@@ -576,7 +580,6 @@ exports.threadUrlToBoardInfo = function (threadUrl) { return __awaiter(void 0, v
                         tempUrl = tempUrl + "SETTING.TXT";
                     }
                 }
-                console.log("[tempUrl] " + tempUrl + " [boardUrl] " + boardUrl);
                 _a.label = 1;
             case 1:
                 _a.trys.push([1, 3, , 4]);
@@ -603,12 +606,13 @@ exports.threadUrlToBoardInfo = function (threadUrl) { return __awaiter(void 0, v
                 return [3 /*break*/, 4];
             case 3:
                 e_2 = _a.sent();
-                electron_log_1.default.error('なんかエラー');
+                log.error('なんかエラー');
                 return [3 /*break*/, 4];
             case 4: return [2 /*return*/, result];
         }
     });
 }); };
+exports.threadUrlToBoardInfo = threadUrlToBoardInfo;
 exports.default = router;
 
 
@@ -627,7 +631,7 @@ var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
         extendStatics = Object.setPrototypeOf ||
             ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+            function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
         return extendStatics(d, b);
     };
     return function (d, b) {
@@ -682,8 +686,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var events_1 = __webpack_require__(/*! events */ "events");
 var paho_mqtt_1 = __importDefault(__webpack_require__(/*! paho-mqtt */ "paho-mqtt"));
 var electron_log_1 = __importDefault(__webpack_require__(/*! electron-log */ "electron-log"));
+var log = electron_log_1.default.scope('jpnkn');
 var ReadIcons_1 = __importDefault(__webpack_require__(/*! ../ReadIcons */ "./src/main/ReadIcons.ts")); //アイコンファイル名取得
-var readIcons = new ReadIcons_1.default();
 var ws_1 = __importDefault(__webpack_require__(/*! ws */ "ws"));
 global.WebSocket = ws_1.default;
 var JpnknFast = /** @class */ (function (_super) {
@@ -699,15 +703,15 @@ var JpnknFast = /** @class */ (function (_super) {
             var client, onConnect, onConnectionLost, onMessageArrived;
             var _this = this;
             return __generator(this, function (_a) {
-                electron_log_1.default.info("[fetchComment] boardId = " + this.boardId);
+                log.info("[fetchComment] boardId = " + this.boardId);
                 client = new paho_mqtt_1.default.Client('a.mq.jpnkn.com', 9091, 'peca' + new Date().getTime());
                 onConnect = function (o) {
                     client.subscribe("bbs/" + _this.boardId);
                     _this.emit('open');
                 };
                 onConnectionLost = function (e) {
-                    electron_log_1.default.error('[fetchComment]なんかエラーだ');
-                    electron_log_1.default.error(JSON.stringify(e, null, '  '));
+                    log.error('[fetchComment] なんかエラーだ');
+                    log.error(JSON.stringify(e, null, '  '));
                     _this.emit('error', new Error("jpnkn\u306EWebSocket\u3067Error: [" + e.errorCode + "] " + e.errorMessage));
                     _this.fetchComment();
                 };
@@ -719,7 +723,7 @@ var JpnknFast = /** @class */ (function (_super) {
                         name: res[0],
                         date: res[2],
                         text: res[3],
-                        imgUrl: readIcons.getRandomIcons(),
+                        imgUrl: ReadIcons_1.default.getRandomIcons(),
                         threadTitle: '',
                         id: '',
                         email: res[1],
@@ -788,6 +792,25 @@ exports.default = JpnknFast;
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -826,13 +849,6 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 // Electronのモジュール
@@ -1032,7 +1048,7 @@ var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
         extendStatics = Object.setPrototypeOf ||
             ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+            function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
         return extendStatics(d, b);
     };
     return function (d, b) {
@@ -1088,6 +1104,7 @@ var events_1 = __webpack_require__(/*! events */ "events");
 var axios_1 = __importDefault(__webpack_require__(/*! axios */ "axios"));
 var cheerio_1 = __importDefault(__webpack_require__(/*! cheerio */ "cheerio"));
 var electron_log_1 = __importDefault(__webpack_require__(/*! electron-log */ "electron-log"));
+var log = electron_log_1.default.scope('niconama');
 var util_1 = __webpack_require__(/*! ../util */ "./src/main/util.ts");
 var ws_1 = __importDefault(__webpack_require__(/*! ws */ "ws"));
 var NiconamaComment = /** @class */ (function (_super) {
@@ -1112,7 +1129,7 @@ var NiconamaComment = /** @class */ (function (_super) {
                 switch (_b.label) {
                     case 0:
                         url = "https://live2.nicovideo.jp/watch/" + this.communityId;
-                        electron_log_1.default.info("[pollingStartBroadcast] " + url);
+                        log.info("[pollingStartBroadcast] " + url);
                         _b.label = 1;
                     case 1:
                         _b.trys.push([1, 6, , 8]);
@@ -1153,7 +1170,7 @@ var NiconamaComment = /** @class */ (function (_super) {
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
-                        electron_log_1.default.info("[fetchCommentServerThread]");
+                        log.info("[fetchCommentServerThread]");
                         url = "https://live2.nicovideo.jp/watch/" + this.communityId;
                         return [4 /*yield*/, axios_1.default.get(url)];
                     case 1:
@@ -1164,7 +1181,7 @@ var NiconamaComment = /** @class */ (function (_super) {
                         audienceToken = embeddedData.player.audienceToken;
                         frontendId = embeddedData.site.frontendId;
                         threadWssUrl = "wss://a.live2.nicovideo.jp/unama/wsapi/v2/watch/" + broadcastId + "?audience_token=" + audienceToken + "&frontend_id=" + frontendId;
-                        electron_log_1.default.info(threadWssUrl);
+                        log.info(threadWssUrl);
                         tWs = new ws_1.default(threadWssUrl, {
                             headers: {
                                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36',
@@ -1173,7 +1190,7 @@ var NiconamaComment = /** @class */ (function (_super) {
                         tWs.onmessage = function (event) {
                             var obj = JSON.parse(event.data.toString());
                             // log.info(JSON.stringify(obj, null, '  '));
-                            electron_log_1.default.info("[fetchCommentServerThread] WS received - type: " + obj.type);
+                            log.info("[fetchCommentServerThread] WS received - type: " + obj.type);
                             switch (obj.type) {
                                 case 'serverTime': {
                                     // currentMs
@@ -1218,17 +1235,17 @@ var NiconamaComment = /** @class */ (function (_super) {
                             }
                         };
                         tWs.on('open', function () {
-                            electron_log_1.default.info('startWatching');
+                            log.info('startWatching');
                             tWs.send(JSON.stringify({
                                 type: 'startWatching',
                                 data: { stream: { quality: 'high', protocol: 'hls', latency: 'low', chasePlay: false }, room: { protocol: 'webSocket', commentable: true }, reconnect: false },
                             }));
-                            electron_log_1.default.info('getAkashic');
+                            log.info('getAkashic');
                             tWs.send(JSON.stringify({ type: 'getAkashic', data: { chasePlay: false } }));
                         });
                         tWs.on('error', function (event) {
-                            electron_log_1.default.error('[fetchCommentServerThread] スレッドID取得のWebSocketでエラー。再接続を実施。');
-                            electron_log_1.default.error(JSON.stringify(event, null, '  '));
+                            log.error('[fetchCommentServerThread] スレッドID取得のWebSocketでエラー。再接続を実施。');
+                            log.error(JSON.stringify(event, null, '  '));
                             _this.emit('error', new Error("\u30B9\u30EC\u30C3\u30C9ID\u53D6\u5F97\u306EWebSocket\u3067Error"));
                             if (tWs.OPEN)
                                 tWs.close();
@@ -1247,7 +1264,7 @@ var NiconamaComment = /** @class */ (function (_super) {
             var ws;
             var _this = this;
             return __generator(this, function (_a) {
-                electron_log_1.default.info("[fetchComment] threadId = " + threadId);
+                log.info("[fetchComment] threadId = " + threadId);
                 ws = new ws_1.default(wsUrl, 'niconama', {
                     headers: {
                         'Sec-WebSocket-Extensions': 'permessage-deflate; client_max_window_bits',
@@ -1273,7 +1290,7 @@ var NiconamaComment = /** @class */ (function (_super) {
                     var comment = (_c = chat.chat) === null || _c === void 0 ? void 0 : _c.content;
                     if (!comment)
                         return;
-                    electron_log_1.default.info("[fetchComment]WS - content: " + comment);
+                    log.info("[fetchComment]WS - content: " + comment);
                     // /で始まるのはなんかコマンドなので除外する
                     if (comment.match(/^\/[a-z]+ /))
                         return;
@@ -1285,15 +1302,15 @@ var NiconamaComment = /** @class */ (function (_super) {
                     _this.emit('comment', item);
                 });
                 ws.on('error', function (event) {
-                    electron_log_1.default.error('[fetchComment]なんかエラーだ');
-                    electron_log_1.default.error(JSON.stringify(event, null, '  '));
+                    log.error('[fetchComment]なんかエラーだ');
+                    log.error(JSON.stringify(event, null, '  '));
                     _this.emit('error', new Error("\u30CB\u30B3\u751F\u30C1\u30E3\u30C3\u30C8\u306EWebSocket\u3067Error"));
                     if (ws.OPEN)
                         ws.close();
                     _this.fetchComment(wsUrl, threadId);
                 });
                 ws.on('open', function () {
-                    electron_log_1.default.info('[fetchComment] connected');
+                    log.info('[fetchComment] connected');
                     ws.send(JSON.stringify([
                         { ping: { content: 'rs:0' } },
                         { ping: { content: 'ps:0' } },
@@ -1406,12 +1423,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.postRes = exports.readBoard = void 0;
 /**
  * 5ch互換BBS読み込み用モジュール
  */
 var axios_1 = __importDefault(__webpack_require__(/*! axios */ "axios"));
 var iconv_lite_1 = __importDefault(__webpack_require__(/*! iconv-lite */ "iconv-lite")); // 文字コード変換用パッケージ
 var electron_log_1 = __importDefault(__webpack_require__(/*! electron-log */ "electron-log"));
+var log = electron_log_1.default.scope('bbs');
 var https_1 = __importDefault(__webpack_require__(/*! https */ "https"));
 var encoding_japanese_1 = __importDefault(__webpack_require__(/*! encoding-japanese */ "encoding-japanese"));
 var instance = axios_1.default.create({
@@ -1423,7 +1442,7 @@ var instance = axios_1.default.create({
 var NOT_MODIFIED = '304';
 var RANGE_NOT_SATISFIABLE = '416';
 /** スレ一覧を読み込む */
-exports.readBoard = function (boardUrl) { return __awaiter(void 0, void 0, void 0, function () {
+var readBoard = function (boardUrl) { return __awaiter(void 0, void 0, void 0, function () {
     var requestUrl, list, options, response, str, error_1;
     return __generator(this, function (_a) {
         switch (_a.label) {
@@ -1452,19 +1471,20 @@ exports.readBoard = function (boardUrl) { return __awaiter(void 0, void 0, void 
             case 3:
                 error_1 = _a.sent();
                 if (error_1.status == NOT_MODIFIED) {
-                    electron_log_1.default.error('[Read5ch.js]5ch系BBS板取得APIリクエストエラー、NOT_MODIFIED');
+                    log.error('5ch系BBS板取得APIリクエストエラー、NOT_MODIFIED');
                 }
                 else if (error_1.status == RANGE_NOT_SATISFIABLE) {
-                    electron_log_1.default.error('[Read5ch.js]5ch系BBS板取得APIリクエストエラー、RANGE_NOT_SATISFIABLE');
+                    log.error('5ch系BBS板取得APIリクエストエラー、RANGE_NOT_SATISFIABLE');
                 }
                 else {
-                    electron_log_1.default.error('[Read5ch.js]5ch系BBS板取得APIリクエストエラー、message=' + error_1.message);
+                    log.error('5ch系BBS板取得APIリクエストエラー、message=' + error_1.message);
                 }
                 throw new Error('connection error');
             case 4: return [2 /*return*/, list];
         }
     });
 }); };
+exports.readBoard = readBoard;
 /**
  * レスを投稿する
  * @param hostname ホスト名。https://hogehoge/
@@ -1472,7 +1492,7 @@ exports.readBoard = function (boardUrl) { return __awaiter(void 0, void 0, void 
  * @param boardId 板ID pasta04
  * @param message 投稿文
  */
-exports.postRes = function (hostname, threadNumber, boardId, message) { return __awaiter(void 0, void 0, void 0, function () {
+var postRes = function (hostname, threadNumber, boardId, message) { return __awaiter(void 0, void 0, void 0, function () {
     var unicodeArray, i, sjisArray, encodedKeyword, result;
     return __generator(this, function (_a) {
         switch (_a.label) {
@@ -1487,8 +1507,8 @@ exports.postRes = function (hostname, threadNumber, boardId, message) { return _
                 });
                 encodedKeyword = encoding_japanese_1.default.urlEncode(sjisArray);
                 // log.info(encodeURIComponent.toString());
-                electron_log_1.default.info(hostname + "test/bbs.cgi");
-                electron_log_1.default.info("FROM=&MESSAGE=" + encodedKeyword + "&mail=sage&key=" + threadNumber + "&bbs=" + boardId);
+                log.info(hostname + "test/bbs.cgi");
+                log.info("FROM=&MESSAGE=" + encodedKeyword + "&mail=sage&key=" + threadNumber + "&bbs=" + boardId);
                 return [4 /*yield*/, axios_1.default.post(hostname + "test/bbs.cgi", "FROM=&MESSAGE=" + encodedKeyword + "&mail=sage&key=" + threadNumber + "&bbs=" + boardId, {
                         headers: {
                             Accept: '*/*',
@@ -1504,6 +1524,7 @@ exports.postRes = function (hostname, threadNumber, boardId, message) { return _
         }
     });
 }); };
+exports.postRes = postRes;
 var Read5ch = /** @class */ (function () {
     function Read5ch() {
         var _this = this;
@@ -1526,10 +1547,10 @@ var Read5ch = /** @class */ (function () {
                             this.lastModified = null;
                             this.lastByte = 0;
                             this.lastWroteDate = null;
-                            electron_log_1.default.info('[Read5ch.js] reset');
+                            log.info(' reset');
                         }
                         else {
-                            console.trace('noreset');
+                            log.debug('noreset');
                         }
                         rep = /\/test\/read.cgi(\/.+)(\/.+)\//;
                         requestUrl = threadUrl.replace(rep, '$1/dat$2.dat');
@@ -1554,14 +1575,14 @@ var Read5ch = /** @class */ (function () {
                     case 2:
                         response = _a.sent();
                         if (response.status === 304) {
-                            electron_log_1.default.info('status 304');
+                            log.info('status 304');
                             return [2 /*return*/, []];
                         }
                         headers = response.headers;
                         str = iconv_lite_1.default.decode(Buffer.from(response.data), 'Shift_JIS');
                         // レスポンスオブジェクト作成、content-rangeがある場合とない場合で処理を分ける
                         if (headers['content-range'] == null || this.lastByte == 0) {
-                            console.trace('[Read5ch.read]content-range=' + headers['content-range']);
+                            log.debug('content-range=' + headers['content-range']);
                             result = parseNewResponse(str, resNum);
                             responseJson = result.result;
                         }
@@ -1577,7 +1598,7 @@ var Read5ch = /** @class */ (function () {
                                 if (this.lastWroteDate) {
                                     // スレが変わったわけでもないのに最終書き込み時刻よりも古いデータが取得できた場合は無かったことにする
                                     if (this.lastWroteDate > date) {
-                                        electron_log_1.default.warn("\u6642\u523B\u4E0D\u6574\u5408: unacast: " + this.lastWroteDate + " bbs: " + date);
+                                        log.warn("\u6642\u523B\u4E0D\u6574\u5408: unacast: " + this.lastWroteDate + " bbs: " + date);
                                         responseJson = [];
                                     }
                                     else {
@@ -1600,20 +1621,20 @@ var Read5ch = /** @class */ (function () {
                         // 取得バイト数表示
                         if (headers['content-length'] != null && responseJson.length > 0) {
                             this.lastByte = this.lastByte + parseInt(headers['content-length']) - 1;
-                            console.trace('[Read5ch.read]lastByte=' + this.lastByte);
+                            log.debug('lastByte=' + this.lastByte);
                         }
                         return [3 /*break*/, 4];
                     case 3:
                         error_2 = _a.sent();
                         responseJson = [];
                         if (error_2.status == NOT_MODIFIED) {
-                            electron_log_1.default.error('[Read5ch.js]5ch系BBSレス取得APIリクエストエラー、NOT_MODIFIED');
+                            log.error('5ch系BBSレス取得APIリクエストエラー、NOT_MODIFIED');
                         }
                         else if (error_2.status == RANGE_NOT_SATISFIABLE) {
-                            electron_log_1.default.error('[Read5ch.js]5ch系BBSレス取得APIリクエストエラー、RANGE_NOT_SATISFIABLE');
+                            log.error('5ch系BBSレス取得APIリクエストエラー、RANGE_NOT_SATISFIABLE');
                         }
                         else {
-                            electron_log_1.default.error('[Read5ch.js]5ch系BBSレス取得APIリクエストエラー、message=' + error_2.message);
+                            log.error('5ch系BBSレス取得APIリクエストエラー、message=' + error_2.message);
                         }
                         throw new Error('connection error');
                     case 4: return [2 /*return*/, responseJson];
@@ -1635,7 +1656,7 @@ var Read5ch = /** @class */ (function () {
  * @param resNum リクエストされたレス番号
  */
 var parseNewResponse = function (res, resNum) {
-    electron_log_1.default.info("parseNewResponse: res=" + res.length + " resNum=" + resNum);
+    log.info("parseNewResponse: res=" + res.length + " resNum=" + resNum);
     // 結果を格納する配列
     var result = [];
     // レス番号
@@ -1652,7 +1673,7 @@ var parseNewResponse = function (res, resNum) {
     }
     // レス指定なしの場合全件取得
     if (Number.isNaN(resNum) || resNum < 1) {
-        electron_log_1.default.info("resNum: " + resNum + " ");
+        log.info("resNum: " + resNum + " ");
         num = 0;
     }
     else {
@@ -1676,7 +1697,7 @@ var parseNewResponse = function (res, resNum) {
  * @param resNum リクエストされたレス番号
  */
 var parseDiffResponse = function (res, resNum) {
-    electron_log_1.default.info("parseDiffResponse: res=" + res.length + " resNum=" + resNum);
+    log.info("parseDiffResponse: res=" + res.length + " resNum=" + resNum);
     //結果を格納する配列
     var result = [];
     // レス番号
@@ -1693,7 +1714,7 @@ var parseDiffResponse = function (res, resNum) {
             resArray.pop();
         }
     }
-    console.trace('[Read5ch.purseDiffResponse]取得レス番号=' + num);
+    log.debug('purseDiffResponse 取得レス番号=' + num);
     //1行ごとにパースする
     resArray.forEach(function (value) {
         //パースメソッド呼び出し
@@ -1717,7 +1738,7 @@ var parseThreadList = function (boardUrl, subjectLine) {
     //0:dat名
     //1:スレタイ（レス数）
     var splitRes = subjectLine.split('<>');
-    console.log(splitRes);
+    // log.debug(splitRes);
     var datNum = splitRes[0].replace('.dat', '');
     var hostname = (_b = (_a = boardUrl.match(/^https?:\/\/.+?\//)) === null || _a === void 0 ? void 0 : _a[0]) !== null && _b !== void 0 ? _b : '';
     var boardName = boardUrl.replace(hostname, '');
@@ -1818,15 +1839,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.postRes = exports.readBoard = void 0;
 /**
  * したらば読み込み用モジュール
  */
 var axios_1 = __importDefault(__webpack_require__(/*! axios */ "axios"));
 var iconv_lite_1 = __importDefault(__webpack_require__(/*! iconv-lite */ "iconv-lite")); // 文字コード変換用パッケージ
 var electron_log_1 = __importDefault(__webpack_require__(/*! electron-log */ "electron-log"));
+var log = electron_log_1.default.scope('bbs');
 var encoding_japanese_1 = __importDefault(__webpack_require__(/*! encoding-japanese */ "encoding-japanese"));
 /** スレ一覧を読み込む */
-exports.readBoard = function (boardUrl) { return __awaiter(void 0, void 0, void 0, function () {
+var readBoard = function (boardUrl) { return __awaiter(void 0, void 0, void 0, function () {
     var requestUrl, list, options, response, str, error_1;
     return __generator(this, function (_a) {
         switch (_a.label) {
@@ -1854,12 +1877,13 @@ exports.readBoard = function (boardUrl) { return __awaiter(void 0, void 0, void 
                 return [3 /*break*/, 4];
             case 3:
                 error_1 = _a.sent();
-                electron_log_1.default.error('[Read5ch.js]5ch系BBS板取得APIリクエストエラー、message=' + error_1.message);
+                log.error('[Read5ch.js]5ch系BBS板取得APIリクエストエラー、message=' + error_1.message);
                 throw new Error('connection error');
             case 4: return [2 /*return*/, list];
         }
     });
 }); };
+exports.readBoard = readBoard;
 /**
  * レスを投稿する
  * @param hostname ホスト名。https://hogehoge/
@@ -1867,7 +1891,7 @@ exports.readBoard = function (boardUrl) { return __awaiter(void 0, void 0, void 
  * @param boardId 板ID pasta04
  * @param message 投稿文
  */
-exports.postRes = function (hostname, threadNumber, boardId, message) { return __awaiter(void 0, void 0, void 0, function () {
+var postRes = function (hostname, threadNumber, boardId, message) { return __awaiter(void 0, void 0, void 0, function () {
     var unicodeArray, i, sjisArray, encodedKeyword, dir, bbs, result;
     return __generator(this, function (_a) {
         switch (_a.label) {
@@ -1899,6 +1923,7 @@ exports.postRes = function (hostname, threadNumber, boardId, message) { return _
         }
     });
 }); };
+exports.postRes = postRes;
 var ReadSitaraba = /** @class */ (function () {
     function ReadSitaraba() {
         var _this = this;
@@ -1979,7 +2004,7 @@ var parseThreadList = function (boardUrl, subjectLine) {
     //0:dat名
     //1:スレタイ（レス数）
     var splitRes = subjectLine.split(',');
-    // console.log(splitRes);
+    // log.debug(splitRes);
     var datNum = splitRes[0].replace('.cgi', '');
     var hostname = (_b = (_a = boardUrl.match(/^https?:\/\/.+?\//)) === null || _a === void 0 ? void 0 : _a[0]) !== null && _b !== void 0 ? _b : '';
     var boardName = boardUrl.replace(hostname, '');
@@ -2054,6 +2079,25 @@ var __assign = (this && this.__assign) || function () {
     };
     return __assign.apply(this, arguments);
 };
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -2100,14 +2144,8 @@ var __spreadArrays = (this && this.__spreadArrays) || function () {
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
-};
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.createDom = exports.findSeList = void 0;
 var path_1 = __importDefault(__webpack_require__(/*! path */ "path"));
 var express_1 = __importDefault(__webpack_require__(/*! express */ "express"));
 var electron_log_1 = __importDefault(__webpack_require__(/*! electron-log */ "electron-log"));
@@ -2160,7 +2198,7 @@ electron_1.ipcMain.on(const_1.electronEvent.APPLY_CONFIG, function (event, confi
                 return [4 /*yield*/, getRes_1.getRes(globalThis.config.url, NaN)];
             case 3:
                 ret = _a.sent();
-                console.log(ret);
+                electron_log_1.default.debug(ret);
                 if (ret.length === 0) {
                     globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.SHOW_ALERT, '掲示板URLがおかしそうです');
                     return [2 /*return*/];
@@ -2195,8 +2233,8 @@ electron_1.ipcMain.on(const_1.electronEvent.START_SERVER, function (event, confi
         app.set('views', path_1.default.resolve(__dirname, '../views'));
         // 設定情報をグローバル変数へセットする
         globalThis.config = config;
-        console.log('[startServer]設定値 = ');
-        console.log(globalThis.config);
+        electron_log_1.default.debug('[startServer]設定値 = ');
+        electron_log_1.default.debug(globalThis.config);
         app.get('/', function (req, res, next) {
             res.render('server', config);
             req.connection.end();
@@ -2314,25 +2352,25 @@ electron_1.ipcMain.on(const_1.electronEvent.START_SERVER, function (event, confi
         // WebSocketを立てる
         app.ws('/ws', function (ws, req) {
             ws.on('message', function (message) {
-                console.trace('Received: ' + message);
+                electron_log_1.default.debug('Received: ' + message);
                 if (message === 'ping') {
                     ws.send('pong');
                 }
             });
             ws.on('close', function () {
-                console.log('I lost a client');
+                electron_log_1.default.debug('I lost a client');
             });
         });
         // 指定したポートで待ち受け開始
         server = app.listen(config.port, function () {
-            console.log('[startServer] start server on port:' + config.port);
+            electron_log_1.default.debug('[startServer] start server on port:' + config.port);
         });
         // 成功メッセージ返却
         event.returnValue = 'success';
         return [2 /*return*/];
     });
 }); });
-exports.findSeList = function () { return __awaiter(void 0, void 0, void 0, function () {
+var findSeList = function () { return __awaiter(void 0, void 0, void 0, function () {
     var list, e_1;
     return __generator(this, function (_a) {
         switch (_a.label) {
@@ -2343,7 +2381,7 @@ exports.findSeList = function () { return __awaiter(void 0, void 0, void 0, func
             case 1:
                 list = _a.sent();
                 globalThis.electron.seList = list.map(function (file) { return globalThis.config.sePath + "/" + file; });
-                console.log("SE files = " + globalThis.electron.seList.length);
+                electron_log_1.default.debug("SE files = " + globalThis.electron.seList.length);
                 return [3 /*break*/, 3];
             case 2:
                 globalThis.electron.seList = [];
@@ -2357,6 +2395,7 @@ exports.findSeList = function () { return __awaiter(void 0, void 0, void 0, func
         }
     });
 }); };
+exports.findSeList = findSeList;
 /**
  * Twitchチャットに接続
  * @description 再接続処理はライブラリが勝手にやってくれる
@@ -2371,7 +2410,7 @@ var startTwitchChat = function () { return __awaiter(void 0, void 0, void 0, fun
             globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'twitch', category: 'status', message: 'wait live' });
             // 接続完了
             twitchChat.on('ready', function () {
-                console.log('[Twitch] Successfully connected to chat');
+                electron_log_1.default.debug('[Twitch] Successfully connected to chat');
                 globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'twitch', category: 'status', message: 'ok' });
             });
             // チャット受信
@@ -2465,7 +2504,7 @@ var startYoutubeChat = function () { return __awaiter(void 0, void 0, void 0, fu
             });
             // 何かエラーがあった
             globalThis.electron.youtubeChat.on('error', function (err) {
-                electron_log_1.default.error("[Youtube Chat] error " + err.message);
+                electron_log_1.default.error("[Youtube Chat] " + err.message);
                 globalThis.electron.mainWindow.webContents.send(const_1.electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'status', message: "error! " + err.message });
             });
             globalThis.electron.youtubeChat.start();
@@ -2481,7 +2520,7 @@ var startYoutubeChat = function () { return __awaiter(void 0, void 0, void 0, fu
  * サーバー停止
  */
 electron_1.ipcMain.on(const_1.electronEvent.STOP_SERVER, function (event) {
-    console.log('[startServer]server stop');
+    electron_log_1.default.debug('[startServer] server stop');
     server.close();
     aWss.close();
     app = null;
@@ -2703,7 +2742,7 @@ var playYomiko = function (msg) { return __awaiter(void 0, void 0, void 0, funct
                 // 読み子呼び出し
                 switch (config.typeYomiko) {
                     case 'tamiyasu': {
-                        console.log(config.tamiyasuPath + " \"" + msg + "\"");
+                        electron_log_1.default.debug(config.tamiyasuPath + " \"" + msg + "\"");
                         child_process_1.spawn(config.tamiyasuPath, [msg]);
                         break;
                     }
@@ -2748,7 +2787,7 @@ var playSe = function () { return __awaiter(void 0, void 0, void 0, function () 
     });
 }); };
 electron_1.ipcMain.on(const_1.electronEvent.PLAY_SOUND_END, function (event) { return (isPlayingSe = false); });
-exports.createDom = function (message, type) {
+var createDom = function (message, type) {
     var domStr = "<li class=\"list-item\">";
     /** レス番とかの行が何かしら表示対象になっているか */
     var isResNameShowed = false;
@@ -2819,6 +2858,7 @@ exports.createDom = function (message, type) {
     domStr += "</div>\n  </li>";
     return domStr;
 };
+exports.createDom = createDom;
 /**
  * コメントのDOMをブラウザに送る
  * 必要ならレス着信音も鳴らす
@@ -2917,8 +2957,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.unescapeHtml = exports.escapeHtml = exports.sleep = exports.readWavFiles = void 0;
 var fs_1 = __importDefault(__webpack_require__(/*! fs */ "fs"));
-exports.readWavFiles = function (path) {
+var readWavFiles = function (path) {
     return new Promise(function (resolve, reject) {
         fs_1.default.readdir(path, function (err, files) {
             if (err)
@@ -2930,6 +2971,7 @@ exports.readWavFiles = function (path) {
         });
     });
 };
+exports.readWavFiles = readWavFiles;
 var isExistFile = function (file) {
     try {
         fs_1.default.statSync(file).isFile();
@@ -2940,8 +2982,9 @@ var isExistFile = function (file) {
             return false;
     }
 };
-exports.sleep = function (msec) { return new Promise(function (resolve) { return setTimeout(resolve, msec); }); };
-exports.escapeHtml = function (string) {
+var sleep = function (msec) { return new Promise(function (resolve) { return setTimeout(resolve, msec); }); };
+exports.sleep = sleep;
+var escapeHtml = function (string) {
     if (typeof string !== 'string') {
         return string;
     }
@@ -2956,7 +2999,8 @@ exports.escapeHtml = function (string) {
         }[match];
     });
 };
-exports.unescapeHtml = function (str) {
+exports.escapeHtml = escapeHtml;
+var unescapeHtml = function (str) {
     return str
         .replace(/&lt;/g, '<')
         .replace(/&gt;/g, '>')
@@ -2965,6 +3009,7 @@ exports.unescapeHtml = function (str) {
         .replace(/&#044;/g, ',')
         .replace(/&amp;/g, '&');
 };
+exports.unescapeHtml = unescapeHtml;
 
 
 /***/ }),
@@ -2979,8 +3024,9 @@ exports.unescapeHtml = function (str) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.LiveChat = void 0;
 var live_chat_1 = __webpack_require__(/*! ./live-chat */ "./src/main/youtube-chat/live-chat.ts");
-exports.LiveChat = live_chat_1.LiveChat;
+Object.defineProperty(exports, "LiveChat", { enumerable: true, get: function () { return live_chat_1.LiveChat; } });
 
 
 /***/ }),
@@ -2998,7 +3044,7 @@ var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
         extendStatics = Object.setPrototypeOf ||
             ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+            function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
         return extendStatics(d, b);
     };
     return function (d, b) {
@@ -3047,10 +3093,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.LiveChat = void 0;
 var events_1 = __webpack_require__(/*! events */ "events");
 var axios_1 = __importDefault(__webpack_require__(/*! axios */ "axios"));
 var parser_1 = __webpack_require__(/*! ./parser */ "./src/main/youtube-chat/parser.ts");
 var util_1 = __webpack_require__(/*! ../util */ "./src/main/util.ts");
+var electron_log_1 = __importDefault(__webpack_require__(/*! electron-log */ "electron-log"));
+var log = electron_log_1.default.scope('Youtube-chat');
 /**
  * YouTubeライブチャット取得イベント
  */
@@ -3090,7 +3139,7 @@ var LiveChat = /** @class */ (function (_super) {
     LiveChat.prototype.fetchLiveId = function () {
         var _a;
         return __awaiter(this, void 0, void 0, function () {
-            var url, liveRes, e_1, init;
+            var url, liveRes, e_1, init, e_2;
             var _this = this;
             return __generator(this, function (_b) {
                 switch (_b.label) {
@@ -3122,31 +3171,47 @@ var LiveChat = /** @class */ (function (_super) {
                         this.emit('error', new Error("connection error url = " + url));
                         return [2 /*return*/];
                     case 6:
-                        if (!this.liveId) return [3 /*break*/, 8];
-                        return [4 /*yield*/, this.getInitParam()];
+                        if (!this.liveId) return [3 /*break*/, 15];
+                        _b.label = 7;
                     case 7:
-                        init = _b.sent();
-                        if (init.api && init.continuation) {
-                            this.commentApiKey = init.api;
-                            this.continuation = init.continuation;
-                            this.observer = setInterval(function () { return _this.fetchChat(); }, this.interval);
-                            this.emit('start', this.liveId);
-                        }
-                        else {
-                            // 配信ページはあるのに何らかの理由でAPIKeyが取れなかった
-                            this.emit('error', new Error("Error occured at fetch apikey liveId=" + this.liveId));
-                            this.fetchLiveId();
-                        }
-                        return [3 /*break*/, 10];
+                        _b.trys.push([7, 12, , 14]);
+                        return [4 /*yield*/, this.getInitParam()];
                     case 8:
+                        init = _b.sent();
+                        if (!(init.api && init.continuation)) return [3 /*break*/, 9];
+                        this.commentApiKey = init.api;
+                        this.continuation = init.continuation;
+                        this.observer = setInterval(function () { return _this.fetchChat(); }, this.interval);
+                        this.emit('start', this.liveId);
+                        return [3 /*break*/, 11];
+                    case 9:
+                        // 配信ページはあるのに何らかの理由でAPIKeyが取れなかった
+                        this.emit('error', new Error("failed fetch apikey liveId=" + this.liveId));
+                        return [4 /*yield*/, util_1.sleep(2000)];
+                    case 10:
+                        _b.sent();
+                        this.fetchLiveId();
+                        _b.label = 11;
+                    case 11: return [3 /*break*/, 14];
+                    case 12:
+                        e_2 = _b.sent();
+                        // 考えられるのは、LiveIdを指定していて、ページが取れたが、isLiveNowがfalseだった時
+                        this.emit('error', new Error(e_2.message));
+                        return [4 /*yield*/, util_1.sleep(2000)];
+                    case 13:
+                        _b.sent();
+                        this.fetchLiveId();
+                        return [3 /*break*/, 14];
+                    case 14: return [3 /*break*/, 17];
+                    case 15:
                         // 配信が開始してないパターンが考えられるのでリトライ
                         this.emit('error', new Error('Live stream not found'));
                         return [4 /*yield*/, util_1.sleep(2000)];
-                    case 9:
+                    case 16:
                         _b.sent();
                         this.fetchLiveId();
-                        _b.label = 10;
-                    case 10: return [2 /*return*/];
+                        _b.label = 17;
+                    case 17: return [2 /*return*/];
                 }
             });
         });
@@ -3160,27 +3225,39 @@ var LiveChat = /** @class */ (function (_super) {
         this.displayedId = {};
     };
     LiveChat.prototype.getInitParam = function () {
-        var _a, _b;
+        var _a, _b, _c;
         return __awaiter(this, void 0, void 0, function () {
-            var url, res, key, continuation;
-            return __generator(this, function (_c) {
-                switch (_c.label) {
+            var url, res, isLiveNow, key, continuation;
+            return __generator(this, function (_d) {
+                switch (_d.label) {
                     case 0:
                         url = "https://www.youtube.com/watch?v=" + this.liveId;
                         return [4 /*yield*/, axios_1.default.get(url)];
                     case 1:
-                        res = _c.sent();
+                        res = _d.sent();
                         try {
-                            key = (_a = res.data
-                                .match(/innertubeApiKey":".*?"/)) === null || _a === void 0 ? void 0 : _a[0].split(':')[1].replace(/"/g, '');
-                            console.log("[Youtube Chat] key is " + key);
-                            continuation = (_b = res.data
-                                .match(/continuation":".*?"/)) === null || _b === void 0 ? void 0 : _b[0].split(':')[1].replace(/"/g, '');
-                            console.log("[Youtube Chat] initial continuation is " + continuation);
+                            // 配信中か確認。配信中でなければエラーとみなす
+                            isLiveNow = (_a = res.data
+                                .match(/isLiveNow":.*?,/)) === null || _a === void 0 ? void 0 : _a[0].split(':')[1].replace(/"/g, '').replace(/,/g, '');
+                            log.debug(isLiveNow);
+                        }
+                        catch (e) {
+                            log.error(e.message);
+                            return [2 /*return*/, { api: '', continuation: '' }];
+                        }
+                        if (isLiveNow === 'false')
+                            throw new Error("liveId = " + this.liveId + " is not Live Now");
+                        try {
+                            key = (_b = res.data
+                                .match(/innertubeApiKey":".*?"/)) === null || _b === void 0 ? void 0 : _b[0].split(':')[1].replace(/"/g, '');
+                            log.debug("key is " + key);
+                            continuation = (_c = res.data
+                                .match(/continuation":".*?"/)) === null || _c === void 0 ? void 0 : _c[0].split(':')[1].replace(/"/g, '');
+                            log.debug("initial continuation is " + continuation);
                             return [2 /*return*/, { api: key, continuation: continuation }];
                         }
                         catch (e) {
-                            console.error(e);
+                            log.error(e.message);
                             return [2 /*return*/, { api: '', continuation: '' }];
                         }
                         return [2 /*return*/];
@@ -3191,7 +3268,7 @@ var LiveChat = /** @class */ (function (_super) {
     LiveChat.prototype.fetchChat = function () {
         var _a;
         return __awaiter(this, void 0, void 0, function () {
-            var url, reqBody, res, con, temp, items, e_2;
+            var url, res, reqBody, con, temp, items, e_3;
             var _this = this;
             return __generator(this, function (_b) {
                 switch (_b.label) {
@@ -3217,14 +3294,21 @@ var LiveChat = /** @class */ (function (_super) {
                             },
                             continuation: this.continuation,
                         };
-                        console.debug("[Youtube Chat] " + url);
-                        return [4 /*yield*/, axios_1.default.post(url, JSON.stringify(reqBody), { headers: LiveChat.headers })];
+                        log.debug("POST " + url);
+                        return [4 /*yield*/, axios_1.default
+                                .post(url, JSON.stringify(reqBody), { headers: LiveChat.headers })
+                                .then(function (data) {
+                                return data;
+                            })
+                                .catch(function (err) {
+                                throw new Error(err.message);
+                            })];
                     case 2:
                         res = _b.sent();
                         con = parser_1.getContinuation(res.data);
                         if (!con)
                             throw new Error('getContinuation error');
-                        console.debug("[Youtube Chat] next continuation is " + con);
+                        log.debug("next continuation is " + con);
                         this.continuation = con;
                         temp = (_a = res.data.continuationContents.liveChatContinuation.actions) !== null && _a !== void 0 ? _a : [];
                         if (temp.length === 0)
@@ -3254,7 +3338,7 @@ var LiveChat = /** @class */ (function (_super) {
                         });
                         this.isFirst = false;
                         // 末尾のidを取得
-                        console.log("[Youtube-chat] items = " + items.length);
+                        log.info("items = " + items.length);
                         items.forEach(function (v) {
                             var id = v === null || v === void 0 ? void 0 : v.id;
                             if (id)
@@ -3262,8 +3346,12 @@ var LiveChat = /** @class */ (function (_super) {
                         });
                         return [3 /*break*/, 4];
                     case 3:
-                        e_2 = _b.sent();
-                        console.error(e_2);
+                        e_3 = _b.sent();
+                        log.error(e_3);
+                        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                        if (res) {
+                            log.error(JSON.stringify(res.data));
+                        }
                         this.emit('error', new Error("Error occured at fetchchat url=" + url));
                         return [3 /*break*/, 4];
                     case 4: return [2 /*return*/];
@@ -3294,7 +3382,13 @@ exports.LiveChat = LiveChat;
 
 "use strict";
 
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.getContinuation = exports.parseData = exports.usecToTime = exports.actionToRenderer = void 0;
+var electron_log_1 = __importDefault(__webpack_require__(/*! electron-log */ "electron-log"));
+var log = electron_log_1.default.scope('Youtube-chat');
 var parseThumbnailToImageItem = function (data, alt) {
     var thumbnail = data.pop();
     if (thumbnail) {
@@ -3316,10 +3410,8 @@ var parseMessages = function (runs) {
         if ('text' in run) {
             if ((_a = run === null || run === void 0 ? void 0 : run.navigationEndpoint) === null || _a === void 0 ? void 0 : _a.urlEndpoint.url) {
                 var tubeUrl = run.navigationEndpoint.urlEndpoint.url.replace(/^\/redirect\?/, '');
-                // console.log(tubeUrl);
                 var parsed = tubeUrl.split('&').filter(function (str) { return str.match(/^q=/); });
                 var orgUrl = decodeURIComponent(parsed[0].replace(/^q=/, ''));
-                // console.log(orgUrl);
                 return { text: orgUrl };
             }
             else {
@@ -3332,7 +3424,7 @@ var parseMessages = function (runs) {
         }
     });
 };
-exports.actionToRenderer = function (action) {
+var actionToRenderer = function (action) {
     if (!action.addChatItemAction) {
         return null;
     }
@@ -3350,10 +3442,12 @@ exports.actionToRenderer = function (action) {
         return item.liveChatMembershipItemRenderer;
     }
 };
-exports.usecToTime = function (usec) {
+exports.actionToRenderer = actionToRenderer;
+var usecToTime = function (usec) {
     return Math.floor(Number(usec) / 1000);
 };
-exports.parseData = function (data) {
+exports.usecToTime = usecToTime;
+var parseData = function (data) {
     var messageRenderer = exports.actionToRenderer(data);
     if (messageRenderer === null) {
         return null;
@@ -3404,7 +3498,8 @@ exports.parseData = function (data) {
     }
     return ret;
 };
-exports.getContinuation = function (body) {
+exports.parseData = parseData;
+var getContinuation = function (body) {
     var _a, _b, _c, _d;
     var continuation = '';
     try {
@@ -3412,7 +3507,7 @@ exports.getContinuation = function (body) {
     }
     catch (e) {
         // なんかまた知らないパターンが来た時用
-        console.warn(e);
+        log.warn(e);
     }
     if (continuation)
         return continuation;
@@ -3421,7 +3516,7 @@ exports.getContinuation = function (body) {
     }
     catch (e) {
         //
-        console.warn(e);
+        log.warn(e);
     }
     if (continuation)
         return continuation;
@@ -3429,6 +3524,7 @@ exports.getContinuation = function (body) {
     if (!continuation)
         throw new Error('continuation not found!');
 };
+exports.getContinuation = getContinuation;
 
 
 /***/ }),

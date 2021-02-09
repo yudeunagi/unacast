@@ -3,10 +3,9 @@
  */
 import { EventEmitter } from 'events';
 import pahoMqtt from 'paho-mqtt';
-import log from 'electron-log';
-import { sleep } from '../util';
-import ReadIcons from '../ReadIcons'; //アイコンファイル名取得
-const readIcons = new ReadIcons();
+import electronlog from 'electron-log';
+const log = electronlog.scope('jpnkn');
+import readIcons from '../ReadIcons'; //アイコンファイル名取得
 import WebSocket from 'ws';
 
 (global as any).WebSocket = WebSocket;
@@ -73,7 +72,7 @@ class JpnknFast extends EventEmitter {
       this.emit('open');
     };
     const onConnectionLost = (e: pahoMqtt.MQTTError) => {
-      log.error('[fetchComment]なんかエラーだ');
+      log.error('[fetchComment] なんかエラーだ');
       log.error(JSON.stringify(e, null, '  '));
       this.emit('error', new Error(`jpnknのWebSocketでError: [${e.errorCode}] ${e.errorMessage}`));
       this.fetchComment();

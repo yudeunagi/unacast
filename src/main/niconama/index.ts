@@ -4,7 +4,8 @@
 import { EventEmitter } from 'events';
 import axios from 'axios';
 import cheerio from 'cheerio';
-import log from 'electron-log';
+import electronlog from 'electron-log';
+const log = electronlog.scope('niconama');
 import { sleep } from '../util';
 import WebSocket from 'ws';
 

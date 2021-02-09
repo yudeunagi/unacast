@@ -59,7 +59,7 @@ ipcMain.on(electronEvent.APPLY_CONFIG, async (event: any, config: typeof globalT
   if (isChangedUrl) {
     // 新スレを取得
     const ret = await getBbsResponse(globalThis.config.url, NaN);
-    console.log(ret);
+    log.debug(ret);
     if (ret.length === 0) {
       globalThis.electron.mainWindow.webContents.send(electronEvent.SHOW_ALERT, '掲示板URLがおかしそうです');
       return;
@@ -95,8 +95,8 @@ ipcMain.on(electronEvent.START_SERVER, async (event: any, config: typeof globalT
   // 設定情報をグローバル変数へセットする
   globalThis.config = config;
 
-  console.log('[startServer]設定値 = ');
-  console.log(globalThis.config);
+  log.debug('[startServer]設定値 = ');
+  log.debug(globalThis.config);
 
   app.get('/', (req: Request, res: Response, next) => {
     res.render('server', config);
@@ -232,20 +232,20 @@ ipcMain.on(electronEvent.START_SERVER, async (event: any, config: typeof globalT
   // WebSocketを立てる
   app.ws('/ws', (ws, req) => {
     ws.on('message', (message) => {
-      console.trace('Received: ' + message);
+      log.debug('Received: ' + message);
       if (message === 'ping') {
         ws.send('pong');
       }
     });
 
     ws.on('close', () => {
-      console.log('I lost a client');
+      log.debug('I lost a client');
     });
   });
 
   // 指定したポートで待ち受け開始
   server = app.listen(config.port, () => {
-    console.log('[startServer] start server on port:' + config.port);
+    log.debug('[startServer] start server on port:' + config.port);
   });
   // 成功メッセージ返却
   event.returnValue = 'success';
@@ -256,7 +256,7 @@ export const findSeList = async () => {
     if (globalThis.config.sePath) {
       const list = await readWavFiles(globalThis.config.sePath);
       globalThis.electron.seList = list.map((file) => `${globalThis.config.sePath}/${file}`);
-      console.log(`SE files = ${globalThis.electron.seList.length}`);
+      log.debug(`SE files = ${globalThis.electron.seList.length}`);
     } else {
       globalThis.electron.seList = [];
     }
@@ -278,7 +278,7 @@ const startTwitchChat = async () => {
 
     // 接続完了
     twitchChat.on('ready', () => {
-      console.log('[Twitch] Successfully connected to chat');
+      log.debug('[Twitch] Successfully connected to chat');
       globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'twitch', category: 'status', message: 'ok' });
     });
 
@@ -373,7 +373,7 @@ const startYoutubeChat = async () => {
 
     // 何かエラーがあった
     globalThis.electron.youtubeChat.on('error', (err: Error) => {
-      log.error(`[Youtube Chat] error ${err.message}`);
+      log.error(`[Youtube Chat] ${err.message}`);
       globalThis.electron.mainWindow.webContents.send(electronEvent.UPDATE_STATUS, { commentType: 'youtube', category: 'status', message: `error! ${err.message}` });
     });
 
@@ -388,7 +388,7 @@ const startYoutubeChat = async () => {
  * サーバー停止
  */
 ipcMain.on(electronEvent.STOP_SERVER, (event) => {
-  console.log('[startServer]server stop');
+  log.debug('[startServer] server stop');
   server.close();
   aWss.close();
   app = null as any;
@@ -580,7 +580,7 @@ const playYomiko = async (msg: string) => {
   // 読み子呼び出し
   switch (config.typeYomiko) {
     case 'tamiyasu': {
-      console.log(`${config.tamiyasuPath} "${msg}"`);
+      log.debug(`${config.tamiyasuPath} "${msg}"`);
       spawn(config.tamiyasuPath, [msg]);
       break;
     }

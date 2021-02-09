@@ -1,3 +1,6 @@
+import electronlog from 'electron-log';
+const log = electronlog.scope('Youtube-chat');
+
 export interface ImageItem {
   url: string;
   alt: string;
@@ -51,11 +54,9 @@ const parseMessages = (runs: MessageRun[]): MessageItem[] => {
     if ('text' in run) {
       if (run?.navigationEndpoint?.urlEndpoint.url) {
         const tubeUrl = run.navigationEndpoint.urlEndpoint.url.replace(/^\/redirect\?/, '');
-        // console.log(tubeUrl);
         const parsed = tubeUrl.split('&').filter((str) => str.match(/^q=/));
         const orgUrl = decodeURIComponent(parsed[0].replace(/^q=/, ''));
 
-        // console.log(orgUrl);
         return { text: orgUrl };
       } else {
         return run;
@@ -148,7 +149,7 @@ export const getContinuation = (body: GetLiveChatResponse) => {
     continuation = body.continuationContents.liveChatContinuation.continuations[0].invalidationContinuationData?.continuation ?? '';
   } catch (e) {
     // なんかまた知らないパターンが来た時用
-    console.warn(e);
+    log.warn(e);
   }
   if (continuation) return continuation;
 
@@ -156,7 +157,7 @@ export const getContinuation = (body: GetLiveChatResponse) => {
     continuation = body.continuationContents.liveChatContinuation.continuations[0].timedContinuationData?.continuation ?? '';
   } catch (e) {
     //
-    console.warn(e);
+    log.warn(e);
   }
   if (continuation) return continuation;
 
