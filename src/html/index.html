@@ -315,6 +315,38 @@
         </div>
 
         <div class="block">
+          <h5>AAモード</h5>
+
+          <div class="mdl-textfield mdl-js-textfield" style="width: 100vw;">
+            <div class="caption">条件に合致するレスを専用のフォントで表示します。</div>
+  
+            <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect" for="aamode_enable">
+              <input type="checkbox" id="aamode_enable" class="mdl-checkbox__input" value="0" checked />
+              <span class="mdl-checkbox__label">有効にする</span>
+            </label>
+  
+            <div class="subtitle">判定条件</div>
+            <div class="labeledInputArea">
+              <input id="aamode_condition_length" style="width: 200px;" class="mdl-textfield__input" type="text" required="true" pattern="[0-9]+" value="200" />
+              文字以上、または下記文字列を含む場合
+            </div>
+
+            <div class="labeledInputArea">
+              <textarea id="aamode_condition_words" style="width: 400px;" class="mdl-textfield__input" type="textarea">
+Д
+д
+（●）
+从
+）)ﾉヽ
+∀
+<●>
+（__人__）</textarea>
+            </div>
+          </div>
+ 
+        </div>
+
+        <div class="block">
           <h5>その他</h5>
           <div class="mdl-textfield mdl-js-textfield"  style="width: 600px;">
             <div class="subtitle">スレのレス番号が超えた時に通知する値(0で使用しない)</div>

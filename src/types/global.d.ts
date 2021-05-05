@@ -112,6 +112,15 @@ declare global {
      * - 1: SpeechCast風
      */
     let dispType: 0 | 1;
+
+    let aamode: {
+      enable: boolean;
+      condition: {
+        length: number;
+        words: string[];
+      };
+      speakWord: string;
+    };
   }
 }
 

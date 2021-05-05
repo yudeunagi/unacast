@@ -8,6 +8,7 @@ const log = electronlog.scope('bbs');
 import readIcons from './ReadIcons'; //アイコンファイル名取得
 
 import { createDom } from './startServer';
+import { judgeAaMessage } from './util';
 import ReadSitaraba, { readBoard as readBoardShitaraba, postRes as postResShitaraba } from './readBBS/readSitaraba'; // したらば読み込み用モジュール
 import Read5ch, { readBoard as readBoard5ch, postRes as postRes5ch } from './readBBS/Read5ch'; // 5ch互換板読み込み用モジュール
 const sitaraba = new ReadSitaraba();
@@ -40,7 +41,7 @@ router.get('/', async (req, res, next) => {
   let result = await getRes(threadUrl, resNum);
 
   result = result.filter((item) => item.from !== 'system');
-  const doms = result.map((item) => createDom(item, 'server'));
+  const doms = judgeAaMessage(result).map((item) => createDom(item, 'server', item.isAA));
   res.send(JSON.stringify(doms));
 });
 

@@ -387,6 +387,7 @@ var electron_log_1 = __importDefault(__webpack_require__(/*! electron-log */ "el
 var log = electron_log_1.default.scope('bbs');
 var ReadIcons_1 = __importDefault(__webpack_require__(/*! ./ReadIcons */ "./src/main/ReadIcons.ts")); //アイコンファイル名取得
 var startServer_1 = __webpack_require__(/*! ./startServer */ "./src/main/startServer.ts");
+var util_1 = __webpack_require__(/*! ./util */ "./src/main/util.ts");
 var readSitaraba_1 = __importStar(__webpack_require__(/*! ./readBBS/readSitaraba */ "./src/main/readBBS/readSitaraba.ts")); // したらば読み込み用モジュール
 var Read5ch_1 = __importStar(__webpack_require__(/*! ./readBBS/Read5ch */ "./src/main/readBBS/Read5ch.ts")); // 5ch互換板読み込み用モジュール
 var sitaraba = new readSitaraba_1.default();
@@ -417,7 +418,7 @@ router.get('/', function (req, res, next) { return __awaiter(void 0, void 0, voi
             case 1:
                 result = _a.sent();
                 result = result.filter(function (item) { return item.from !== 'system'; });
-                doms = result.map(function (item) { return startServer_1.createDom(item, 'server'); });
+                doms = util_1.judgeAaMessage(result).map(function (item) { return startServer_1.createDom(item, 'server', item.isAA); });
                 res.send(JSON.stringify(doms));
                 return [2 /*return*/];
         }
@@ -2787,7 +2788,7 @@ var playSe = function () { return __awaiter(void 0, void 0, void 0, function () 
     });
 }); };
 electron_1.ipcMain.on(const_1.electronEvent.PLAY_SOUND_END, function (event) { return (isPlayingSe = false); });
-var createDom = function (message, type) {
+var createDom = function (message, type, isAA) {
     var domStr = "<li class=\"list-item\">";
     /** レス番とかの行が何かしら表示対象になっているか */
     var isResNameShowed = false;
@@ -2817,6 +2818,10 @@ var createDom = function (message, type) {
     if (globalThis.config.newLine && isResNameShowed) {
         domStr += '<br />';
     }
+    else if (globalThis.config.aamode.enable && isAA) {
+        // AAモードがオンで対象がAAなら強制的に改行する
+        domStr += '<br />';
+    }
     // リンクを整形する
     var text = message.text
         .replace(/<a .*?>/g, '') // したらばはアンカーをaタグ化している
@@ -2827,7 +2832,12 @@ var createDom = function (message, type) {
     var tempText = text.replace(/"http/g, '★★★★http★★★★');
     var commentText = tempText.replace(reg, '<span class="url" onClick=\'urlopen("$1")\'>$1</span>');
     commentText = commentText.replace(/★★★★http★★★★/g, '"http');
-    domStr += "\n    <span class=\"res\">\n      " + commentText + "\n    </span>\n  ";
+    if (isAA) {
+        domStr += "\n    <span class=\"aares\">\n      " + commentText + "\n    </span>\n  ";
+    }
+    else {
+        domStr += "\n    <span class=\"res\">\n      " + commentText + "\n    </span>\n  ";
+    }
     // サムネイル表示
     var isThumbnailShow = (globalThis.config.thumbnail == 1 && type === 'chat') || globalThis.config.thumbnail == 2;
     if (isThumbnailShow) {
@@ -2865,12 +2875,13 @@ exports.createDom = createDom;
  * @param message
  */
 var sendDom = function (messageList) { return __awaiter(void 0, void 0, void 0, function () {
-    var domStr, socketObject_1, text, MIN_DISP_TIME, e_2;
+    var newList, domStr, socketObject_1, text, MIN_DISP_TIME, e_2;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
-                _a.trys.push([0, 7, , 8]);
-                domStr = messageList.map(function (message) { return exports.createDom(message, 'server'); }).join('\n');
+                _a.trys.push([0, 9, , 10]);
+                newList = util_1.judgeAaMessage(messageList);
+                domStr = newList.map(function (message) { return exports.createDom(message, 'server', message.isAA); }).join('\n');
                 socketObject_1 = {
                     type: 'add',
                     message: domStr,
@@ -2879,15 +2890,21 @@ var sendDom = function (messageList) { return __awaiter(void 0, void 0, void 0, 
                     client.send(JSON.stringify(socketObject_1));
                 });
                 // レンダラーのコメント一覧にも表示
-                sendDomForChatWindow(messageList);
+                sendDomForChatWindow(newList);
                 if (!(config.playSe && globalThis.electron.seList.length > 0)) return [3 /*break*/, 2];
                 return [4 /*yield*/, playSe()];
             case 1:
                 _a.sent();
                 _a.label = 2;
             case 2:
-                if (!(globalThis.config.typeYomiko !== 'none')) return [3 /*break*/, 4];
-                text = messageList[messageList.length - 1].text.replace(/<br> /g, '\n ').replace(/<br>/g, '\n ');
+                if (!(globalThis.config.typeYomiko !== 'none')) return [3 /*break*/, 6];
+                if (!(newList[newList.length - 1].isAA && config.aamode.enable)) return [3 /*break*/, 4];
+                return [4 /*yield*/, playYomiko(config.aamode.speakWord)];
+            case 3:
+                _a.sent();
+                return [3 /*break*/, 6];
+            case 4:
+                text = newList[newList.length - 1].text.replace(/<br> /g, '\n ').replace(/<br>/g, '\n ');
                 text = text.replace(/<img.*?\/>/g, '');
                 text = text.replace(/<a .*?>/g, '').replace(/<\/a>/g, '');
                 text = util_1.unescapeHtml(text);
@@ -2895,36 +2912,36 @@ var sendDom = function (messageList) { return __awaiter(void 0, void 0, void 0, 
                     text = text.replace(/\r\n/g, ' ').replace(/\n/g, ' ');
                 }
                 return [4 /*yield*/, playYomiko(text)];
-            case 3:
-                _a.sent();
-                _a.label = 4;
-            case 4:
-                if (!(globalThis.config.dispType === 1)) return [3 /*break*/, 6];
-                MIN_DISP_TIME = 2.5 * 1000;
-                return [4 /*yield*/, util_1.sleep(MIN_DISP_TIME)];
             case 5:
                 _a.sent();
                 _a.label = 6;
             case 6:
+                if (!(globalThis.config.dispType === 1)) return [3 /*break*/, 8];
+                MIN_DISP_TIME = 2.5 * 1000;
+                return [4 /*yield*/, util_1.sleep(MIN_DISP_TIME)];
+            case 7:
+                _a.sent();
+                _a.label = 8;
+            case 8:
                 // 鳴らし終わって読み子が終わった
                 resetInitMessage();
-                return [3 /*break*/, 8];
-            case 7:
+                return [3 /*break*/, 10];
+            case 9:
                 e_2 = _a.sent();
                 electron_log_1.default.error(e_2);
-                return [3 /*break*/, 8];
-            case 8: return [2 /*return*/];
+                return [3 /*break*/, 10];
+            case 10: return [2 /*return*/];
         }
     });
 }); };
 /** チャットウィンドウへのコメント表示 */
 var sendDomForChatWindow = function (messageList) {
-    var domStr2 = messageList
+    var domStr2 = util_1.judgeAaMessage(messageList)
         .map(function (message) {
         var imgUrl = message.imgUrl && message.imgUrl.match(/^\./) ? '../../public/' + message.imgUrl : message.imgUrl;
         return __assign(__assign({}, message), { imgUrl: imgUrl });
     })
-        .map(function (message) { return exports.createDom(message, 'chat'); })
+        .map(function (message) { return exports.createDom(message, 'chat', message.isAA); })
         .join('\n');
     globalThis.electron.chatWindow.webContents.send(const_1.electronEvent.SHOW_COMMENT, { config: globalThis.config, dom: domStr2 });
 };
@@ -2953,11 +2970,22 @@ exports.default = {};
 
 "use strict";
 
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.unescapeHtml = exports.escapeHtml = exports.sleep = exports.readWavFiles = void 0;
+exports.judgeAaMessage = exports.unescapeHtml = exports.escapeHtml = exports.sleep = exports.readWavFiles = void 0;
 var fs_1 = __importDefault(__webpack_require__(/*! fs */ "fs"));
 var readWavFiles = function (path) {
     return new Promise(function (resolve, reject) {
@@ -3010,6 +3038,20 @@ var unescapeHtml = function (str) {
         .replace(/&amp;/g, '&');
 };
 exports.unescapeHtml = unescapeHtml;
+var judgeAaMessage = function (messageList) {
+    return messageList.map(function (message) {
+        var isAA = false;
+        if (config.aamode.condition.length <= message.text.length)
+            isAA = true;
+        for (var _i = 0, _a = config.aamode.condition.words; _i < _a.length; _i++) {
+            var word = _a[_i];
+            if (message.text.includes(word))
+                isAA = true;
+        }
+        return __assign(__assign({}, message), { isAA: isAA });
+    });
+};
+exports.judgeAaMessage = judgeAaMessage;
 
 
 /***/ }),

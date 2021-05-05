@@ -269,6 +269,19 @@ const buildConfigJson = () => {
     if (elem.checked) dispType = Number(elem.value) as typeof globalThis['config']['dispType'];
   });
 
+  // AAモード
+  const aamode: typeof globalThis['config']['aamode'] = {
+    enable: (document.getElementById('aamode_enable') as any).checked === true,
+    condition: {
+      length: parseInt((document.getElementById('aamode_condition_length') as HTMLInputElement).value),
+      words: [],
+    },
+    speakWord: 'アスキーアート',
+  };
+  if (aamode.condition.length < 1) aamode.condition.length = 200;
+  const aamodeConditionWords = (document.getElementById('aamode_condition_words') as HTMLTextAreaElement).value;
+  aamode.condition.words = aamodeConditionWords.split(/\r|\r\n|\n/).filter((word) => !!word);
+
   const config: typeof globalThis['config'] = {
     url: url,
     resNumber,
@@ -302,6 +315,7 @@ const buildConfigJson = () => {
     moveThread,
     commentProcessType,
     dispType,
+    aamode,
   };
 
   return config;
@@ -353,6 +367,14 @@ const loadConfigToLocalStrage = () => {
     moveThread: true,
     commentProcessType: 0,
     dispType: 0,
+    aamode: {
+      enable: true,
+      condition: {
+        length: 200,
+        words: ['д', '（●）', '从', '）)ﾉヽ', '∀', '<●>', '（__人__）'],
+      },
+      speakWord: 'アスキーアート',
+    },
   };
 
   const storageStr = localStorage.getItem('config');
@@ -444,6 +466,10 @@ const loadConfigToLocalStrage = () => {
   (document.getElementById('text-notify-threadConnectionErrorLimit') as any).value = config.notifyThreadConnectionErrorLimit;
   (document.getElementById('text-notify-threadResLimit') as any).value = config.notifyThreadResLimit;
   (document.getElementById('moveThread') as any).checked == config.moveThread;
+
+  (document.getElementById('aamode_enable') as any).checked = config.aamode.enable;
+  (document.getElementById('aamode_condition_length') as HTMLInputElement).value = config.aamode.condition.length.toString();
+  (document.getElementById('aamode_condition_words') as HTMLTextAreaElement).value = config.aamode.condition.words.join('\n');
 
   log.debug('config loaded');
 };
