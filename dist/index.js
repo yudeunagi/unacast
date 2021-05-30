@@ -208,6 +208,10 @@ var BouyomiChan = /** @class */ (function () {
          * 声質（ 0:棒読みちゃん画面上の設定、1:女性1、2:女性2、3:男性1、4:男性2、5:中性、6:ロボット、7:機械1、8:機械2、10001～:SAPI5）
          */
         this.type = 0;
+        /**
+         * 読み上げの際先頭に付加する文字列
+         */
+        this.prefix = '';
         if (!options)
             return;
         if (options.host)
@@ -222,14 +226,18 @@ var BouyomiChan = /** @class */ (function () {
             this.volume = options.volume;
         if (options.type)
             this.type = options.type;
+        if (options.prefix)
+            this.prefix = options.prefix;
     }
     /**
      * @param message 棒読みちゃんに読み上げてもらう文章
      */
     BouyomiChan.prototype.speak = function (message) {
+        /** 読み前に文字列を処理する */
+        var concatMessage = this.prefix.concat(message);
         /** 棒読みちゃんに送信する設定のバイト長 */
         var SETTINGS_BYTES_LENGTH = 15;
-        var messageByteLength = Buffer.byteLength(message);
+        var messageByteLength = Buffer.byteLength(concatMessage);
         var bufferLength = SETTINGS_BYTES_LENGTH + messageByteLength;
         var buff = Buffer.alloc(bufferLength);
         /** メッセージ読み上げコマンド */
@@ -243,7 +251,7 @@ var BouyomiChan = /** @class */ (function () {
         var ENCODING = 0;
         len = buff.writeUInt8(ENCODING, len);
         len = buff.writeUInt32LE(messageByteLength, len);
-        len = buff.write(message, len);
+        len = buff.write(concatMessage, len);
         var client = net_1.default.createConnection(this.port, this.host);
         client.write(buff);
         client.end();
@@ -1129,7 +1137,7 @@ var NiconamaComment = /** @class */ (function (_super) {
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
-                        url = "https://live2.nicovideo.jp/watch/" + this.communityId;
+                        url = "https://live.nicovideo.jp/watch/co" + this.communityId;
                         log.info("[pollingStartBroadcast] " + url);
                         _b.label = 1;
                     case 1:
@@ -1154,6 +1162,7 @@ var NiconamaComment = /** @class */ (function (_super) {
                     case 6:
                         e_1 = _b.sent();
                         this.emit('error', new Error("connection error to " + url));
+                        log.error(JSON.stringify(e_1, null, '  '));
                         return [4 /*yield*/, util_1.sleep(this.waitBroadcastPollingInterval * 2)];
                     case 7:
                         _b.sent();
@@ -1172,7 +1181,7 @@ var NiconamaComment = /** @class */ (function (_super) {
                 switch (_b.label) {
                     case 0:
                         log.info("[fetchCommentServerThread]");
-                        url = "https://live2.nicovideo.jp/watch/" + this.communityId;
+                        url = "https://live.nicovideo.jp/watch/co" + this.communityId;
                         return [4 /*yield*/, axios_1.default.get(url)];
                     case 1:
                         res = _b.sent();
@@ -2341,7 +2350,7 @@ electron_1.ipcMain.on(const_1.electronEvent.START_SERVER, function (event, confi
         // 棒読みちゃん接続
         if (config.typeYomiko === 'bouyomi') {
             if (config.bouyomiPort) {
-                bouyomi = new bouyomi_chan_1.default({ port: config.bouyomiPort, volume: config.bouyomiVolume });
+                bouyomi = new bouyomi_chan_1.default({ port: config.bouyomiPort, volume: config.bouyomiVolume, prefix: config.bouyomiPrefix });
             }
         }
         // レス取得定期実行
