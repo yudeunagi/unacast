@@ -103,7 +103,7 @@ class NiconamaComment extends EventEmitter {
 
   /** ニコ生の配信開始待ち */
   private pollingStartBroadcast = async () => {
-    const url = `https://live.nicovideo.jp/watch/co${this.communityId}`;
+    const url = `https://live.nicovideo.jp/watch/${this.communityId}`;
     log.info(`[pollingStartBroadcast] ${url}`);
 
     try {
@@ -135,7 +135,7 @@ class NiconamaComment extends EventEmitter {
   private fetchCommentServerThread = async () => {
     log.info(`[fetchCommentServerThread]`);
     // ニコ生の配信ページにアクセス
-    const url = `https://live.nicovideo.jp/watch/co${this.communityId}`;
+    const url = `https://live.nicovideo.jp/watch/${this.communityId}`;
     const res = await axios.get(url);
     const $ = cheerio.load(res.data);
 

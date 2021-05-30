@@ -1137,7 +1137,7 @@ var NiconamaComment = /** @class */ (function (_super) {
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0:
-                        url = "https://live.nicovideo.jp/watch/co" + this.communityId;
+                        url = "https://live.nicovideo.jp/watch/" + this.communityId;
                         log.info("[pollingStartBroadcast] " + url);
                         _b.label = 1;
                     case 1:
@@ -1181,7 +1181,7 @@ var NiconamaComment = /** @class */ (function (_super) {
                 switch (_b.label) {
                     case 0:
                         log.info("[fetchCommentServerThread]");
-                        url = "https://live.nicovideo.jp/watch/co" + this.communityId;
+                        url = "https://live.nicovideo.jp/watch/" + this.communityId;
                         return [4 /*yield*/, axios_1.default.get(url)];
                     case 1:
                         res = _b.sent();
