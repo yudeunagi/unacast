@@ -7,6 +7,7 @@ type Options = {
   tone?: number;
   volume?: number;
   type?: number;
+  prefix?: string;
 };
 
 class BouyomiChan {
@@ -18,6 +19,7 @@ class BouyomiChan {
     if (options.tone) this.tone = options.tone;
     if (options.volume) this.volume = options.volume;
     if (options.type) this.type = options.type;
+    if (options.prefix) this.prefix = options.prefix;
   }
 
   /**
@@ -46,12 +48,19 @@ class BouyomiChan {
   private type = 0;
 
   /**
+   * 読み上げの際先頭に付加する文字列
+   */
+  private prefix = '';
+
+  /**
    * @param message 棒読みちゃんに読み上げてもらう文章
    */
   speak(message: string) {
+    /** 読み前に文字列を処理する */
+    const concatMessage = this.prefix.concat(message);
     /** 棒読みちゃんに送信する設定のバイト長 */
     const SETTINGS_BYTES_LENGTH = 15;
-    const messageByteLength = Buffer.byteLength(message);
+    const messageByteLength = Buffer.byteLength(concatMessage);
     const bufferLength = SETTINGS_BYTES_LENGTH + messageByteLength;
     const buff = Buffer.alloc(bufferLength);
     /** メッセージ読み上げコマンド */
@@ -65,7 +74,7 @@ class BouyomiChan {
     const ENCODING = 0;
     len = buff.writeUInt8(ENCODING, len);
     len = buff.writeUInt32LE(messageByteLength, len);
-    len = buff.write(message, len);
+    len = buff.write(concatMessage, len);
 
     const client = net.createConnection(this.port, this.host);
     client.write(buff);

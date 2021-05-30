@@ -62,7 +62,7 @@
               <span>http://localhost:</span>
               <input id="text-port-number" class="mdl-textfield__input" type="text" required="true" pattern="[0-9]{0,4}?" value="3000" />
             </div>
-            <span class="mdl-textfield__error">0-9999 までの数値を入れてください</span>  
+            <span class="mdl-textfield__error">0-9999 までの数値を入れてください</span>
           </div>
           <div>
             <span id="server-full-url"></span>
@@ -77,7 +77,7 @@
               <div class="caption">サーバ起動中に変更した場合は、最新の1レスがコメント欄に表示されます。</div>
               <div>
                 <span class="status" id="bbs-title"></span>
-              </div>              
+              </div>
               <input id="text-url" class="mdl-textfield__input" type="text" pattern="http.?://.+/$" value="" />
               <span id="text-url-error" class="mdl-textfield__error">URLを入力してください</span>
             </div>
@@ -304,6 +304,10 @@
             <p style="width: 80%;">
               <input id="bouyomi-volume" class="mdl-slider mdl-js-slider" type="range" min="-1" max="100" value="50" tabindex="0" oninput="showVal('disp-bouyomi-volume', this.value)" />
             </p>
+          </div>
+          <div class="mdl-textfield mdl-js-textfield" style="width: 600px;">
+            <div class="subtitle">プレフィックス</div>
+            <input class="mdl-textfield__input" type="text" id="text-bouyomi-prefix" />
           </div>
 
           <h5>その他の読み子設定</h5>
