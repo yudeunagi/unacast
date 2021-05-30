@@ -219,6 +219,7 @@ const buildConfigJson = () => {
   const tamiyasuPath = (document.getElementById('text-tamiyasu-path') as HTMLInputElement).value;
   const bouyomiPort = parseInt((document.getElementById('text-bouyomi-port') as HTMLInputElement).value);
   const bouyomiVolume = parseInt((document.getElementById('bouyomi-volume') as HTMLInputElement).value);
+  const bouyomiPrefix = (document.getElementById('text-bouyomi-prefix') as HTMLInputElement).value;
   const yomikoReplaceNewline = (document.getElementById('yomiko-replace-newline') as any).checked === true;
 
   const notifyThreadConnectionErrorLimit = parseInt((document.getElementById('text-notify-threadConnectionErrorLimit') as HTMLInputElement).value);
@@ -309,6 +310,7 @@ const buildConfigJson = () => {
     tamiyasuPath,
     bouyomiPort,
     bouyomiVolume,
+    bouyomiPrefix,
     yomikoReplaceNewline,
     notifyThreadConnectionErrorLimit,
     notifyThreadResLimit,
@@ -361,6 +363,7 @@ const loadConfigToLocalStrage = () => {
     tamiyasuPath: '',
     bouyomiPort: 50001,
     bouyomiVolume: 50,
+    bouyomiPrefix: '',
     yomikoReplaceNewline: false,
     notifyThreadConnectionErrorLimit: 0,
     notifyThreadResLimit: 0,
@@ -462,6 +465,7 @@ const loadConfigToLocalStrage = () => {
   (document.getElementById('text-tamiyasu-path') as any).value = config.tamiyasuPath;
   (document.getElementById('text-bouyomi-port') as any).value = config.bouyomiPort;
   (document.getElementById('disp-bouyomi-volume') as any).innerHTML = config.bouyomiVolume;
+  (document.getElementById('text-bouyomi-prefix') as any).value = config.bouyomiPrefix;
   (document.getElementById('bouyomi-volume') as any).value = config.bouyomiVolume;
   (document.getElementById('text-notify-threadConnectionErrorLimit') as any).value = config.notifyThreadConnectionErrorLimit;
   (document.getElementById('text-notify-threadResLimit') as any).value = config.notifyThreadResLimit;

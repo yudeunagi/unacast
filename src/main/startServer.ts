@@ -217,7 +217,7 @@ ipcMain.on(electronEvent.START_SERVER, async (event: any, config: typeof globalT
   // 棒読みちゃん接続
   if (config.typeYomiko === 'bouyomi') {
     if (config.bouyomiPort) {
-      bouyomi = new bouyomiChan({ port: config.bouyomiPort, volume: config.bouyomiVolume });
+      bouyomi = new bouyomiChan({ port: config.bouyomiPort, volume: config.bouyomiVolume, prefix: config.bouyomiPrefix });
     }
   }
 

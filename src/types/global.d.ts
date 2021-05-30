@@ -92,6 +92,8 @@ declare global {
     let bouyomiPort: number;
     /** 棒読みちゃんの音量 */
     let bouyomiVolume: number;
+    /** 棒読みちゃんへ送るときのプレフィックス */
+    let bouyomiPrefix: string;
     /** 読み子へ渡す時に改行を置換 */
     let yomikoReplaceNewline: boolean;
     /** スレが通信エラーになった時の通知閾値 */
