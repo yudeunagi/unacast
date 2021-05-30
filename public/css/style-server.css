@@ -71,6 +71,21 @@ body {
   content: ' ';
 }
 
+/** AAがズレないフォント */
+@font-face {
+  font-family: 'aahub';
+  src: url('./aahub.woff2') format('woff2');
+  font-display: swap;
+}
+
+/** AAモードのレス表示 */
+.aares {
+  font-family: 'aahub';
+  font-size: 16px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
 ul#res-list {
   list-style-type: none;
   /* レス表示部の左右の余白設定*/

@@ -6,7 +6,7 @@ import { ChatClient } from 'dank-twitch-irc';
 import { LiveChat } from './youtube-chat';
 import { ipcMain } from 'electron';
 import expressWs from 'express-ws';
-import { readWavFiles, sleep, escapeHtml, unescapeHtml } from './util';
+import { readWavFiles, sleep, escapeHtml, unescapeHtml, judgeAaMessage } from './util';
 // レス取得APIをセット
 import getRes, { getRes as getBbsResponse, getThreadList, threadUrlToBoardInfo } from './getRes';
 import { CommentItem, ImageItem } from './youtube-chat/parser';
@@ -612,7 +612,7 @@ const playSe = async () => {
 };
 ipcMain.on(electronEvent.PLAY_SOUND_END, (event) => (isPlayingSe = false));
 
-export const createDom = (message: UserComment, type: 'chat' | 'server') => {
+export const createDom = (message: UserComment, type: 'chat' | 'server', isAA: boolean) => {
   let domStr = `<li class="list-item">`;
 
   /** レス番とかの行が何かしら表示対象になっているか */
@@ -652,6 +652,9 @@ export const createDom = (message: UserComment, type: 'chat' | 'server') => {
   // 名前や時刻の行が一つも無ければ、改行しない
   if (globalThis.config.newLine && isResNameShowed) {
     domStr += '<br />';
+  } else if (globalThis.config.aamode.enable && isAA) {
+    // AAモードがオンで対象がAAなら強制的に改行する
+    domStr += '<br />';
   }
 
   // リンクを整形する
@@ -665,11 +668,19 @@ export const createDom = (message: UserComment, type: 'chat' | 'server') => {
   const tempText = text.replace(/"http/g, '★★★★http★★★★');
   let commentText = tempText.replace(reg, '<span class="url" onClick=\'urlopen("$1")\'>$1</span>');
   commentText = commentText.replace(/★★★★http★★★★/g, '"http');
-  domStr += `
+  if (isAA) {
+    domStr += `
+    <span class="aares">
+      ${commentText}
+    </span>
+  `;
+  } else {
+    domStr += `
     <span class="res">
       ${commentText}
     </span>
   `;
+  }
 
   // サムネイル表示
   const isThumbnailShow = (globalThis.config.thumbnail == 1 && type === 'chat') || globalThis.config.thumbnail == 2;
@@ -713,8 +724,11 @@ export const createDom = (message: UserComment, type: 'chat' | 'server') => {
  */
 const sendDom = async (messageList: UserComment[]) => {
   try {
+    // AA判定
+    const newList = judgeAaMessage(messageList);
+
     // メッセージをブラウザに送信
-    const domStr = messageList.map((message) => createDom(message, 'server')).join('\n');
+    const domStr = newList.map((message) => createDom(message, 'server', message.isAA)).join('\n');
     const socketObject: CommentSocketMessage = {
       type: 'add',
       message: domStr,
@@ -724,7 +738,7 @@ const sendDom = async (messageList: UserComment[]) => {
     });
 
     // レンダラーのコメント一覧にも表示
-    sendDomForChatWindow(messageList);
+    sendDomForChatWindow(newList);
 
     // レス着信音
     if (config.playSe && globalThis.electron.seList.length > 0) {
@@ -733,16 +747,21 @@ const sendDom = async (messageList: UserComment[]) => {
 
     // 読み子
     if (globalThis.config.typeYomiko !== 'none') {
-      // タグを除去する
-      let text = messageList[messageList.length - 1].text.replace(/<br> /g, '\n ').replace(/<br>/g, '\n ');
-      text = text.replace(/<img.*?\/>/g, '');
-      text = text.replace(/<a .*?>/g, '').replace(/<\/a>/g, '');
-      text = unescapeHtml(text);
+      // 対象のレスがAAで、AAモードが有効なら、読み上げ分はアスキーアートにする
+      if (newList[newList.length - 1].isAA && config.aamode.enable) {
+        await playYomiko(config.aamode.speakWord);
+      } else {
+        // タグを除去する
+        let text = newList[newList.length - 1].text.replace(/<br> /g, '\n ').replace(/<br>/g, '\n ');
+        text = text.replace(/<img.*?\/>/g, '');
+        text = text.replace(/<a .*?>/g, '').replace(/<\/a>/g, '');
+        text = unescapeHtml(text);
 
-      if (globalThis.config.yomikoReplaceNewline) {
-        text = text.replace(/\r\n/g, ' ').replace(/\n/g, ' ');
+        if (globalThis.config.yomikoReplaceNewline) {
+          text = text.replace(/\r\n/g, ' ').replace(/\n/g, ' ');
+        }
+        await playYomiko(text);
       }
-      await playYomiko(text);
     }
 
     // 追加で表示を維持する時間
@@ -760,7 +779,7 @@ const sendDom = async (messageList: UserComment[]) => {
 
 /** チャットウィンドウへのコメント表示 */
 const sendDomForChatWindow = (messageList: UserComment[]) => {
-  const domStr2 = messageList
+  const domStr2 = judgeAaMessage(messageList)
     .map((message) => {
       const imgUrl = message.imgUrl && message.imgUrl.match(/^\./) ? '../../public/' + message.imgUrl : message.imgUrl;
       return {
@@ -768,7 +787,7 @@ const sendDomForChatWindow = (messageList: UserComment[]) => {
         imgUrl,
       };
     })
-    .map((message) => createDom(message, 'chat'))
+    .map((message) => createDom(message, 'chat', message.isAA))
     .join('\n');
   globalThis.electron.chatWindow.webContents.send(electronEvent.SHOW_COMMENT, { config: globalThis.config, dom: domStr2 });
 };
