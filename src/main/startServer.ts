@@ -6,7 +6,7 @@ import { ChatClient } from 'dank-twitch-irc';
 import { LiveChat } from './youtube-chat';
 import { ipcMain } from 'electron';
 import expressWs from 'express-ws';
-import { readWavFiles, sleep, escapeHtml, unescapeHtml, judgeAaMessage } from './util';
+import { readWavFiles, sleep, escapeHtml, unescapeHtml, judgeAaMessage, isNihongo } from './util';
 // レス取得APIをセット
 import getRes, { getRes as getBbsResponse, getThreadList, threadUrlToBoardInfo } from './getRes';
 import { CommentItem, ImageItem } from './youtube-chat/parser';
@@ -15,6 +15,7 @@ import { spawn } from 'child_process';
 import { electronEvent } from './const';
 import NiconamaComment from './niconama';
 import JpnknFast from './jpnkn';
+import tr from 'googletrans';
 
 let app: expressWs.Instance['app'];
 
@@ -228,6 +229,10 @@ ipcMain.on(electronEvent.START_SERVER, async (event: any, config: typeof globalT
   // キュー処理の開始
   isExecuteQue = true;
   taskScheduler(serverId);
+  if (globalThis.config.translate.enable) {
+    globalThis.electron.translateWindow.focus();
+    translateTaskScheduler(serverId);
+  }
 
   // WebSocketを立てる
   app.ws('/ws', (ws, req) => {
@@ -557,16 +562,47 @@ const taskScheduler = async (exeId: number) => {
         temp = temp.reverse();
       }
       sendDom(temp);
+
+      if (globalThis.config.translate.enable) {
+        globalThis.electron.translateQueueList.push(...temp);
+      }
     } else {
       // 1個ずつ
       const comment = globalThis.electron.commentQueueList.shift() as UserComment;
       await sendDom([comment]);
+
+      if (globalThis.config.translate.enable) {
+        globalThis.electron.translateQueueList.push(comment);
+      }
     }
   }
 
   if (isExecuteQue && exeId === serverId) {
     await sleep(100);
     taskScheduler(exeId);
+  }
+};
+
+/**
+ * キューに溜まったコメントをブラウザに表示する
+ */
+const translateTaskScheduler = async (exeId: number) => {
+  if (globalThis.electron?.translateQueueList?.length > 0) {
+    log.info(`[translateTaskScheduler] ${globalThis.electron?.translateQueueList?.length}`);
+    // 1個ずつ
+    const comment = globalThis.electron.translateQueueList.shift() as UserComment;
+    if (globalThis.config.translate.targetLang === 'ja' && !isNihongo(comment.text)) {
+      // 日本語が1文字も入ってなければ翻訳する
+      await sendDomForTranslateWindow(comment);
+    } else if (globalThis.config.translate.targetLang === 'en') {
+      // 英語オンリーってどうやって簡易的に判断するのかよくわからないので全部翻訳する
+      await sendDomForTranslateWindow(comment);
+    }
+  }
+
+  if (isExecuteQue && exeId === serverId) {
+    await sleep(500);
+    translateTaskScheduler(exeId);
   }
 };
 
@@ -801,6 +837,96 @@ const resetInitMessage = () => {
     aWss.clients.forEach((client) => {
       client.send(JSON.stringify(resetObj));
     });
+  }
+};
+
+export const createTranslateDom = (message: UserComment, translated: string) => {
+  let domStr = `<li class="list-item">`;
+
+  /** レス番とかの行が何かしら表示対象になっているか */
+  let isResNameShowed = false;
+
+  // アイコン表示
+  if (globalThis.config.showIcon) {
+    domStr += `
+    <span class="icon-block">
+      <img class="icon" src="${message.imgUrl}">
+    </span>
+    `;
+  }
+
+  domStr += `<div class="content">`;
+
+  // レス番表示
+  if (globalThis.config.showNumber && message.number) {
+    domStr += `
+      <span class="resNumber">${message.number}</span>
+    `;
+    isResNameShowed = true;
+  }
+  // 名前表示
+  if (globalThis.config.showName && message.name) {
+    domStr += `<span class="name">${message.name}</span>`;
+    isResNameShowed = true;
+  }
+  // 時刻表示
+  if (globalThis.config.showTime && message.date) {
+    domStr += `<span class="date">${message.date}</span>`;
+    isResNameShowed = true;
+  }
+
+  // 名前と本文を改行で分ける
+  // 名前や時刻の行が一つも無ければ、改行しない
+  if (isResNameShowed) {
+    domStr += '<br />';
+  }
+
+  domStr += `
+  <div class="res">
+    ${translated}
+  </div>
+  <hr style="margin: 1px;border-top: 1px solid black" />
+  <span class="res-org">
+    ${message.text}
+  </span>
+`;
+
+  // 〆
+  domStr += `</div>
+  </li>`;
+
+  return domStr;
+};
+
+/** 翻訳ウィンドウへのコメント表示 */
+const sendDomForTranslateWindow = async (message: UserComment) => {
+  log.info('[sendDomForTranslateWindow]');
+  message.imgUrl = message.imgUrl && message.imgUrl.match(/^\./) ? '../../public/' + message.imgUrl : message.imgUrl;
+
+  try {
+    const reg = new RegExp("(h?ttps?(://[-_.!~*'()a-zA-Z0-9;/?:@&=+$,%#]+))", 'g');
+    const orgText = message.text
+      .replace(/<a .*?>/g, '') // したらばはアンカーをaタグ化している
+      .replace(/<\\a>/g, '')
+      .replace(/<img .*?>/g, '')
+      .replace(/<\\img>/g, '')
+      .replace(reg, '')
+      .trim();
+    const translated = await tr(orgText, {
+      to: globalThis.config.translate.targetLang,
+      from: 'auto',
+      tld: 'co.jp',
+    });
+    log.info(translated.text);
+    // もし何もテキストとして残らなかったら表示しない
+    if (!translated.text) return '';
+
+    const domStr = createTranslateDom({ ...message, text: orgText }, translated.text);
+
+    globalThis.electron.translateWindow.webContents.send(electronEvent.SHOW_COMMENT_TL, { config: globalThis.config, dom: domStr });
+  } catch (e) {
+    log.error(JSON.stringify(e));
+    globalThis.electron.translateWindow.webContents.send(electronEvent.SHOW_COMMENT_TL, { config: globalThis.config, dom: '<div>翻訳でエラー</div>' });
   }
 };
 

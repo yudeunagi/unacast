@@ -295,6 +295,8 @@ exports.electronEvent = {
     SHOW_COMMENT: 'show-comment',
     /** コメント欄初期化 */
     CLEAR_COMMENT: 'clear-comment',
+    /** 翻訳コメント表示 */
+    SHOW_COMMENT_TL: 'show_comment_translate',
     /** サーバー起動の返信 */
     START_SERVER_REPLY: 'start-server-reply',
     /** 強制的に端にスクロール */
@@ -891,6 +893,7 @@ else {
     globalThis.electron = {
         mainWindow: null,
         chatWindow: null,
+        translateWindow: null,
         seList: [],
         twitchChat: null,
         youtubeChat: null,
@@ -899,6 +902,7 @@ else {
         threadConnectionError: 0,
         threadNumber: 0,
         commentQueueList: [],
+        translateQueueList: [],
     };
     globalThis.config = {};
     // 全てのウィンドウが閉じたら終了
@@ -975,6 +979,12 @@ else {
                     },
                 },
                 {
+                    label: '翻訳',
+                    click: function () {
+                        globalThis.electron.translateWindow.focus();
+                    },
+                },
+                {
                     label: '終了',
                     click: function () {
                         globalThis.electron.mainWindow.close();
@@ -1006,6 +1016,7 @@ else {
             });
         });
         createChatWindow();
+        createTranslateWindow();
     });
     // 音声再生できるようにする
     app.commandLine.appendSwitch('--autoplay-policy', 'no-user-gesture-required');
@@ -1039,6 +1050,38 @@ var createChatWindow = function () {
     chatWindow.loadURL(path_1.default.resolve(__dirname, '../src/html/chat.html'));
     globalThis.electron.chatWindow = chatWindow;
     // chatWindow.webContents.openDevTools();
+};
+var createTranslateWindow = function () {
+    var windowState = electron_window_state_1.default({
+        defaultWidth: 400,
+        defaultHeight: 720,
+        file: 'translateWindow.json',
+    });
+    var iconPath = path_1.default.resolve(__dirname, '../icon.png');
+    var translateWindow = new electron_1.default.BrowserWindow({
+        x: windowState.x,
+        y: windowState.y,
+        width: windowState.width,
+        height: windowState.height,
+        useContentSize: true,
+        icon: iconPath,
+        webPreferences: {
+            nodeIntegration: true,
+        },
+        // タスクバーに表示しない
+        skipTaskbar: true,
+        // 閉じれなくする
+        closable: false,
+    });
+    windowState.manage(translateWindow);
+    translateWindow.setTitle('unacast');
+    translateWindow.setMenu(null);
+    // レンダラーで使用するhtmlファイルを指定する
+    translateWindow.loadURL(path_1.default.resolve(__dirname, '../src/html/translate.html'));
+    // 初期表示は最小化
+    translateWindow.minimize();
+    globalThis.electron.translateWindow = translateWindow;
+    // translateWindow.webContents.openDevTools();
 };
 
 
@@ -2155,7 +2198,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createDom = exports.findSeList = void 0;
+exports.createTranslateDom = exports.createDom = exports.findSeList = void 0;
 var path_1 = __importDefault(__webpack_require__(/*! path */ "path"));
 var express_1 = __importDefault(__webpack_require__(/*! express */ "express"));
 var electron_log_1 = __importDefault(__webpack_require__(/*! electron-log */ "electron-log"));
@@ -2171,6 +2214,7 @@ var child_process_1 = __webpack_require__(/*! child_process */ "child_process");
 var const_1 = __webpack_require__(/*! ./const */ "./src/main/const.ts");
 var niconama_1 = __importDefault(__webpack_require__(/*! ./niconama */ "./src/main/niconama/index.ts"));
 var jpnkn_1 = __importDefault(__webpack_require__(/*! ./jpnkn */ "./src/main/jpnkn/index.ts"));
+var googletrans_1 = __importDefault(__webpack_require__(/*! googletrans */ "googletrans"));
 var app;
 // サーバーをグローバル変数にセットできるようにする（サーバー停止処理のため）
 var server;
@@ -2359,6 +2403,10 @@ electron_1.ipcMain.on(const_1.electronEvent.START_SERVER, function (event, confi
         // キュー処理の開始
         isExecuteQue = true;
         taskScheduler(serverId);
+        if (globalThis.config.translate.enable) {
+            globalThis.electron.translateWindow.focus();
+            translateTaskScheduler(serverId);
+        }
         // WebSocketを立てる
         app.ws('/ws', function (ws, req) {
             ws.on('message', function (message) {
@@ -2708,12 +2756,13 @@ var checkAutoMoveThread = function () { return __awaiter(void 0, void 0, void 0,
  */
 var taskScheduler = function (exeId) { return __awaiter(void 0, void 0, void 0, function () {
     var temp, comment;
-    var _a, _b, _c, _d;
-    return __generator(this, function (_e) {
-        switch (_e.label) {
+    var _a;
+    var _b, _c, _d, _e;
+    return __generator(this, function (_f) {
+        switch (_f.label) {
             case 0:
-                if (!(((_b = (_a = globalThis.electron) === null || _a === void 0 ? void 0 : _a.commentQueueList) === null || _b === void 0 ? void 0 : _b.length) > 0)) return [3 /*break*/, 3];
-                electron_log_1.default.info("[taskScheduler] " + ((_d = (_c = globalThis.electron) === null || _c === void 0 ? void 0 : _c.commentQueueList) === null || _d === void 0 ? void 0 : _d.length));
+                if (!(((_c = (_b = globalThis.electron) === null || _b === void 0 ? void 0 : _b.commentQueueList) === null || _c === void 0 ? void 0 : _c.length) > 0)) return [3 /*break*/, 3];
+                electron_log_1.default.info("[taskScheduler] " + ((_e = (_d = globalThis.electron) === null || _d === void 0 ? void 0 : _d.commentQueueList) === null || _e === void 0 ? void 0 : _e.length));
                 if (!(globalThis.config.commentProcessType === 0)) return [3 /*break*/, 1];
                 temp = __spreadArrays(globalThis.electron.commentQueueList);
                 globalThis.electron.commentQueueList = [];
@@ -2722,21 +2771,65 @@ var taskScheduler = function (exeId) { return __awaiter(void 0, void 0, void 0, 
                     temp = temp.reverse();
                 }
                 sendDom(temp);
+                if (globalThis.config.translate.enable) {
+                    (_a = globalThis.electron.translateQueueList).push.apply(_a, temp);
+                }
                 return [3 /*break*/, 3];
             case 1:
                 comment = globalThis.electron.commentQueueList.shift();
                 return [4 /*yield*/, sendDom([comment])];
             case 2:
-                _e.sent();
-                _e.label = 3;
+                _f.sent();
+                if (globalThis.config.translate.enable) {
+                    globalThis.electron.translateQueueList.push(comment);
+                }
+                _f.label = 3;
             case 3:
                 if (!(isExecuteQue && exeId === serverId)) return [3 /*break*/, 5];
                 return [4 /*yield*/, util_1.sleep(100)];
             case 4:
-                _e.sent();
+                _f.sent();
                 taskScheduler(exeId);
-                _e.label = 5;
+                _f.label = 5;
             case 5: return [2 /*return*/];
+        }
+    });
+}); };
+/**
+ * キューに溜まったコメントをブラウザに表示する
+ */
+var translateTaskScheduler = function (exeId) { return __awaiter(void 0, void 0, void 0, function () {
+    var comment;
+    var _a, _b, _c, _d;
+    return __generator(this, function (_e) {
+        switch (_e.label) {
+            case 0:
+                if (!(((_b = (_a = globalThis.electron) === null || _a === void 0 ? void 0 : _a.translateQueueList) === null || _b === void 0 ? void 0 : _b.length) > 0)) return [3 /*break*/, 4];
+                electron_log_1.default.info("[translateTaskScheduler] " + ((_d = (_c = globalThis.electron) === null || _c === void 0 ? void 0 : _c.translateQueueList) === null || _d === void 0 ? void 0 : _d.length));
+                comment = globalThis.electron.translateQueueList.shift();
+                if (!(globalThis.config.translate.targetLang === 'ja' && !util_1.isNihongo(comment.text))) return [3 /*break*/, 2];
+                // 日本語が1文字も入ってなければ翻訳する
+                return [4 /*yield*/, sendDomForTranslateWindow(comment)];
+            case 1:
+                // 日本語が1文字も入ってなければ翻訳する
+                _e.sent();
+                return [3 /*break*/, 4];
+            case 2:
+                if (!(globalThis.config.translate.targetLang === 'en')) return [3 /*break*/, 4];
+                // 英語オンリーってどうやって簡易的に判断するのかよくわからないので全部翻訳する
+                return [4 /*yield*/, sendDomForTranslateWindow(comment)];
+            case 3:
+                // 英語オンリーってどうやって簡易的に判断するのかよくわからないので全部翻訳する
+                _e.sent();
+                _e.label = 4;
+            case 4:
+                if (!(isExecuteQue && exeId === serverId)) return [3 /*break*/, 6];
+                return [4 /*yield*/, util_1.sleep(500)];
+            case 5:
+                _e.sent();
+                translateTaskScheduler(exeId);
+                _e.label = 6;
+            case 6: return [2 /*return*/];
         }
     });
 }); };
@@ -2965,6 +3058,83 @@ var resetInitMessage = function () {
         });
     }
 };
+var createTranslateDom = function (message, translated) {
+    var domStr = "<li class=\"list-item\">";
+    /** レス番とかの行が何かしら表示対象になっているか */
+    var isResNameShowed = false;
+    // アイコン表示
+    if (globalThis.config.showIcon) {
+        domStr += "\n    <span class=\"icon-block\">\n      <img class=\"icon\" src=\"" + message.imgUrl + "\">\n    </span>\n    ";
+    }
+    domStr += "<div class=\"content\">";
+    // レス番表示
+    if (globalThis.config.showNumber && message.number) {
+        domStr += "\n      <span class=\"resNumber\">" + message.number + "</span>\n    ";
+        isResNameShowed = true;
+    }
+    // 名前表示
+    if (globalThis.config.showName && message.name) {
+        domStr += "<span class=\"name\">" + message.name + "</span>";
+        isResNameShowed = true;
+    }
+    // 時刻表示
+    if (globalThis.config.showTime && message.date) {
+        domStr += "<span class=\"date\">" + message.date + "</span>";
+        isResNameShowed = true;
+    }
+    // 名前と本文を改行で分ける
+    // 名前や時刻の行が一つも無ければ、改行しない
+    if (isResNameShowed) {
+        domStr += '<br />';
+    }
+    domStr += "\n  <div class=\"res\">\n    " + translated + "\n  </div>\n  <hr style=\"margin: 1px;border-top: 1px solid black\" />\n  <span class=\"res-org\">\n    " + message.text + "\n  </span>\n";
+    // 〆
+    domStr += "</div>\n  </li>";
+    return domStr;
+};
+exports.createTranslateDom = createTranslateDom;
+/** 翻訳ウィンドウへのコメント表示 */
+var sendDomForTranslateWindow = function (message) { return __awaiter(void 0, void 0, void 0, function () {
+    var reg, orgText, translated, domStr, e_3;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                electron_log_1.default.info('[sendDomForTranslateWindow]');
+                message.imgUrl = message.imgUrl && message.imgUrl.match(/^\./) ? '../../public/' + message.imgUrl : message.imgUrl;
+                _a.label = 1;
+            case 1:
+                _a.trys.push([1, 3, , 4]);
+                reg = new RegExp("(h?ttps?(://[-_.!~*'()a-zA-Z0-9;/?:@&=+$,%#]+))", 'g');
+                orgText = message.text
+                    .replace(/<a .*?>/g, '') // したらばはアンカーをaタグ化している
+                    .replace(/<\\a>/g, '')
+                    .replace(/<img .*?>/g, '')
+                    .replace(/<\\img>/g, '')
+                    .replace(reg, '')
+                    .trim();
+                return [4 /*yield*/, googletrans_1.default(orgText, {
+                        to: globalThis.config.translate.targetLang,
+                        from: 'auto',
+                        tld: 'co.jp',
+                    })];
+            case 2:
+                translated = _a.sent();
+                electron_log_1.default.info(translated.text);
+                // もし何もテキストとして残らなかったら表示しない
+                if (!translated.text)
+                    return [2 /*return*/, ''];
+                domStr = exports.createTranslateDom(__assign(__assign({}, message), { text: orgText }), translated.text);
+                globalThis.electron.translateWindow.webContents.send(const_1.electronEvent.SHOW_COMMENT_TL, { config: globalThis.config, dom: domStr });
+                return [3 /*break*/, 4];
+            case 3:
+                e_3 = _a.sent();
+                electron_log_1.default.error(JSON.stringify(e_3));
+                globalThis.electron.translateWindow.webContents.send(const_1.electronEvent.SHOW_COMMENT_TL, { config: globalThis.config, dom: '<div>翻訳でエラー</div>' });
+                return [3 /*break*/, 4];
+            case 4: return [2 /*return*/];
+        }
+    });
+}); };
 exports.default = {};
 
 
@@ -2994,7 +3164,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.judgeAaMessage = exports.unescapeHtml = exports.escapeHtml = exports.sleep = exports.readWavFiles = void 0;
+exports.isNihongo = exports.judgeAaMessage = exports.unescapeHtml = exports.escapeHtml = exports.sleep = exports.readWavFiles = void 0;
 var fs_1 = __importDefault(__webpack_require__(/*! fs */ "fs"));
 var readWavFiles = function (path) {
     return new Promise(function (resolve, reject) {
@@ -3061,6 +3231,12 @@ var judgeAaMessage = function (messageList) {
     });
 };
 exports.judgeAaMessage = judgeAaMessage;
+/** 日本語のテキストか */
+var isNihongo = function (message) {
+    var reg = new RegExp('.*[ぁ-んァ-ヶ亜-熙ａ-ｚＡ-Ｚ]+.*');
+    return reg.test(message);
+};
+exports.isNihongo = isNihongo;
 
 
 /***/ }),
@@ -3720,6 +3896,17 @@ module.exports = require("express-ws");
 /***/ (function(module, exports) {
 
 module.exports = require("fs");
+
+/***/ }),
+
+/***/ "googletrans":
+/*!******************************!*\
+  !*** external "googletrans" ***!
+  \******************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = require("googletrans");
 
 /***/ }),
 

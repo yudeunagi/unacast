@@ -71,6 +71,12 @@ body {
   content: ' ';
 }
 
+/* 翻訳前のオリジナルテキスト */
+.res-org {
+  font-size: small;
+  color: lightgoldenrodyellow;
+}
+
 /** AAがズレないフォント */
 @font-face {
   font-family: 'aahub';

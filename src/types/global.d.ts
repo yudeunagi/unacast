@@ -8,6 +8,8 @@ declare global {
   namespace electron {
     let mainWindow: BrowserWindow;
     let chatWindow: BrowserWindow;
+    let translateWindow: BrowserWindow;
+
     /** SEファイルリスト */
     let seList: string[];
     /** Twitchチャットインスタンス */
@@ -24,6 +26,8 @@ declare global {
     let threadConnectionError: number;
     /** コメントの処理待ちリスト */
     let commentQueueList: UserComment[];
+    /** 翻訳の処理待ちリスト */
+    let translateQueueList: UserComment[];
   }
   namespace config {
     /** 掲示板URL */
@@ -122,6 +126,11 @@ declare global {
         words: string[];
       };
       speakWord: string;
+    };
+
+    let translate: {
+      enable: boolean;
+      targetLang: 'ja' | 'en';
     };
   }
 }

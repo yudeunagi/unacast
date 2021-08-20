@@ -25,6 +25,9 @@ export const electronEvent = {
   /** コメント欄初期化 */
   CLEAR_COMMENT: 'clear-comment',
 
+  /** 翻訳コメント表示 */
+  SHOW_COMMENT_TL: 'show_comment_translate',
+
   /** サーバー起動の返信 */
   START_SERVER_REPLY: 'start-server-reply',
 

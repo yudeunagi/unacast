@@ -62,3 +62,10 @@ export const judgeAaMessage = (messageList: UserComment[]) => {
     };
   });
 };
+
+/** 日本語のテキストか */
+export const isNihongo = (message: string) => {
+  const reg = new RegExp('.*[ぁ-んァ-ヶ亜-熙ａ-ｚＡ-Ｚ]+.*');
+
+  return reg.test(message);
+};

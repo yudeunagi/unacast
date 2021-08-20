@@ -36,6 +36,7 @@ if (!app.requestSingleInstanceLock()) {
   globalThis.electron = {
     mainWindow: null as any,
     chatWindow: null as any,
+    translateWindow: null as any,
     seList: [],
     twitchChat: null as any,
     youtubeChat: null as any,
@@ -44,6 +45,7 @@ if (!app.requestSingleInstanceLock()) {
     threadConnectionError: 0,
     threadNumber: 0,
     commentQueueList: [],
+    translateQueueList: [],
   };
 
   globalThis.config = {} as any;
@@ -130,6 +132,12 @@ if (!app.requestSingleInstanceLock()) {
           },
         },
         {
+          label: '翻訳',
+          click: function () {
+            globalThis.electron.translateWindow.focus();
+          },
+        },
+        {
           label: '終了',
           click: function () {
             globalThis.electron.mainWindow.close();
@@ -153,6 +161,7 @@ if (!app.requestSingleInstanceLock()) {
     });
 
     createChatWindow();
+    createTranslateWindow();
   });
 
   // 音声再生できるようにする
@@ -193,4 +202,42 @@ const createChatWindow = () => {
 
   globalThis.electron.chatWindow = chatWindow;
   // chatWindow.webContents.openDevTools();
+};
+
+const createTranslateWindow = () => {
+  const windowState = windowStateKeeper({
+    defaultWidth: 400,
+    defaultHeight: 720,
+    file: 'translateWindow.json',
+  });
+  const iconPath = path.resolve(__dirname, '../icon.png');
+
+  const translateWindow = new electron.BrowserWindow({
+    x: windowState.x,
+    y: windowState.y,
+    width: windowState.width,
+    height: windowState.height,
+
+    useContentSize: true,
+    icon: iconPath,
+    webPreferences: {
+      nodeIntegration: true,
+    },
+    // タスクバーに表示しない
+    skipTaskbar: true,
+    // 閉じれなくする
+    closable: false,
+  });
+  windowState.manage(translateWindow);
+
+  translateWindow.setTitle('unacast');
+  translateWindow.setMenu(null);
+
+  // レンダラーで使用するhtmlファイルを指定する
+  translateWindow.loadURL(path.resolve(__dirname, '../src/html/translate.html'));
+
+  // 初期表示は最小化
+  translateWindow.minimize();
+  globalThis.electron.translateWindow = translateWindow;
+  // translateWindow.webContents.openDevTools();
 };
